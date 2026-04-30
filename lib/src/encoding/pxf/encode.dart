@@ -10,14 +10,14 @@ class MarshalOptions {
   final String indent;
   final bool emitDefaults;
   final String? typeUrl;
-  final TypeResolver? typeResolver;
+  final TypeRegistry typeRegistry;
   final Result? nullFields;
 
   MarshalOptions({
     this.indent = '  ',
     this.emitDefaults = false,
     this.typeUrl,
-    this.typeResolver,
+    this.typeRegistry = const TypeRegistry.empty(),
     this.nullFields,
   });
 
@@ -27,7 +27,7 @@ class MarshalOptions {
       buf: buf,
       indent: indent,
       emitDefaults: emitDefaults,
-      resolver: typeResolver,
+      typeRegistry: typeRegistry,
       nullFields: nullFields,
     );
 
@@ -46,7 +46,7 @@ class _Encoder {
   final StringBuffer buf;
   final String indent;
   final bool emitDefaults;
-  final TypeResolver? resolver;
+  final TypeRegistry typeRegistry;
   final Result? nullFields;
   final Set<String>? nullSet = null; // TODO: implement nullSet from null_mask
   String pathPrefix = '';
@@ -55,7 +55,7 @@ class _Encoder {
     required this.buf,
     required this.indent,
     required this.emitDefaults,
-    this.resolver,
+    required this.typeRegistry,
     this.nullFields,
   });
 
@@ -134,6 +134,19 @@ class _Encoder {
       var valueFi = subInfo.fieldInfo[1]!;
       _writeFieldPrefix(level, fi.name);
       _writeScalar(valueFi, sub.getField(1));
+      buf.write('\n');
+      return;
+    }
+
+    if (isBigInt(subInfo)) {
+      _writeFieldPrefix(level, fi.name);
+      buf.write(_formatBigInt(sub));
+      buf.write('\n');
+      return;
+    }
+    if (isDecimal(subInfo)) {
+      _writeFieldPrefix(level, fi.name);
+      buf.write(_formatDecimal(sub));
       buf.write('\n');
       return;
     }
@@ -302,6 +315,38 @@ class _Encoder {
     if (s.isEmpty || s == 'true' || s == 'false' || s == 'null') return false;
     final identRegex = RegExp(r'^[a-zA-Z_][a-zA-Z0-9._]*$');
     return identRegex.hasMatch(s);
+  }
+
+  String _formatBigInt(GeneratedMessage msg) {
+    var absBytes = msg.getField(1) as List<int>;
+    var negative = msg.getField(2) as bool;
+    if (absBytes.isEmpty) return '0';
+    var hex = absBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+    var val = BigInt.parse(hex, radix: 16);
+    return negative ? '-$val' : '$val';
+  }
+
+  String _formatDecimal(GeneratedMessage msg) {
+    var unscaledBytes = msg.getField(1) as List<int>;
+    var scale = msg.getField(2) as int;
+    var negative = msg.getField(3) as bool;
+    
+    String s;
+    if (unscaledBytes.isEmpty) {
+      s = '0';
+    } else {
+      var hex = unscaledBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+      s = BigInt.parse(hex, radix: 16).toString();
+    }
+    
+    if (scale > 0) {
+      if (s.length <= scale) {
+        s = '0.${s.padLeft(scale, '0')}';
+      } else {
+        s = '${s.substring(0, s.length - scale)}.${s.substring(s.length - scale)}';
+      }
+    }
+    return negative ? '-$s' : s;
   }
 
   String _formatDuration(Duration d) {

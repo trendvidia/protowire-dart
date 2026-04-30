@@ -12,7 +12,7 @@ import 'duration.dart';
 class DirectDecoder {
   final Lexer lex;
   late Token current;
-  final TypeResolver? resolver;
+  final TypeRegistry typeRegistry;
   final bool discardUnknown;
   Result? result;
   GeneratedMessage? rootMsg;
@@ -21,7 +21,7 @@ class DirectDecoder {
 
   DirectDecoder(
     String input, {
-    this.resolver,
+    this.typeRegistry = const TypeRegistry.empty(),
     this.discardUnknown = false,
     this.result,
     this.rootMsg,
@@ -46,180 +46,233 @@ class DirectDecoder {
     var fi = info.byName['_null'];
     if (fi == null) return null;
     if (fi.type == PbFieldType.OM &&
-      fi.subBuilder != null &&
-      fi.subBuilder!().info_.qualifiedMessageName ==
-          'google.protobuf.FieldMask') {
-    return fi;
+        fi.subBuilder != null &&
+        fi.subBuilder!().info_.qualifiedMessageName ==
+            'google.protobuf.FieldMask') {
+      return fi;
     }
     return null;
-    }
+  }
 
-    void decodeDocument(GeneratedMessage msg) {
+  void decodeDocument(GeneratedMessage msg) {
     if (current.kind == TokenKind.atType) {
-    _advance();
-    if (current.kind != TokenKind.ident) {
-      throw PxfError(current.pos, 'expected type name after @type, got ${current.kind.name}');
-    }
-    _advance();
+      _advance();
+      if (current.kind != TokenKind.ident) {
+        throw PxfError(current.pos, 'expected type name after @type, got ${current.kind.name}');
+      }
+      _advance();
     }
     _decodeFields(msg, false);
-    }
+  }
 
-    void _decodeFields(GeneratedMessage msg, bool inBlock) {
+  void _decodeFields(GeneratedMessage msg, bool inBlock) {
     var info = msg.info_;
-    var setOneofs = <int, int>{}; // oneofIndex -> tagNumber
+    var setOneofs = <int, String>{}; // oneofIndex -> fieldName
 
     while (true) {
-    if (inBlock && current.kind == TokenKind.rbrace) {
-      _advance();
-      return;
-    }
-    if (current.kind == TokenKind.eof) {
-      if (inBlock) {
-        throw PxfError(current.pos, 'expected "}", got EOF');
+      if (inBlock && current.kind == TokenKind.rbrace) {
+        _advance();
+        return;
       }
-      return;
-    }
-
-    var pos = current.pos;
-    if (current.kind != TokenKind.ident &&
-        current.kind != TokenKind.string &&
-        current.kind != TokenKind.int) {
-      throw PxfError(pos, 'expected identifier, string, or integer, got ${current.kind.name} ("${current.value}")');
-    }
-    var key = current.value;
-    _advance();
-
-    switch (current.kind) {
-      case TokenKind.equals:
-        _advance();
-        var fi = info.byName[key];
-        if (fi == null) {
-          if (discardUnknown) {
-            _skipValue();
-            continue;
-          }
-          throw PxfError(pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
+      if (current.kind == TokenKind.eof) {
+        if (inBlock) {
+          throw PxfError(current.pos, 'expected "}", got EOF');
         }
-        _checkOneof(fi, setOneofs, pos);
+        return;
+      }
 
-        if (current.kind == TokenKind.null_) {
-          if (result != null) {
-            var path = pathPrefix + fi.name;
-            result!.markNull(path);
-            if (nullMaskFi != null) {
-              _addToNullMask(rootMsg!, nullMaskFi!, path);
-            }
-          }
+      var pos = current.pos;
+      if (current.kind != TokenKind.ident &&
+          current.kind != TokenKind.string &&
+          current.kind != TokenKind.int) {
+        throw PxfError(pos, 'expected identifier, string, or integer, got ${current.kind.name} ("${current.value}")');
+      }
+      var key = current.value;
+      _advance();
+
+      switch (current.kind) {
+        case TokenKind.equals:
           _advance();
-          continue;
-        }
+          var fi = info.byName[key];
+          if (fi == null) {
+            if (discardUnknown) {
+              _skipValue();
+              continue;
+            }
+            throw PxfError(pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
+          }
+          _checkOneof(info, fi, setOneofs, pos);
 
-        if (result != null) {
-          result!.markPresent(pathPrefix + fi.name);
-        }
-        _decodeFieldValue(msg, fi);
-        break;
-
-      case TokenKind.lbrace:
-        _advance();
-        var fi = info.byName[key];
-        if (fi == null) {
-          if (discardUnknown) {
-            _skipBraced();
+          if (current.kind == TokenKind.null_) {
+            if (result != null) {
+              var path = pathPrefix + fi.name;
+              result!.markNull(path);
+              if (nullMaskFi != null) {
+                _addToNullMask(rootMsg!, nullMaskFi!, path);
+              }
+            }
+            _advance();
             continue;
           }
-          throw PxfError(pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
-        }
-        if (fi.type != PbFieldType.OM && fi.type != PbFieldType.PM) {
-          throw PxfError(pos, 'field "$key" is not a message type, cannot use block syntax');
-        }
-        _checkOneof(fi, setOneofs, pos);
 
-        if (result != null) {
-          result!.markPresent(pathPrefix + fi.name);
-        }
-
-        if (fi.isRepeated) {
-          var list = msg.getField(fi.tagNumber) as List;
-          var sub = fi.subBuilder!();
-          var oldPrefix = pathPrefix;
-          pathPrefix = '$oldPrefix${fi.name}.';
-          _decodeFields(sub, true);
-          pathPrefix = oldPrefix;
-          list.add(sub);
-        } else {
-          GeneratedMessage sub;
-          if (!msg.hasField(fi.tagNumber)) {
-            sub = fi.subBuilder!();
-            msg.setField(fi.tagNumber, sub);
-          } else {
-            sub = msg.getField(fi.tagNumber) as GeneratedMessage;
+          if (result != null) {
+            result!.markPresent(pathPrefix + fi.name);
           }
-          var oldPrefix = pathPrefix;
-          pathPrefix = '$oldPrefix${fi.name}.';
-          _decodeFields(sub, true);
-          pathPrefix = oldPrefix;
-        }
-        break;
+          _decodeFieldValue(msg, fi);
+          break;
 
-      default:
-        throw PxfError(current.pos, 'expected "=" or "{" after "$key", got ${current.kind.name}');
-    }
-    }
-    }
+        case TokenKind.lbrace:
+          _advance();
+          var fi = info.byName[key];
+          if (fi == null) {
+            if (discardUnknown) {
+              _skipBraced();
+              continue;
+            }
+            throw PxfError(pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
+          }
 
-    void _checkOneof(FieldInfo fi, Map<int, int> setOneofs, Position pos) {
-    }
+          // Any sugar handling: name { @type = "..." ... }
+          if (isAny(fi.subBuilder!().info_) && current.kind == TokenKind.atType) {
+            _checkOneof(info, fi, setOneofs, pos);
+            if (result != null) {
+              result!.markPresent(pathPrefix + fi.name);
+            }
+            _decodeAnyInner(msg, fi);
+            continue;
+          }
 
-    void _decodeFieldValue(GeneratedMessage msg, FieldInfo fi) {
+          if (fi.type != PbFieldType.OM && fi.type != PbFieldType.PM) {
+            throw PxfError(pos, 'field "$key" is not a message type, cannot use block syntax');
+          }
+          _checkOneof(info, fi, setOneofs, pos);
+
+          if (result != null) {
+            result!.markPresent(pathPrefix + fi.name);
+          }
+
+          if (fi.isRepeated) {
+            var list = msg.getField(fi.tagNumber) as List;
+            var sub = fi.subBuilder!();
+            var oldPrefix = pathPrefix;
+            pathPrefix = '$oldPrefix${fi.name}.';
+            _decodeFields(sub, true);
+            pathPrefix = oldPrefix;
+            list.add(sub);
+          } else {
+            GeneratedMessage sub;
+            if (!msg.hasField(fi.tagNumber)) {
+              sub = fi.subBuilder!();
+              msg.setField(fi.tagNumber, sub);
+            } else {
+              sub = msg.getField(fi.tagNumber) as GeneratedMessage;
+            }
+            var oldPrefix = pathPrefix;
+            pathPrefix = '$oldPrefix${fi.name}.';
+            _decodeFields(sub, true);
+            pathPrefix = oldPrefix;
+          }
+          break;
+
+        default:
+          throw PxfError(current.pos, 'expected "=" or "{" after "$key", got ${current.kind.name}');
+      }
+    }
+  }
+
+  void _checkOneof(BuilderInfo info, FieldInfo fi, Map<int, String> setOneofs, Position pos) {
+    var oneofIndex = info.oneofs[fi.tagNumber];
+    if (oneofIndex != null) {
+      if (setOneofs.containsKey(oneofIndex)) {
+        throw PxfError(pos, 'field "${fi.name}" conflicts with already-set field "${setOneofs[oneofIndex]}" in the same oneof');
+      }
+      setOneofs[oneofIndex] = fi.name;
+    }
+  }
+
+  void _decodeFieldValue(GeneratedMessage msg, FieldInfo fi) {
     if (fi.isRepeated) {
-    if (current.kind == TokenKind.lbracket) {
-      _decodeList(msg, fi);
-    } else {
-      throw PxfError(current.pos, 'expected "[" for repeated field "${fi.name}"');
-    }
+      if (current.kind == TokenKind.lbracket) {
+        _decodeList(msg, fi);
+      } else {
+        throw PxfError(current.pos, 'expected "[" for repeated field "${fi.name}"');
+      }
     } else if (fi.isMapField) {
-    if (current.kind == TokenKind.lbrace) {
-      _decodeMap(msg, fi);
-    } else {
-      throw PxfError(current.pos, 'expected "{" for map field "${fi.name}"');
-    }
+      if (current.kind == TokenKind.lbrace) {
+        _decodeMap(msg, fi);
+      } else {
+        throw PxfError(current.pos, 'expected "{" for map field "${fi.name}"');
+      }
     } else if (fi.type == PbFieldType.OM) {
-    _decodeMessageValue(msg, fi);
+      _decodeMessageValue(msg, fi);
     } else {
-    var val = _consumeScalar(fi);
-    msg.setField(fi.tagNumber, val);
+      var val = _consumeScalar(fi);
+      msg.setField(fi.tagNumber, val);
     }
-    }
+  }
 
-    void _decodeMessageValue(GeneratedMessage msg, FieldInfo fi) {
+  void _decodeMessageValue(GeneratedMessage msg, FieldInfo fi) {
     var subBuilder = fi.subBuilder!;
     var subInfo = subBuilder().info_;
 
     if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
-    var t = DateTime.parse(current.value);
-    var sub = subBuilder();
-    setTimestampFields(sub, t);
-    msg.setField(fi.tagNumber, sub);
-    _advance();
-    return;
+      var t = DateTime.parse(current.value);
+      var sub = subBuilder();
+      setTimestampFields(sub, t);
+      msg.setField(fi.tagNumber, sub);
+      _advance();
+      return;
     }
     if (isDuration(subInfo) && current.kind == TokenKind.duration) {
-    var dur = parseGoDuration(current.value);
-    var sub = subBuilder();
-    setDurationFields(sub, dur);
-    msg.setField(fi.tagNumber, sub);
-    _advance();
-    return;
+      var dur = parseGoDuration(current.value);
+      var sub = subBuilder();
+      setDurationFields(sub, dur);
+      msg.setField(fi.tagNumber, sub);
+      _advance();
+      return;
     }
     if (isWrapperType(subInfo) && current.kind != TokenKind.lbrace) {
-    var valueFi = subInfo.fieldInfo[1]!;
-    var val = _consumeScalar(valueFi);
-    var sub = subBuilder();
-    sub.setField(1, val);
-    msg.setField(fi.tagNumber, sub);
-    return;
+      var valueFi = subInfo.fieldInfo[1]!;
+      var val = _consumeScalar(valueFi);
+      var sub = subBuilder();
+      sub.setField(1, val);
+      msg.setField(fi.tagNumber, sub);
+      return;
+    }
+
+    if (isBigInt(subInfo) && current.kind == TokenKind.int) {
+      var sub = subBuilder();
+      setBigIntFields(sub, current.value);
+      msg.setField(fi.tagNumber, sub);
+      _advance();
+      return;
+    }
+    if (isDecimal(subInfo) && (current.kind == TokenKind.float || current.kind == TokenKind.int)) {
+      var sub = subBuilder();
+      setDecimalFields(sub, current.value);
+      msg.setField(fi.tagNumber, sub);
+      _advance();
+      return;
+    }
+
+    // Any sugar: name = { @type = "..." ... }
+    if (isAny(subInfo) && current.kind == TokenKind.lbrace) {
+      var saved = lex.pos;
+      var savedLine = lex.line;
+      var savedCol = lex.col;
+      var savedTok = current;
+      
+      _advance(); // consume {
+      if (current.kind == TokenKind.atType) {
+        _decodeAnyInner(msg, fi);
+        return;
+      }
+      
+      // Rollback if not Any sugar
+      lex.pos = saved;
+      lex.line = savedLine;
+      lex.col = savedCol;
+      current = savedTok;
     }
 
     if (current.kind != TokenKind.lbrace) {
@@ -237,100 +290,137 @@ class DirectDecoder {
     pathPrefix = '$oldPrefix${fi.name}.';
     _decodeFields(sub, true);
     pathPrefix = oldPrefix;
+  }
 
+  void _decodeAnyInner(GeneratedMessage msg, FieldInfo fi) {
+    if (current.kind != TokenKind.atType) {
+      _advance(); // consume {
+    }
+    _advance(); // consume @type
+    
+    if (current.kind != TokenKind.equals) {
+        throw PxfError(current.pos, 'expected "=" after @type');
+    }
+    _advance();
+
+    if (current.kind != TokenKind.string && current.kind != TokenKind.ident) {
+      throw PxfError(current.pos, 'expected type URL string or identifier after @type');
+    }
+    var typeUrl = current.value;
+    _advance();
+
+    var typeName = typeUrl;
+    if (typeName.contains('/')) {
+      typeName = typeName.substring(typeName.lastIndexOf('/') + 1);
+    }
+    var innerInfo = typeRegistry.lookup(typeName);
+    if (innerInfo == null) {
+      throw PxfError(current.pos, 'unknown type "$typeUrl" in TypeRegistry');
     }
 
-    void _decodeList(GeneratedMessage msg, FieldInfo fi) {
+    var innerMsg = innerInfo.createEmptyInstance!();
+    var oldPrefix = pathPrefix;
+    pathPrefix = '$oldPrefix${fi.name}.';
+    _decodeFields(innerMsg, true);
+    pathPrefix = oldPrefix;
+
+    var anyMsg = fi.subBuilder!();
+    anyMsg.setField(1, typeUrl);
+    anyMsg.setField(2, innerMsg.writeToBuffer());
+    msg.setField(fi.tagNumber, anyMsg);
+  }
+
+  void _decodeList(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume [
     var list = msg.getField(fi.tagNumber) as List;
     while (current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
-    if (current.kind == TokenKind.null_) {
-      throw PxfError(current.pos, 'null is not allowed in repeated field "${fi.name}"');
-    }
-    if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
-      var sub = fi.subBuilder!();
-      if (current.kind == TokenKind.lbrace) {
-        _advance();
-        _decodeFields(sub, true);
-        list.add(sub);
-      } else {
-        var subInfo = sub.info_;
-        if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
-          setTimestampFields(sub, DateTime.parse(current.value));
-          list.add(sub);
+      if (current.kind == TokenKind.null_) {
+        throw PxfError(current.pos, 'null is not allowed in repeated field "${fi.name}"');
+      }
+      if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
+        var sub = fi.subBuilder!();
+        if (current.kind == TokenKind.lbrace) {
           _advance();
-        } else if (isDuration(subInfo) && current.kind == TokenKind.duration) {
-          setDurationFields(sub, parseGoDuration(current.value));
-          list.add(sub);
-          _advance();
-        } else if (isWrapperType(subInfo)) {
-          var valueFi = subInfo.fieldInfo[1]!;
-          var val = _consumeScalar(valueFi);
-          sub.setField(1, val);
+          _decodeFields(sub, true);
           list.add(sub);
         } else {
-          throw PxfError(current.pos, 'expected "{" for message element in list');
+          var subInfo = sub.info_;
+          if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
+            setTimestampFields(sub, DateTime.parse(current.value));
+            list.add(sub);
+            _advance();
+          } else if (isDuration(subInfo) && current.kind == TokenKind.duration) {
+            setDurationFields(sub, parseGoDuration(current.value));
+            list.add(sub);
+            _advance();
+          } else if (isWrapperType(subInfo)) {
+            var valueFi = subInfo.fieldInfo[1]!;
+            var val = _consumeScalar(valueFi);
+            sub.setField(1, val);
+            list.add(sub);
+          } else {
+            throw PxfError(current.pos, 'expected "{" for message element in list');
+          }
         }
+      } else if (fi.type == PbFieldType.PE || fi.type == PbFieldType.OE) {
+        var val = _consumeEnum(fi);
+        list.add(val);
+      } else {
+        var val = _consumeScalar(fi);
+        list.add(val);
       }
-    } else if (fi.type == PbFieldType.PE || fi.type == PbFieldType.OE) {
-      var val = _consumeEnum(fi);
-      list.add(val);
-    } else {
-      var val = _consumeScalar(fi);
-      list.add(val);
-    }
 
-    if (current.kind == TokenKind.comma) {
-      _advance();
-    }
+      if (current.kind == TokenKind.comma) {
+        _advance();
+      }
     }
     if (current.kind != TokenKind.rbracket) {
-    throw PxfError(current.pos, 'expected "]", got ${current.kind.name}');
+      throw PxfError(current.pos, 'expected "]", got ${current.kind.name}');
     }
     _advance();
-    }
+  }
 
-    void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
+  void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume {
     var map = msg.getField(fi.tagNumber) as Map;
 
     while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
-    var pos = current.pos;
-    if (current.kind != TokenKind.ident &&
-        current.kind != TokenKind.string &&
-        current.kind != TokenKind.int) {
-      throw PxfError(pos, 'expected map key, got ${current.kind.name}');
-    }
-    var keyStr = current.value;
-    _advance();
-
-    if (current.kind == TokenKind.colon) {
+      var pos = current.pos;
+      if (current.kind != TokenKind.ident &&
+          current.kind != TokenKind.string &&
+          current.kind != TokenKind.int) {
+        throw PxfError(pos, 'expected map key, got ${current.kind.name}');
+      }
+      var keyStr = current.value;
       _advance();
-    } else if (current.kind == TokenKind.equals) {
-      throw PxfError(current.pos, 'unexpected "=" in map, use ":" for map entries');
-    } else {
-      throw PxfError(current.pos, 'expected ":" after map key, got ${current.kind.name}');
-    }
 
-    Object key = keyStr; 
+      if (current.kind == TokenKind.colon) {
+        _advance();
+      } else if (current.kind == TokenKind.equals) {
+        throw PxfError(current.pos, 'unexpected "=" in map, use ":" for map entries');
+      } else {
+        throw PxfError(current.pos, 'expected ":" after map key, got ${current.kind.name}');
+      }
 
-    if (current.kind == TokenKind.null_) {
-      throw PxfError(current.pos, 'null is not allowed as map value in field "${fi.name}"');
-    }
+      Object key = keyStr; 
 
-    _skipValue(); 
+      if (current.kind == TokenKind.null_) {
+        throw PxfError(current.pos, 'null is not allowed as map value in field "${fi.name}"');
+      }
 
-    if (current.kind == TokenKind.comma) {
-      _advance();
-    }
+      _skipValue(); 
+
+      if (current.kind == TokenKind.comma) {
+        _advance();
+      }
     }
     if (current.kind != TokenKind.rbrace) {
-    throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
+      throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
     }
     _advance();
-    }
+  }
 
-    Object _consumeScalar(FieldInfo fi) {
+  Object _consumeScalar(FieldInfo fi) {
     var pos = current.pos;
     var t = fi.type;
     if (t == PbFieldType.OS || t == PbFieldType.PS || t == PbFieldType.QS) {
@@ -416,13 +506,11 @@ class DirectDecoder {
       return _consumeEnum(fi);
     }
     throw PxfError(pos, 'unsupported type ${fi.type} for field "${fi.name}"');
-    }
+  }
+
   int _consumeEnum(FieldInfo fi) {
     var pos = current.pos;
     if (current.kind == TokenKind.ident) {
-      // Dart's FieldInfo doesn't easily expose enum value names in a simple map
-      // unless it was generated.
-      // For now, let's assume we can't look up by name and throw or implement a fallback.
       throw PxfError(pos, 'enum lookup by name not yet implemented in Dart port');
     } else if (current.kind == TokenKind.int) {
       var v = int.parse(current.value);
@@ -474,7 +562,6 @@ class DirectDecoder {
 
   void _addToNullMask(GeneratedMessage rootMsg, FieldInfo nullMaskFi, String path) {
     var fm = rootMsg.getField(nullMaskFi.tagNumber) as GeneratedMessage;
-    // FieldMask has a 'paths' field at tag 1
     var paths = fm.getField(1) as List<String>;
     paths.add(path);
   }
@@ -486,7 +573,7 @@ class DirectDecoder {
 void unmarshal(String input, GeneratedMessage msg, {UnmarshalOptions? options}) {
   var d = DirectDecoder(
     input,
-    resolver: options?.typeResolver,
+    typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
   );
   d.decodeDocument(msg);

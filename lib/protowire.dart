@@ -8,6 +8,12 @@ library protowire;
 
 export 'src/encoding/pxf/decode.dart';
 export 'src/encoding/pxf/encode.dart';
+export 'src/encoding/pxf/options.dart';
+export 'src/encoding/pxf/errors.dart';
+export 'src/encoding/pxf/wellknown.dart';
 export 'src/encoding/sbe/sbe.dart';
 export 'src/encoding/sbe/view.dart';
+export 'src/encoding/sbe/xmltoproto.dart';
+export 'src/encoding/sbe/prototoxml.dart';
+export 'src/encoding/pb/native.dart';
 export 'src/envelope/envelope.dart';

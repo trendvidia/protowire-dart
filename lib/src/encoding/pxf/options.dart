@@ -1,12 +1,11 @@
 import 'package:protobuf/protobuf.dart';
 
-abstract class TypeResolver {
-  num? findMessageByURL(String url); // Wait, Dart's protobuf TypeRegistry might be different
-}
-
 class UnmarshalOptions {
-  final TypeResolver? typeResolver;
+  final TypeRegistry typeRegistry;
   final bool discardUnknown;
 
-  UnmarshalOptions({this.typeResolver, this.discardUnknown = false});
+  UnmarshalOptions({
+    this.typeRegistry = const TypeRegistry.empty(),
+    this.discardUnknown = false,
+  });
 }

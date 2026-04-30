@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 
@@ -45,6 +46,55 @@ Duration readDuration(GeneratedMessage msg) {
     seconds: seconds.toInt(),
     microseconds: nanos ~/ 1000,
   );
+}
+
+bool isBigInt(BuilderInfo info) {
+  return info.qualifiedMessageName == 'pxf.BigInt';
+}
+
+bool isDecimal(BuilderInfo info) {
+  return info.qualifiedMessageName == 'pxf.Decimal';
+}
+
+bool isBigFloat(BuilderInfo info) {
+  return info.qualifiedMessageName == 'pxf.BigFloat';
+}
+
+void setBigIntFields(GeneratedMessage msg, String raw) {
+  var val = BigInt.parse(raw);
+  var negative = val < BigInt.zero;
+  var abs = val.abs();
+  msg.setField(1, bigIntToBytes(abs));
+  msg.setField(2, negative);
+}
+
+void setDecimalFields(GeneratedMessage msg, String raw) {
+  var negative = raw.startsWith('-');
+  if (negative) raw = raw.substring(1);
+  
+  var dotIndex = raw.indexOf('.');
+  int scale = 0;
+  String unscaledStr;
+  if (dotIndex == -1) {
+    unscaledStr = raw;
+  } else {
+    scale = raw.length - dotIndex - 1;
+    unscaledStr = raw.replaceFirst('.', '');
+  }
+  
+  var unscaled = BigInt.parse(unscaledStr);
+  msg.setField(1, bigIntToBytes(unscaled));
+  msg.setField(2, scale);
+  msg.setField(3, negative);
+}
+
+// TODO: setBigFloatFields (requires more complex parsing)
+
+Uint8List bigIntToBytes(BigInt abs) {
+  if (abs == BigInt.zero) return Uint8List.fromList([0]);
+  var hex = abs.toRadixString(16);
+  if (hex.length % 2 != 0) hex = '0$hex';
+  return Uint8List.fromList(List.generate(hex.length ~/ 2, (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16)));
 }
 
 // Wrapper type check

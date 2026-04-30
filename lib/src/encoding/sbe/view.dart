@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:fixnum/fixnum.dart';
 import 'sbe.dart';
 import 'template.dart';
 
@@ -16,6 +17,19 @@ class View {
     }
     return ft;
   }
+
+  int getInt8(String name) => block.getInt8(_field(name).offset);
+  int getInt16(String name) => block.getInt16(_field(name).offset, byteOrder);
+  int getInt32(String name) => block.getInt32(_field(name).offset, byteOrder);
+  Int64 getInt64(String name) => Int64(block.getInt64(_field(name).offset, byteOrder));
+
+  int getUint8(String name) => block.getUint8(_field(name).offset);
+  int getUint16(String name) => block.getUint16(_field(name).offset, byteOrder);
+  int getUint32(String name) => block.getUint32(_field(name).offset, byteOrder);
+  Int64 getUint64(String name) => Int64(block.getUint64(_field(name).offset, byteOrder));
+
+  double getFloat32(String name) => block.getFloat32(_field(name).offset, byteOrder);
+  double getFloat64(String name) => block.getFloat64(_field(name).offset, byteOrder);
 
   int getInt(String name) {
     final ft = _field(name);
