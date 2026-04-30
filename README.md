@@ -185,6 +185,28 @@ final header = v.getComposite("header");
 final timestamp = header.getUint("timestamp");
 ```
 
+## Proto Compilation
+
+This project uses [Buf](https://buf.build/) for Protobuf management and code generation.
+
+### Prerequisites
+
+1.  Install the `buf` CLI: [Installation Guide](https://docs.buf.build/installation)
+2.  Install the Dart protoc plugin:
+    ```bash
+    dart pub global activate protoc_plugin
+    ```
+
+### Generating Code
+
+To generate Dart code from the `.proto` files in the `proto/` directory:
+
+```bash
+buf generate
+```
+
+The configuration is defined in `buf.yaml` and `buf.gen.yaml`.
+
 ## PXF Dart API
 
 ### Unmarshal

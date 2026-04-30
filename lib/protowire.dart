@@ -17,3 +17,9 @@ export 'src/encoding/sbe/xmltoproto.dart';
 export 'src/encoding/sbe/prototoxml.dart';
 export 'src/encoding/pb/native.dart';
 export 'src/envelope/envelope.dart';
+
+// Generated types
+export 'src/generated/proto/pxf/bignum.pb.dart';
+export 'src/generated/proto/pxf/annotations.pb.dart';
+export 'src/generated/proto/sbe/annotations.pb.dart';
+export 'src/generated/proto/envelope/v1/envelope.pb.dart';

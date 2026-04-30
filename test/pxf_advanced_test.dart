@@ -3,23 +3,8 @@ import 'package:protobuf/protobuf.dart';
 import 'package:protowire/protowire.dart';
 import 'package:fixnum/fixnum.dart';
 
-class Any extends GeneratedMessage {
-  static final BuilderInfo _i = BuilderInfo('Any', package: const PackageName('google.protobuf'))
-    ..aOS(1, 'typeUrl')
-    ..a<List<int>>(2, 'value', PbFieldType.OY)
-    ..hasRequiredFields = false;
-
-  @override
-  BuilderInfo get info_ => _i;
-  @override
-  Any createEmptyInstance() => Any();
-  @override
-  Any clone() => Any()..mergeFromMessage(this);
-  static Any create() => Any();
-  
-  String get typeUrl => getField(1);
-  List<int> get value => getField(2);
-}
+import 'package:protowire/src/generated/proto/pxf/bignum.pb.dart' as pxf;
+import 'package:protowire/src/generated/proto/google/protobuf/any.pb.dart' as pb;
 
 class OneofMessage extends GeneratedMessage {
   static final BuilderInfo _i = BuilderInfo('OneofMessage', package: const PackageName('test'))
@@ -39,7 +24,7 @@ class OneofMessage extends GeneratedMessage {
 
 class AnyContainer extends GeneratedMessage {
   static final BuilderInfo _i = BuilderInfo('AnyContainer', package: const PackageName('test'))
-    ..aOM<Any>(1, 'payload', subBuilder: Any.create)
+    ..aOM<pb.Any>(1, 'payload', subBuilder: pb.Any.create)
     ..hasRequiredFields = false;
 
   @override
@@ -64,39 +49,10 @@ class Payload extends GeneratedMessage {
   static Payload create() => Payload();
 }
 
-class BigIntMsg extends GeneratedMessage {
-  static final BuilderInfo _i = BuilderInfo('BigInt', package: const PackageName('pxf'), createEmptyInstance: () => BigIntMsg())
-    ..a<List<int>>(1, 'abs', PbFieldType.OY)
-    ..aOB(2, 'negative')
-    ..hasRequiredFields = false;
-  @override
-  BuilderInfo get info_ => _i;
-  @override
-  BigIntMsg createEmptyInstance() => BigIntMsg();
-  @override
-  BigIntMsg clone() => BigIntMsg()..mergeFromMessage(this);
-  static BigIntMsg create() => BigIntMsg();
-}
-
-class DecimalMsg extends GeneratedMessage {
-  static final BuilderInfo _i = BuilderInfo('Decimal', package: const PackageName('pxf'), createEmptyInstance: () => DecimalMsg())
-    ..a<List<int>>(1, 'unscaled', PbFieldType.OY)
-    ..a<int>(2, 'scale', PbFieldType.O3)
-    ..aOB(3, 'negative')
-    ..hasRequiredFields = false;
-  @override
-  BuilderInfo get info_ => _i;
-  @override
-  DecimalMsg createEmptyInstance() => DecimalMsg();
-  @override
-  DecimalMsg clone() => DecimalMsg()..mergeFromMessage(this);
-  static DecimalMsg create() => DecimalMsg();
-}
-
 class BigNumContainer extends GeneratedMessage {
   static final BuilderInfo _i = BuilderInfo('BigNumContainer', package: const PackageName('test'))
-    ..aOM<BigIntMsg>(1, 'myInt', subBuilder: BigIntMsg.create)
-    ..aOM<DecimalMsg>(2, 'myDecimal', subBuilder: DecimalMsg.create)
+    ..aOM<pxf.BigInt>(1, 'myInt', subBuilder: pxf.BigInt.create)
+    ..aOM<pxf.Decimal>(2, 'myDecimal', subBuilder: pxf.Decimal.create)
     ..hasRequiredFields = false;
   @override
   BuilderInfo get info_ => _i;
@@ -131,7 +87,7 @@ void main() {
       
       unmarshal(input, msg, options: UnmarshalOptions(typeRegistry: registry));
 
-      final any = msg.getField(1) as Any;
+      final any = msg.getField(1) as pb.Any;
       expect(any.typeUrl, 'test.Payload');
       
       final inner = Payload();
@@ -151,7 +107,7 @@ void main() {
       
       unmarshal(input, msg, options: UnmarshalOptions(typeRegistry: registry));
 
-      final any = msg.getField(1) as Any;
+      final any = msg.getField(1) as pb.Any;
       expect(any.typeUrl, 'test.Payload');
       
       final inner = Payload();
@@ -167,21 +123,21 @@ void main() {
       final msg = BigNumContainer();
       unmarshal(input, msg);
 
-      final bi = msg.getField(1) as BigIntMsg;
-      expect(bi.getField(2), false); // negative
+      final bi = msg.getField(1) as pxf.BigInt;
+      expect(bi.negative, false);
       final expectedAbs = BigInt.parse('123456789012345678901234567890');
       BigInt bytesToBigInt(List<int> bytes) {
         if (bytes.isEmpty) return BigInt.zero;
         var hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
         return BigInt.parse(hex, radix: 16);
       }
-      expect(bytesToBigInt(bi.getField(1)), expectedAbs);
+      expect(bytesToBigInt(bi.abs), expectedAbs);
 
-      final dec = msg.getField(2) as DecimalMsg;
-      expect(dec.getField(3), true); // negative
-      expect(dec.getField(2), 3); // scale
+      final dec = msg.getField(2) as pxf.Decimal;
+      expect(dec.negative, true);
+      expect(dec.scale, 3);
       final expectedUnscaled = BigInt.from(123450);
-      expect(bytesToBigInt(dec.getField(1)), expectedUnscaled);
+      expect(bytesToBigInt(dec.unscaled), expectedUnscaled);
 
       final output = marshal(msg);
       expect(output, contains('myInt = 123456789012345678901234567890'));
