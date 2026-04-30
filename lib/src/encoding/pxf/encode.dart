@@ -328,6 +328,9 @@ class _Encoder {
   }
 }
 
+/// Marshals the provided [msg] into PXF text format.
+/// 
+/// Options can be provided via [options] to customize indentation and output.
 String marshal(GeneratedMessage msg, {MarshalOptions? options}) {
   return (options ?? MarshalOptions()).marshal(msg);
 }

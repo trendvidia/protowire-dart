@@ -480,6 +480,9 @@ class DirectDecoder {
   }
 }
 
+/// Unmarshals PXF text from [input] into the provided [msg].
+/// 
+/// Options can be provided via [options] to customize the unmarshaling process.
 void unmarshal(String input, GeneratedMessage msg, {UnmarshalOptions? options}) {
   var d = DirectDecoder(
     input,

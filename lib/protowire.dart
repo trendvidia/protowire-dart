@@ -1,13 +1,13 @@
-/// Support for doing something awesome.
+/// A high-performance serialization and messaging toolkit for Dart.
 ///
-/// More dartdocs go here.
+/// Protowire provides:
+/// - **PXF**: Human-friendly text serialization for Protobuf.
+/// - **SBE**: Ultra-low-latency binary encoding.
+/// - **Envelope**: Standardized API response structure.
 library protowire;
 
-export 'src/protowire_base.dart';
 export 'src/encoding/pxf/decode.dart';
 export 'src/encoding/pxf/encode.dart';
 export 'src/encoding/sbe/sbe.dart';
 export 'src/encoding/sbe/view.dart';
 export 'src/envelope/envelope.dart';
-
-// TODO: Export any libraries intended for clients of this package.

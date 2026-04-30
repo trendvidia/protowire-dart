@@ -22,18 +22,28 @@ const String encChar = "char";
 
 final Endian byteOrder = Endian.little;
 
+/// Codec provides high-level SBE (Simple Binary Encoding) marshaling and unmarshaling.
+/// 
+/// It maintains a registry of message templates built from Protobuf descriptors.
 class Codec {
   final Map<String, MessageTemplate> _byName = {};
   final Map<int, MessageTemplate> _byID = {};
 
   Codec();
 
+  /// Registers a message type with the codec.
+  /// 
+  /// [info] is the Protobuf BuilderInfo.
+  /// [templateId], [schemaId], and [version] are SBE-specific identifiers.
+  /// [lengths] provides fixed lengths for string/bytes fields.
+  /// [encodings] allows overriding default primitive encodings.
   void registerMessage(BuilderInfo info, int templateId, int schemaId, int version, {Map<int, int>? lengths, Map<int, String>? encodings}) {
     final tmpl = buildTemplate(info, templateId, schemaId, version, lengths: lengths, encodings: encodings);
     _byName[info.qualifiedMessageName] = tmpl;
     _byID[templateId] = tmpl;
   }
 
+  /// Marshals a [msg] to SBE binary format.
   Uint8List marshal(GeneratedMessage msg) {
     final name = msg.info_.qualifiedMessageName;
     final tmpl = _byName[name];
@@ -43,6 +53,7 @@ class Codec {
     return marshalMessage(msg, tmpl);
   }
 
+  /// Unmarshals SBE binary [data] into the provided [msg].
   void unmarshal(Uint8List data, GeneratedMessage msg) {
     final name = msg.info_.qualifiedMessageName;
     final tmpl = _byName[name];
@@ -52,6 +63,7 @@ class Codec {
     unmarshalMessage(data, msg, tmpl);
   }
 
+  /// Creates a zero-allocation [View] over the SBE binary [data].
   View view(Uint8List data) {
     if (data.length < headerSize) {
       throw Exception('sbe: data too short for header');
