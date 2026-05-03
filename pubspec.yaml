@@ -5,7 +5,7 @@ description: >-
   cross-port Envelope. PXF is a human-friendly text serialization format
   backed by protobuf schemas; SBE is a fixed-offset binary format for
   ultra-low-latency workloads; both share the same .proto sources.
-version: 1.0.0
+version: 0.70.0
 repository: https://github.com/trendvidia/protowire-dart
 
 environment:
