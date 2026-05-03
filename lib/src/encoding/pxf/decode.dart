@@ -104,12 +104,16 @@ class DirectDecoder {
           _checkOneof(info, fi, setOneofs, pos);
 
           if (current.kind == TokenKind.null_) {
+            final path = pathPrefix + fi.name;
+            // Result tracking is opt-in via unmarshalFull.
             if (result != null) {
-              var path = pathPrefix + fi.name;
               result!.markNull(path);
-              if (nullMaskFi != null) {
-                _addToNullMask(rootMsg!, nullMaskFi!, path);
-              }
+            }
+            // _null FieldMask population happens whenever the message
+            // declares one — it's not gated on Result so plain unmarshal()
+            // also preserves null state across a protobuf-binary round-trip.
+            if (nullMaskFi != null) {
+              _addToNullMask(rootMsg!, nullMaskFi!, path);
             }
             _advance();
             continue;
@@ -671,20 +675,56 @@ class DirectDecoder {
   }
 
   void _addToNullMask(GeneratedMessage rootMsg, FieldInfo nullMaskFi, String path) {
-    var fm = rootMsg.getField(nullMaskFi.tagNumber) as GeneratedMessage;
-    var paths = fm.getField(1) as List<String>;
+    // Ensure the FieldMask sub-message is mutably set on the root before
+    // appending. getField returns a frozen default for unset fields, so
+    // append-without-set throws "'add' on a read-only list".
+    GeneratedMessage fm;
+    if (!rootMsg.hasField(nullMaskFi.tagNumber)) {
+      fm = nullMaskFi.subBuilder!();
+      rootMsg.setField(nullMaskFi.tagNumber, fm);
+    } else {
+      fm = rootMsg.getField(nullMaskFi.tagNumber) as GeneratedMessage;
+    }
+    final paths = fm.getField(1) as List<String>;
     paths.add(path);
   }
 }
 
 /// Unmarshals PXF text from [input] into the provided [msg].
-/// 
-/// Options can be provided via [options] to customize the unmarshaling process.
+///
+/// Mirrors the Go reference's `pxf.Unmarshal` — silently absorbs `field = null`
+/// entries (without surfacing the null-state to the caller). Any null fields
+/// are recorded into [msg]'s `_null` FieldMask if it declares one, so the
+/// nulls survive a subsequent protobuf-binary round-trip.
+///
+/// Use [unmarshalFull] when you need a [Result] reporting which fields were
+/// set, null, or absent.
 void unmarshal(String input, GeneratedMessage msg, {UnmarshalOptions? options}) {
-  var d = DirectDecoder(
+  final d = DirectDecoder(
     input,
     typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
+    rootMsg: msg,
   );
   d.decodeDocument(msg);
+}
+
+/// Unmarshals PXF text from [input] into [msg] and returns a [Result] with
+/// per-field presence info (set / null / absent by dotted field path).
+///
+/// Mirrors the Go reference's `pxf.UnmarshalFull`. Like [unmarshal], any
+/// null fields are also recorded into [msg]'s `_null` FieldMask if it
+/// declares one.
+Result unmarshalFull(String input, GeneratedMessage msg,
+    {UnmarshalOptions? options}) {
+  final result = Result();
+  final d = DirectDecoder(
+    input,
+    typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
+    discardUnknown: options?.discardUnknown ?? false,
+    result: result,
+    rootMsg: msg,
+  );
+  d.decodeDocument(msg);
+  return result;
 }

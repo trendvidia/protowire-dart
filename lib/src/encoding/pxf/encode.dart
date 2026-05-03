@@ -21,16 +21,24 @@ class MarshalOptions {
   });
 
   String marshal(GeneratedMessage msg) {
-    var buf = StringBuffer();
-    var enc = _Encoder(
+    final buf = StringBuffer();
+    // Discover the root message's _null FieldMask, if it has one. The set
+    // of dotted paths recorded there gates the encoder's null-emission
+    // logic — fields named in the mask emit as `path = null` instead of
+    // the field's zero value.
+    final nullSet = <String>{};
+    final fmPaths = _readNullMaskPaths(msg);
+    if (fmPaths != null) nullSet.addAll(fmPaths);
+    if (nullFields != null) nullSet.addAll(nullFields!.nullFields);
+
+    final enc = _Encoder(
       buf: buf,
       indent: indent,
       emitDefaults: emitDefaults,
       typeRegistry: typeRegistry,
       nullFields: nullFields,
+      nullSet: nullSet,
     );
-
-    // TODO: null_mask discovery
 
     if (typeUrl != null && typeUrl!.isNotEmpty) {
       buf.write('@type $typeUrl\n\n');
@@ -38,6 +46,23 @@ class MarshalOptions {
 
     enc.encodeMessage(msg, 0);
     return buf.toString();
+  }
+
+  /// Reads the dotted paths from a top-level `_null` field of type
+  /// `google.protobuf.FieldMask`, returning null when the message
+  /// doesn't declare one. Mirrors the same discovery the decoder does.
+  static List<String>? _readNullMaskPaths(GeneratedMessage msg) {
+    final fi = msg.info_.byName['_null'];
+    if (fi == null) return null;
+    if (fi.type != PbFieldType.OM) return null;
+    if (fi.subBuilder == null) return null;
+    if (fi.subBuilder!().info_.qualifiedMessageName !=
+        'google.protobuf.FieldMask') {
+      return null;
+    }
+    if (!msg.hasField(fi.tagNumber)) return null;
+    final fm = msg.getField(fi.tagNumber) as GeneratedMessage;
+    return List<String>.from(fm.getField(1) as List);
   }
 }
 
@@ -47,7 +72,7 @@ class _Encoder {
   final bool emitDefaults;
   final TypeRegistry typeRegistry;
   final Result? nullFields;
-  final Set<String>? nullSet = null; // TODO: implement nullSet from null_mask
+  final Set<String> nullSet;
   String pathPrefix = '';
 
   _Encoder({
@@ -55,6 +80,7 @@ class _Encoder {
     required this.indent,
     required this.emitDefaults,
     required this.typeRegistry,
+    required this.nullSet,
     this.nullFields,
   });
 
@@ -76,12 +102,17 @@ class _Encoder {
 
     for (var tag in fieldNumbers) {
       var fi = info.fieldInfo[tag]!;
-      
-      // Skip _null field
+
+      // Skip _null field — the FieldMask's contents are emitted as
+      // `field = null` lines at the matching scope below.
       if (fi.name == '_null' && pathPrefix == '') continue;
 
-      // TODO(PR4): consult nullSet/nullFields here so that fields previously
-      // recorded as null in the FieldMask survive a marshal-decode round-trip.
+      final path = '$pathPrefix${fi.name}';
+      if (nullSet.contains(path)) {
+        _writeIndent(level);
+        buf.write('${fi.name} = null\n');
+        continue;
+      }
 
       if (!emitDefaults && !msg.hasField(tag)) {
         continue;

@@ -77,26 +77,17 @@ buf generate          # regen lib/src/generated/proto/ from proto/*.proto
 
 ## What this repo does NOT contain (yet)
 
-These gaps are tracked in the protowire-dart code-review PR series:
-
-- **Public `unmarshalFull`** returning a presence `Result`. The
-  `DirectDecoder` plumbs a `Result?` field internally but no public API
-  exposes it (PR4).
-- **`(pxf.required)` / `(pxf.default)` enforcement.** The annotation
-  extension fields are loaded into the proto descriptors but never
-  read by the encoder/decoder (PR4).
-- **`_null` FieldMask round-trip**. The decoder writes paths into the
-  FieldMask field, but the encoder doesn't read them back (PR4).
-- **Map decoder is a stub** (`decode.dart` `_decodeMap`): it parses the
-  surface syntax but doesn't insert into the target map. Map fields
-  silently drop on decode (PR2).
-- **Enum-by-name decoding** throws "not yet implemented in Dart port"
-  (PR2).
-- **Encoder `Any` marshaling missing** while decoding works — round-trip
-  with Any breaks (PR2).
-- **Cross-port harness binaries (bin/) absent.** No `dump_envelope`,
-  `bench_pxf`, `bench_sbe`. The Dart port isn't wired into
-  `protowire/scripts/cross_*_bench.sh` or `cross_envelope_check.sh` (PR3).
+- **`(pxf.required)` / `(pxf.default)` annotation enforcement.** The
+  protobuf-package descriptors expose `FieldOptions` (unlike Swift),
+  so this is implementable — it just hasn't been wired up yet. The
+  decoder doesn't validate required-but-absent fields, and absent
+  fields don't pick up declared defaults.
+- **bench-pxf / bench-sbe cross-port harness binaries.** The Dart port
+  ships `bin/dump_envelope.dart` (verified byte-identical to Go) but
+  not the bench harnesses. They need a buf-generated `bench.v1.Config`
+  and `bench.v1.Order` under the dart proto/ tree (currently absent),
+  plus a runtime SBE template wiring sized to match the canonical
+  94-byte fixture.
 
 ## Working conventions
 
