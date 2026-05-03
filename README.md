@@ -283,3 +283,21 @@ lib/
 ## Additional information
 
 This project is a Dart port of [trendvidia/protowire](https://github.com/trendvidia/protowire). It maintains binary compatibility with the Go implementation.
+
+## Limitations & open gaps
+
+Built on the official `protobuf` Dart package (`GeneratedMessage`, `BuilderInfo`, `FieldInfo`, `MapFieldInfo`). A few items fall out of that or are deferred:
+
+- **`(pxf.required)` / `(pxf.default)` annotation enforcement is not yet implemented.** The Dart `protobuf` package exposes `FieldOptions` via `BuilderInfo` (unlike Swift's swift-protobuf), so this is tractable — it just hasn't landed yet. The decoder doesn't validate required-but-absent fields, and absent fields don't pick up declared defaults. **High-value contribution opportunity.**
+- **`bench-pxf` and `bench-sbe` cross-port harness binaries are missing.** The dart port ships `bin/dump_envelope.dart` (verified byte-identical to Go), but the bench harnesses need a buf-generated `bench.v1.Config` / `bench.v1.Order` under the local `proto/` tree (currently absent), plus runtime SBE template wiring sized to the canonical 94-byte fixture.
+- **`lib/src/encoding/pb/native.dart` uses `dart:mirrors`** — JIT/development only. The umbrella library deliberately does not re-export it; users opting in have to import the explicit path. Flutter and AOT-compiled binaries will crash if they pull it in. A non-mirrors codegen path would be welcome.
+- **The umbrella library hides `BigInt`, `Decimal`, `BigFloat`, `Annotations`, and the proto-generated `Envelope` from re-export** to avoid name clashes. Users who need them import the explicit path with `as pxf` / `as pxf_anno` etc. Documented in [CLAUDE.md](CLAUDE.md).
+- **No standalone Dart CLI.** The shared CLI lives in [trendvidia/protowire/cmd/protowire](https://github.com/trendvidia/protowire/tree/main/cmd/protowire); Dart users invoke it as a binary.
+
+## Contributing & governance
+
+This repository is part of the `protowire-*` family and is governed by [**Steward**](https://github.com/trendvidia/steward) — the meritocratic, AI-driven governance engine that runs all of the ports. Voting weight is per-directory expertise, the constitution is public in [`governance.pxf`](https://github.com/trendvidia/steward/blob/main/governance.pxf), and Steward routes draft / first-time PRs through a [private mentorship pipeline](https://github.com/trendvidia/steward#-private-mentorship-mode) so initial contributions get private feedback rather than public-review friction.
+
+If any of the items above sound interesting, pull requests are welcome. New contributors start at zero trust and accumulate influence by shipping merged PRs in the directories they actually work on — the [escrow pipeline](https://github.com/trendvidia/steward#%EF%B8%8F-the-escrow-pipeline-zero-trust-onboarding) auto-routes large first-time PRs through 2–3 sandbox issues before unlocking them for community review.
+
+See the [Steward README](https://github.com/trendvidia/steward) for a longer walkthrough of vector reputation, escrow, and the immune system.
