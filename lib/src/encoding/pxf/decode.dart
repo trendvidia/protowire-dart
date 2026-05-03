@@ -380,9 +380,11 @@ class DirectDecoder {
     _advance();
   }
 
+  // TODO(PR2): the map decoder is a stub — it parses the surface syntax
+  // but does not insert into the target map. Map fields silently disappear
+  // from decoded messages. Tracked at https://github.com/trendvidia/protowire-dart
   void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume {
-    var map = msg.getField(fi.tagNumber) as Map;
 
     while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
       var pos = current.pos;
@@ -391,8 +393,7 @@ class DirectDecoder {
           current.kind != TokenKind.int) {
         throw PxfError(pos, 'expected map key, got ${current.kind.name}');
       }
-      var keyStr = current.value;
-      _advance();
+      _advance(); // consume key
 
       if (current.kind == TokenKind.colon) {
         _advance();
@@ -402,13 +403,11 @@ class DirectDecoder {
         throw PxfError(current.pos, 'expected ":" after map key, got ${current.kind.name}');
       }
 
-      Object key = keyStr; 
-
       if (current.kind == TokenKind.null_) {
         throw PxfError(current.pos, 'null is not allowed as map value in field "${fi.name}"');
       }
 
-      _skipValue(); 
+      _skipValue();
 
       if (current.kind == TokenKind.comma) {
         _advance();

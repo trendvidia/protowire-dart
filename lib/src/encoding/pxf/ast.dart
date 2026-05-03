@@ -1,5 +1,4 @@
 import 'token.dart';
-import 'package:fixnum/fixnum.dart';
 
 class Comment {
   final Position pos;

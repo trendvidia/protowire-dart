@@ -1,19 +1,22 @@
 name: protowire
-description: A starting point for Dart libraries or applications.
+description: >-
+  Dart port of trendvidia/protowire — a serialization toolkit built around
+  PXF (Proto eXpressive Format), SBE (Simple Binary Encoding), and a
+  cross-port Envelope. PXF is a human-friendly text serialization format
+  backed by protobuf schemas; SBE is a fixed-offset binary format for
+  ultra-low-latency workloads; both share the same .proto sources.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/trendvidia/protowire-dart
 
 environment:
   sdk: ^3.0.0
 
-# dependencies:
-#   path: ^1.8.0
-
-dev_dependencies:
-  lints: ^6.1.0
-  test: ^1.21.0
 dependencies:
   benchmark_harness: ^2.4.0
   fixnum: ^1.1.0
   protobuf: ^6.0.0
   xml: ^7.0.1
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.21.0

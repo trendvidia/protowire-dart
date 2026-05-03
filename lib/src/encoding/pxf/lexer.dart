@@ -20,17 +20,6 @@ class Lexer {
     return input.codeUnitAt(i);
   }
 
-  String get _peek {
-    if (pos >= input.length) return '';
-    return input[pos];
-  }
-
-  String _peekAt(int offset) {
-    int i = pos + offset;
-    if (i >= input.length) return '';
-    return input[i];
-  }
-
   int _advance() {
     if (pos >= input.length) return 0;
     int ch = input.codeUnitAt(pos);

@@ -1,5 +1,4 @@
 import 'package:protobuf/protobuf.dart';
-import 'xmlschema.dart';
 
 String protoToXml(BuilderInfo info, int schemaId, int version, {String? package}) {
   final strLengths = <int>{};
@@ -124,7 +123,6 @@ void _writeXmlMessage(StringBuffer sb, BuilderInfo info, int templateId) {
   final sortedTags = info.fieldInfo.keys.toList()..sort();
   for (final tag in sortedTags) {
     final fi = info.fieldInfo[tag]!;
-    final fieldName = snakeToCamel(fi.name);
     if (fi.isRepeated && (fi.type & _MESSAGE_BIT) != 0) {
       _writeXmlGroup(sb, fi, '        ');
     } else {

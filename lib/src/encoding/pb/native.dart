@@ -1,3 +1,19 @@
+/// Reflection-driven Protobuf binary codec for arbitrary Dart classes
+/// annotated with `@ProtoTag`.
+///
+/// **JIT / development only.** This file uses `dart:mirrors`, which Dart
+/// explicitly does not support on Flutter or in any AOT-compiled binary
+/// (`dart compile exe`, `dart compile aot-snapshot`). It must not be used
+/// in production. The umbrella `package:protowire/protowire.dart` does
+/// not re-export it; importing it requires opting in via the explicit
+/// path `package:protowire/src/encoding/pb/native.dart`.
+///
+/// The signatures it relies on inside `package:protobuf` (notably
+/// `BuilderInfo.add` with positional arguments) are not part of the
+/// protobuf package's documented public API and may break across minor
+/// version bumps.
+library;
+
 import 'dart:mirrors';
 import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';

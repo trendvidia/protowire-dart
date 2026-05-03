@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
-import 'options.dart';
 import 'result.dart';
 import 'wellknown.dart';
 
@@ -81,9 +79,8 @@ class _Encoder {
       // Skip _null field
       if (fi.name == '_null' && pathPrefix == '') continue;
 
-      var path = '$pathPrefix${fi.name}';
-      
-      // TODO: Handle nullSet/nullFields
+      // TODO(PR4): consult nullSet/nullFields here so that fields previously
+      // recorded as null in the FieldMask survive a marshal-decode round-trip.
 
       if (!emitDefaults && !msg.hasField(tag)) {
         continue;

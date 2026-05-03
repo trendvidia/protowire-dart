@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:protowire/src/encoding/pb/native.dart';
-import 'package:fixnum/fixnum.dart';
 
 class User {
   @ProtoTag(1)
