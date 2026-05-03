@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'result.dart';
@@ -148,13 +149,60 @@ class _Encoder {
       return;
     }
 
-    // TODO: BigInt, Decimal, BigFloat, Any
+    if (isAny(subInfo)) {
+      _writeAny(fi.name, sub, level);
+      return;
+    }
 
     _writeIndent(level);
     buf.write('${fi.name} {\n');
-    var oldPrefix = pathPrefix;
+    final oldPrefix = pathPrefix;
     pathPrefix = '$oldPrefix${fi.name}.';
     encodeMessage(sub, level + 1);
+    pathPrefix = oldPrefix;
+    _writeIndent(level);
+    buf.write('}\n');
+  }
+
+  /// Emits an Any field using the @type-sugared block form. The inner
+  /// payload is decoded through the TypeRegistry before re-emitting, so the
+  /// output matches the format produced by the cross-port marshalers.
+  /// Falls back to the regular `name = { type_url = ..., value = b"..." }`
+  /// nested-message form when the inner type isn't in the registry.
+  void _writeAny(String name, GeneratedMessage anyMsg, int level) {
+    final typeUrl = anyMsg.getField(1) as String;
+    final payload = anyMsg.getField(2) as List<int>;
+
+    var typeName = typeUrl;
+    final slash = typeName.lastIndexOf('/');
+    if (slash >= 0) typeName = typeName.substring(slash + 1);
+
+    final innerInfo = typeRegistry.lookup(typeName);
+    if (innerInfo == null) {
+      // No registered type — emit as a plain message: `name = { type_url
+      // = "...", value = b"..." }`. This still round-trips through PXF
+      // since the proto generated Any has fields type_url=1, value=2.
+      _writeIndent(level);
+      buf.write('$name {\n');
+      final oldPrefix = pathPrefix;
+      pathPrefix = '$oldPrefix$name.';
+      encodeMessage(anyMsg, level + 1);
+      pathPrefix = oldPrefix;
+      _writeIndent(level);
+      buf.write('}\n');
+      return;
+    }
+
+    final inner = innerInfo.createEmptyInstance!();
+    inner.mergeFromBuffer(Uint8List.fromList(payload));
+
+    _writeIndent(level);
+    buf.write('$name {\n');
+    _writeIndent(level + 1);
+    buf.write('@type = "$typeUrl"\n');
+    final oldPrefix = pathPrefix;
+    pathPrefix = '$oldPrefix$name.';
+    encodeMessage(inner, level + 1);
     pathPrefix = oldPrefix;
     _writeIndent(level);
     buf.write('}\n');
@@ -210,25 +258,54 @@ class _Encoder {
     _writeFieldPrefix(level, fi.name);
     buf.write('{\n');
 
-    var keys = map.keys.toList()..sort();
+    // MapFieldInfo carries the actual value FieldInfo so we can route
+    // through the same scalar / WKT / message paths the rest of the
+    // encoder uses, rather than guessing from the runtime type.
+    final FieldInfo? valueFi = fi is MapFieldInfo ? fi.valueFieldInfo : null;
 
-    for (var k in keys) {
-      var v = map[k];
+    final keys = map.keys.toList()..sort((a, b) => '$a'.compareTo('$b'));
+
+    for (final k in keys) {
+      final v = map[k];
       _writeIndent(level + 1);
       buf.write(_formatMapKey(k));
       buf.write(': ');
-      
-      // In Dart GeneratedMessage, map values are usually handled via subBuilder if they are messages.
-      // But FieldInfo for maps is a bit special.
+
       if (v is GeneratedMessage) {
-        buf.write('{\n');
-        encodeMessage(v, level + 2);
-        _writeIndent(level + 1);
-        buf.write('}\n');
+        final subInfo = v.info_;
+        if (isTimestamp(subInfo)) {
+          buf.write(readTimestamp(v).toIso8601String());
+          buf.write('\n');
+        } else if (isDuration(subInfo)) {
+          buf.write(_formatDuration(readDuration(v)));
+          buf.write('\n');
+        } else if (isWrapperType(subInfo)) {
+          final innerFi = subInfo.fieldInfo[1]!;
+          _writeScalar(innerFi, v.getField(1) as Object);
+          buf.write('\n');
+        } else {
+          buf.write('{\n');
+          encodeMessage(v, level + 2);
+          _writeIndent(level + 1);
+          buf.write('}\n');
+        }
+      } else if (valueFi != null && valueFi.type == PbFieldType.OE) {
+        // Enum value: prefer name form (matches the decoder's enum-by-name
+        // path). The protobuf-package APIs expose a valueOf for the
+        // numeric → ProtobufEnum conversion.
+        final lookup = valueFi.valueOf;
+        if (lookup != null && v is int) {
+          final ev = lookup(v);
+          if (ev != null) {
+            buf.write(ev.name);
+            buf.write('\n');
+            continue;
+          }
+        }
+        buf.write(v?.toString() ?? '0');
+        buf.write('\n');
       } else {
-        // Need to know value type. For simplicity, assume it's a scalar if not GeneratedMessage.
-        // This is a bit of a hack without MapFieldInfo.
-        _writeScalarValue(v);
+        _writeScalarValue(v as Object);
         buf.write('\n');
       }
     }

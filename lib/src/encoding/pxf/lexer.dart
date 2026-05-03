@@ -155,45 +155,135 @@ class Lexer {
 
   Token _lexString(Position p) {
     _advance(); // opening "
-    StringBuffer sb = StringBuffer();
+    final sb = StringBuffer();
     while (pos < input.length) {
-      int ch = _advance();
-      if (ch == 34) {
-        // "
+      final ch = _advance();
+      if (ch == 0x22) {
+        // closing "
         return Token(TokenKind.string, sb.toString(), p);
       }
-      if (ch == 92) {
-        // \
-        if (pos >= input.length) {
-          return Token(TokenKind.illegal, 'unterminated escape sequence', p);
-        }
-        int esc = _advance();
-        switch (esc) {
-          case 34: // "
-            sb.write('"');
-            break;
-          case 92: // \
-            sb.write('\\');
-            break;
-          case 110: // n
-            sb.write('\n');
-            break;
-          case 116: // t
-            sb.write('\t');
-            break;
-          case 114: // r
-            sb.write('\r');
-            break;
-          default:
-            sb.write('\\');
-            sb.write(String.fromCharCode(esc));
-        }
+      if (ch != 0x5C) {
+        // not \, append the original code unit
+        sb.writeCharCode(ch);
         continue;
       }
-      sb.write(String.fromCharCode(ch));
+      if (pos >= input.length) {
+        return Token(TokenKind.illegal, 'unterminated escape sequence', p);
+      }
+      final esc = _advance();
+      switch (esc) {
+        case 0x22: // \"
+        case 0x5C: // \\
+        case 0x27: // \'
+        case 0x3F: // \?
+          sb.writeCharCode(esc);
+          break;
+        case 0x61: sb.writeCharCode(0x07); break; // \a
+        case 0x62: sb.writeCharCode(0x08); break; // \b
+        case 0x66: sb.writeCharCode(0x0C); break; // \f
+        case 0x6E: sb.writeCharCode(0x0A); break; // \n
+        case 0x72: sb.writeCharCode(0x0D); break; // \r
+        case 0x74: sb.writeCharCode(0x09); break; // \t
+        case 0x76: sb.writeCharCode(0x0B); break; // \v
+        case 0x78: // \xHH
+          final b = _readHexByte();
+          if (b == null) {
+            return Token(TokenKind.illegal,
+                r'invalid \x escape: expected 2 hex digits', p);
+          }
+          sb.writeCharCode(b);
+          break;
+        case 0x30: case 0x31: case 0x32: case 0x33: // \nnn (3 octal, 0-3 first)
+          final b = _readOctRest(esc);
+          if (b == null) {
+            return Token(TokenKind.illegal,
+                'invalid octal escape: expected 3 octal digits', p);
+          }
+          sb.writeCharCode(b);
+          break;
+        case 0x75: // \uHHHH
+          final r = _readHexRune(4);
+          if (r == null || !_isValidRune(r)) {
+            return Token(TokenKind.illegal,
+                r'invalid \u escape: expected 4 hex digits forming a valid codepoint',
+                p);
+          }
+          sb.writeCharCode(r);
+          break;
+        case 0x55: // \UHHHHHHHH
+          final r = _readHexRune(8);
+          if (r == null || !_isValidRune(r)) {
+            return Token(TokenKind.illegal,
+                r'invalid \U escape: expected 8 hex digits forming a valid codepoint',
+                p);
+          }
+          if (r > 0xFFFF) {
+            // Astral plane: encode as a UTF-16 surrogate pair so the
+            // resulting Dart string round-trips through codeUnits.
+            sb.writeCharCode(0xD800 + ((r - 0x10000) >> 10));
+            sb.writeCharCode(0xDC00 + ((r - 0x10000) & 0x3FF));
+          } else {
+            sb.writeCharCode(r);
+          }
+          break;
+        default:
+          return Token(TokenKind.illegal,
+              'unknown escape sequence \\${String.fromCharCode(esc)}', p);
+      }
     }
     return Token(TokenKind.illegal, 'unterminated string', p);
   }
+
+  /// Reads exactly two hex digits and returns the assembled byte.
+  int? _readHexByte() {
+    if (pos + 1 >= input.length) return null;
+    final hi = _hexVal(input.codeUnitAt(pos));
+    final lo = _hexVal(input.codeUnitAt(pos + 1));
+    if (hi == null || lo == null) return null;
+    _advance();
+    _advance();
+    return (hi << 4) | lo;
+  }
+
+  /// Reads exactly `n` hex digits and returns the assembled code point.
+  int? _readHexRune(int n) {
+    if (pos + n > input.length) return null;
+    var value = 0;
+    for (var i = 0; i < n; i++) {
+      final v = _hexVal(input.codeUnitAt(pos));
+      if (v == null) return null;
+      value = (value << 4) | v;
+      _advance();
+    }
+    return value;
+  }
+
+  /// Reads two more octal digits after the leading one already consumed.
+  /// `first` is restricted to ASCII '0'-'3' so the value never overflows
+  /// a byte.
+  int? _readOctRest(int first) {
+    if (pos + 1 >= input.length) return null;
+    final d1 = _octVal(input.codeUnitAt(pos));
+    final d2 = _octVal(input.codeUnitAt(pos + 1));
+    if (d1 == null || d2 == null) return null;
+    _advance();
+    _advance();
+    return ((first - 0x30) << 6) | (d1 << 3) | d2;
+  }
+
+  static int? _hexVal(int ch) {
+    if (ch >= 0x30 && ch <= 0x39) return ch - 0x30;
+    if (ch >= 0x61 && ch <= 0x66) return ch - 0x61 + 10;
+    if (ch >= 0x41 && ch <= 0x46) return ch - 0x41 + 10;
+    return null;
+  }
+
+  static int? _octVal(int ch) =>
+      (ch >= 0x30 && ch <= 0x37) ? ch - 0x30 : null;
+
+  /// Mirrors Go's utf8.ValidRune: in [0, 0x10FFFF] and not a UTF-16 surrogate.
+  static bool _isValidRune(int r) =>
+      r >= 0 && r <= 0x10FFFF && (r < 0xD800 || r > 0xDFFF);
 
   Token _lexTripleString(Position p) {
     _advance(); // "

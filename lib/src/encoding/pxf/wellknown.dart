@@ -15,36 +15,39 @@ bool isAny(BuilderInfo info) {
 }
 
 void setTimestampFields(GeneratedMessage msg, DateTime t) {
-  // Use tag numbers instead of names because GeneratedMessage works better with tags
-  // seconds = 1, nanos = 2
-  msg.setField(1, Int64(t.millisecondsSinceEpoch ~/ 1000));
-  msg.setField(2, (t.millisecondsSinceEpoch % 1000) * 1000000);
+  // google.protobuf.Timestamp: seconds = 1, nanos = 2.
+  // Dart's DateTime resolves to microseconds, so we can preserve up to
+  // 6 fractional digits — going through millisecondsSinceEpoch (the
+  // original implementation) silently rounded to 3 fractional digits.
+  final us = t.toUtc().microsecondsSinceEpoch;
+  msg.setField(1, Int64(us ~/ 1000000));
+  msg.setField(2, (us % 1000000) * 1000); // micros → nanos
 }
 
 void setDurationFields(GeneratedMessage msg, Duration dur) {
   // seconds = 1, nanos = 2
-  int microseconds = dur.inMicroseconds;
-  int seconds = microseconds ~/ 1000000;
-  int nanos = (microseconds % 1000000) * 1000;
-  msg.setField(1, Int64(seconds));
-  msg.setField(2, nanos);
+  final us = dur.inMicroseconds;
+  msg.setField(1, Int64(us ~/ 1000000));
+  msg.setField(2, (us % 1000000) * 1000);
 }
 
 DateTime readTimestamp(GeneratedMessage msg) {
-  Int64 seconds = msg.getField(1);
-  int nanos = msg.getField(2);
-  return DateTime.fromMillisecondsSinceEpoch(
-    seconds.toInt() * 1000 + nanos ~/ 1000000,
+  final seconds = msg.getField(1) as Int64;
+  final nanos = msg.getField(2) as int;
+  // Microseconds = seconds * 1e6 + nanos / 1000 — preserves the full
+  // DateTime resolution. nanos is always in [0, 1e9), so the divide
+  // truncates toward zero on the same sign as seconds.
+  return DateTime.fromMicrosecondsSinceEpoch(
+    seconds.toInt() * 1000000 + nanos ~/ 1000,
     isUtc: true,
   );
 }
 
 Duration readDuration(GeneratedMessage msg) {
-  Int64 seconds = msg.getField(1);
-  int nanos = msg.getField(2);
+  final seconds = msg.getField(1) as Int64;
+  final nanos = msg.getField(2) as int;
   return Duration(
-    seconds: seconds.toInt(),
-    microseconds: nanos ~/ 1000,
+    microseconds: seconds.toInt() * 1000000 + nanos ~/ 1000,
   );
 }
 

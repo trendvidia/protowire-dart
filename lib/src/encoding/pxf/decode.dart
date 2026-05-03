@@ -380,34 +380,45 @@ class DirectDecoder {
     _advance();
   }
 
-  // TODO(PR2): the map decoder is a stub — it parses the surface syntax
-  // but does not insert into the target map. Map fields silently disappear
-  // from decoded messages. Tracked at https://github.com/trendvidia/protowire-dart
   void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume {
 
+    if (fi is! MapFieldInfo) {
+      throw PxfError(current.pos,
+          'internal: field "${fi.name}" is map-typed but FieldInfo is not MapFieldInfo');
+    }
+    final mapFi = fi;
+    final map = msg.getField(fi.tagNumber) as Map;
+    final valueFi = mapFi.valueFieldInfo;
+
     while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
-      var pos = current.pos;
+      final pos = current.pos;
       if (current.kind != TokenKind.ident &&
           current.kind != TokenKind.string &&
           current.kind != TokenKind.int) {
         throw PxfError(pos, 'expected map key, got ${current.kind.name}');
       }
-      _advance(); // consume key
+      final keyRaw = current.value;
+      _advance(); // consume key token
 
-      if (current.kind == TokenKind.colon) {
-        _advance();
-      } else if (current.kind == TokenKind.equals) {
-        throw PxfError(current.pos, 'unexpected "=" in map, use ":" for map entries');
-      } else {
-        throw PxfError(current.pos, 'expected ":" after map key, got ${current.kind.name}');
+      if (current.kind == TokenKind.equals) {
+        throw PxfError(current.pos,
+            'unexpected "=" in map, use ":" for map entries');
       }
+      if (current.kind != TokenKind.colon) {
+        throw PxfError(current.pos,
+            'expected ":" after map key, got ${current.kind.name}');
+      }
+      _advance(); // consume :
 
       if (current.kind == TokenKind.null_) {
-        throw PxfError(current.pos, 'null is not allowed as map value in field "${fi.name}"');
+        throw PxfError(current.pos,
+            'null is not allowed as map value in field "${fi.name}"');
       }
 
-      _skipValue();
+      final key = _coerceMapKey(mapFi.keyFieldType, keyRaw, pos);
+      final value = _consumeMapValue(valueFi);
+      map[key] = value;
 
       if (current.kind == TokenKind.comma) {
         _advance();
@@ -507,17 +518,117 @@ class DirectDecoder {
     throw PxfError(pos, 'unsupported type ${fi.type} for field "${fi.name}"');
   }
 
-  int _consumeEnum(FieldInfo fi) {
-    var pos = current.pos;
-    if (current.kind == TokenKind.ident) {
-      throw PxfError(pos, 'enum lookup by name not yet implemented in Dart port');
-    } else if (current.kind == TokenKind.int) {
-      var v = int.parse(current.value);
-      _advance();
-      return v;
-    } else {
-      throw PxfError(pos, 'expected enum name or number for field "${fi.name}"');
+  /// Coerces a token value into the protobuf map key type.
+  /// Map keys are restricted by spec to string + integer + bool.
+  Object _coerceMapKey(int keyFieldType, String raw, Position pos) {
+    // The key field-type bits mirror PbFieldType: same _BOOL_BIT / _INT*_BIT
+    // / _UINT*_BIT / _STRING_BIT layout the SBE codec uses. We don't need
+    // every variant — proto map keys are always one of: string, bool, or
+    // an integer kind.
+    if ((keyFieldType & 0x40) != 0) return raw; // string
+    if ((keyFieldType & 0x10) != 0) {            // bool
+      if (raw == 'true') return true;
+      if (raw == 'false') return false;
+      throw PxfError(pos, 'invalid bool map key: "$raw"');
     }
+    // 64-bit integer kinds (Int64): _INT64 | _SINT64 | _SFIXED64
+    final i64Bits = 0x1000 | 0x4000 | 0x100000;
+    final u64Bits = 0x10000 | 0x40000;
+    if ((keyFieldType & i64Bits) != 0) {
+      return Int64.parseInt(raw);
+    }
+    if ((keyFieldType & u64Bits) != 0) {
+      return Int64.parseInt(raw);
+    }
+    // 32-bit integer kinds: _INT32/_SINT32/_SFIXED32/_UINT32/_FIXED32
+    final i32Bits = 0x800 | 0x2000 | 0x80000 | 0x8000 | 0x20000;
+    if ((keyFieldType & i32Bits) != 0) {
+      final n = int.tryParse(raw);
+      if (n == null) throw PxfError(pos, 'invalid integer map key: "$raw"');
+      return n;
+    }
+    throw PxfError(pos,
+        'unsupported map key type (proto field-type bits: 0x${keyFieldType.toRadixString(16)})');
+  }
+
+  /// Decodes a single map value at the current position. Handles scalars,
+  /// enums (by name or number), and message values (block syntax + WKT
+  /// shorthand for Timestamp / Duration / wrapper types).
+  Object _consumeMapValue(FieldInfo valueFi) {
+    if (valueFi.type == PbFieldType.OM) {
+      final subBuilder = valueFi.subBuilder!;
+      final subInfo = subBuilder().info_;
+      if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
+        final t = DateTime.parse(current.value);
+        final sub = subBuilder();
+        setTimestampFields(sub, t);
+        _advance();
+        return sub;
+      }
+      if (isDuration(subInfo) && current.kind == TokenKind.duration) {
+        final d = parseGoDuration(current.value);
+        final sub = subBuilder();
+        setDurationFields(sub, d);
+        _advance();
+        return sub;
+      }
+      if (isWrapperType(subInfo) && current.kind != TokenKind.lbrace) {
+        final innerFi = subInfo.fieldInfo[1]!;
+        final v = _consumeScalar(innerFi);
+        final sub = subBuilder();
+        sub.setField(1, v);
+        return sub;
+      }
+      if (current.kind != TokenKind.lbrace) {
+        throw PxfError(current.pos,
+            'expected "{" for message map value, got ${current.kind.name}');
+      }
+      _advance();
+      final sub = subBuilder();
+      _decodeFields(sub, true);
+      return sub;
+    }
+    if (valueFi.type == PbFieldType.OE) {
+      return _consumeEnum(valueFi);
+    }
+    return _consumeScalar(valueFi);
+  }
+
+  /// Decodes an enum value (by name or numeric form). Returns the
+  /// `ProtobufEnum` instance the protobuf package's `setField` accepts
+  /// for enum-typed fields. Mirrors the Go reference's `fd.Enum().Values()
+  /// .ByName(...)` lookup with a numeric fallback.
+  ProtobufEnum _consumeEnum(FieldInfo fi) {
+    final pos = current.pos;
+    final values = fi.enumValues;
+    if (current.kind == TokenKind.int) {
+      final n = int.parse(current.value);
+      final lookup = fi.valueOf;
+      if (lookup != null) {
+        final ev = lookup(n);
+        if (ev != null) {
+          _advance();
+          return ev;
+        }
+      }
+      throw PxfError(pos,
+          'unknown enum number $n for field "${fi.name}"');
+    }
+    if (current.kind != TokenKind.ident) {
+      throw PxfError(pos,
+          'expected enum name or number for field "${fi.name}", got ${current.kind.name}');
+    }
+    final name = current.value;
+    if (values != null) {
+      for (final ev in values) {
+        if (ev.name == name) {
+          _advance();
+          return ev;
+        }
+      }
+    }
+    throw PxfError(pos,
+        'unknown enum value "$name" for field "${fi.name}"');
   }
 
   void _skipValue() {
