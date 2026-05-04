@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
+import 'annotations.dart' as ann;
 import 'token.dart';
 import 'lexer.dart';
 import 'errors.dart';
@@ -8,6 +9,12 @@ import 'options.dart';
 import 'result.dart';
 import 'wellknown.dart';
 import 'duration.dart';
+
+/// Caches the proto-name → FieldInfo lookup per [BuilderInfo]. Built once
+/// per message type and reused across decode calls — `BuilderInfo` instances
+/// are static-final per generated class, so the [Expando] never holds onto
+/// per-message state.
+final Expando<Map<String, FieldInfo>> _byProtoNameCache = Expando('pxfByProto');
 
 class DirectDecoder {
   final Lexer lex;
@@ -93,7 +100,7 @@ class DirectDecoder {
       switch (current.kind) {
         case TokenKind.equals:
           _advance();
-          var fi = info.byName[key];
+          var fi = _lookupField(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipValue();
@@ -104,7 +111,7 @@ class DirectDecoder {
           _checkOneof(info, fi, setOneofs, pos);
 
           if (current.kind == TokenKind.null_) {
-            final path = pathPrefix + fi.name;
+            final path = pathPrefix + fi.protoName;
             // Result tracking is opt-in via unmarshalFull.
             if (result != null) {
               result!.markNull(path);
@@ -120,14 +127,14 @@ class DirectDecoder {
           }
 
           if (result != null) {
-            result!.markPresent(pathPrefix + fi.name);
+            result!.markPresent(pathPrefix + fi.protoName);
           }
           _decodeFieldValue(msg, fi);
           break;
 
         case TokenKind.lbrace:
           _advance();
-          var fi = info.byName[key];
+          var fi = _lookupField(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipBraced();
@@ -140,7 +147,7 @@ class DirectDecoder {
           if (isAny(fi.subBuilder!().info_) && current.kind == TokenKind.atType) {
             _checkOneof(info, fi, setOneofs, pos);
             if (result != null) {
-              result!.markPresent(pathPrefix + fi.name);
+              result!.markPresent(pathPrefix + fi.protoName);
             }
             _decodeAnyInner(msg, fi);
             continue;
@@ -152,14 +159,14 @@ class DirectDecoder {
           _checkOneof(info, fi, setOneofs, pos);
 
           if (result != null) {
-            result!.markPresent(pathPrefix + fi.name);
+            result!.markPresent(pathPrefix + fi.protoName);
           }
 
           if (fi.isRepeated) {
             var list = msg.getField(fi.tagNumber) as List;
             var sub = fi.subBuilder!();
             var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.name}.';
+            pathPrefix = '$oldPrefix${fi.protoName}.';
             _decodeFields(sub, true);
             pathPrefix = oldPrefix;
             list.add(sub);
@@ -172,7 +179,7 @@ class DirectDecoder {
               sub = msg.getField(fi.tagNumber) as GeneratedMessage;
             }
             var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.name}.';
+            pathPrefix = '$oldPrefix${fi.protoName}.';
             _decodeFields(sub, true);
             pathPrefix = oldPrefix;
           }
@@ -182,6 +189,26 @@ class DirectDecoder {
           throw PxfError(current.pos, 'expected "=" or "{" after "$key", got ${current.kind.name}');
       }
     }
+  }
+
+  /// Resolves a PXF field name to its [FieldInfo].
+  ///
+  /// PXF uses proto-canonical (snake_case) field names on the wire, but the
+  /// Dart `BuilderInfo.byName` index is keyed by the codegen-side camelCase
+  /// name. We try the proto name first (the contract), then fall back to the
+  /// Dart name so hand-defined `BuilderInfo`s still resolve.
+  FieldInfo? _lookupField(BuilderInfo info, String key) {
+    var byProto = _byProtoNameCache[info];
+    if (byProto == null) {
+      byProto = <String, FieldInfo>{};
+      for (final fi in info.byName.values) {
+        byProto[fi.protoName] = fi;
+      }
+      _byProtoNameCache[info] = byProto;
+    }
+    final fi = byProto[key];
+    if (fi != null) return fi;
+    return info.byName[key];
   }
 
   void _checkOneof(BuilderInfo info, FieldInfo fi, Map<int, String> setOneofs, Position pos) {
@@ -291,7 +318,7 @@ class DirectDecoder {
       sub = msg.getField(fi.tagNumber) as GeneratedMessage;
     }
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     _decodeFields(sub, true);
     pathPrefix = oldPrefix;
   }
@@ -324,7 +351,7 @@ class DirectDecoder {
 
     var innerMsg = innerInfo.createEmptyInstance!();
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     _decodeFields(innerMsg, true);
     pathPrefix = oldPrefix;
 
@@ -700,13 +727,21 @@ class DirectDecoder {
 /// Use [unmarshalFull] when you need a [Result] reporting which fields were
 /// set, null, or absent.
 void unmarshal(String input, GeneratedMessage msg, {UnmarshalOptions? options}) {
+  final annotations = options?.annotations;
+  // Tracking presence costs a hash-set insert per decoded field. Skip it
+  // unless the caller asked for annotation enforcement.
+  final result = annotations != null && !annotations.isEmpty ? Result() : null;
   final d = DirectDecoder(
     input,
     typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
+    result: result,
     rootMsg: msg,
   );
   d.decodeDocument(msg);
+  if (annotations != null && !annotations.isEmpty) {
+    ann.postDecode(msg, result!.presentFields, annotations, '');
+  }
 }
 
 /// Unmarshals PXF text from [input] into [msg] and returns a [Result] with
@@ -726,5 +761,9 @@ Result unmarshalFull(String input, GeneratedMessage msg,
     rootMsg: msg,
   );
   d.decodeDocument(msg);
+  final annotations = options?.annotations;
+  if (annotations != null && !annotations.isEmpty) {
+    ann.postDecode(msg, result.presentFields, annotations, '');
+  }
   return result;
 }

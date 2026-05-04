@@ -21,11 +21,6 @@ generated proto code under `lib/src/generated/proto/`:
 - `lib/src/encoding/sbe/` — SBE binary format (sbe, codec/template,
   marshal, unmarshal, view, plus xmlschema/xmltoproto/prototoxml for
   the SBE XML schema interop).
-- `lib/src/encoding/pb/native.dart` — `dart:mirrors`-driven dynamic
-  Protobuf codec for arbitrary Dart classes annotated with `@ProtoTag`.
-  **JIT/development only.** Not re-exported from the umbrella; users
-  must import the explicit path. Will not work in Flutter or any
-  AOT-compiled binary (`dart compile exe`).
 - `lib/src/envelope/envelope.dart` — hand-written user-facing
   Envelope/AppError/FieldError with builder ergonomics. The
   proto-generated counterpart at
@@ -75,23 +70,49 @@ buf generate          # regen lib/src/generated/proto/ from proto/*.proto
    Dart's `Error` is for programmer-fault conditions and shouldn't be
    used for input-driven failures.
 
-## What this repo does NOT contain (yet)
+## PXF wire-name policy
 
-- **`(pxf.required)` / `(pxf.default)` annotation enforcement.** The
-  protobuf-package descriptors expose `FieldOptions` (unlike Swift),
-  so this is implementable — it just hasn't been wired up yet. The
-  decoder doesn't validate required-but-absent fields, and absent
-  fields don't pick up declared defaults.
-- **bench-pxf / bench-sbe cross-port harness binaries.** The Dart port
-  ships `bin/dump_envelope.dart` (verified byte-identical to Go) but
-  not the bench harnesses. They need a buf-generated `bench.v1.Config`
-  and `bench.v1.Order` under the dart proto/ tree (currently absent),
-  plus a runtime SBE template wiring sized to match the canonical
-  94-byte fixture.
+PXF emits and parses **proto-canonical (snake_case) field names**, not
+Dart codegen's camelCase. The decoder looks up via `fi.protoName` first
+and falls back to `fi.name` so hand-rolled `BuilderInfo` declarations
+in tests still resolve. The encoder always emits `fi.protoName`. The
+`_null` FieldMask paths are also proto-name dotted paths (e.g.
+`tls.cert_file`, never `tls.certFile`).
+
+## (pxf.required) / (pxf.default) enforcement
+
+`lib/src/encoding/pxf/annotations.dart` provides opt-in enforcement.
+The Dart `protobuf` runtime does NOT expose `FieldOptions` extensions
+on `BuilderInfo` (unlike Go's protoreflect), so the registry parses
+the per-message `xxxDescriptor` Uint8List from `*.pbjson.dart` to
+extract field option extensions 50000 / 50001. Usage:
+
+```dart
+final ann = PxfAnnotations()
+  ..register(Config.getDefault().info_, configDescriptor)
+  ..register(Endpoint.getDefault().info_, endpointDescriptor);
+unmarshal(input, msg, options: UnmarshalOptions(annotations: ann));
+```
+
+Sub-messages must be registered explicitly; unregistered types are
+skipped silently — same stance Go takes for descriptors without
+`(pxf.*)` extensions. Defaults supported: scalars, bytes (base64),
+enums (by name or number), and the well-known message types
+Timestamp, Duration, and StringValue/wrappers.
+
+## Cross-port bench harnesses
+
+`bin/bench_pxf.dart` and `bin/bench_sbe.dart` mirror Go's
+`scripts/bench_pxf` / `scripts/bench_sbe` byte-for-byte (canonical
+`bench.v1.Config` PXF input, 94-byte canonical `Order` SBE payload,
+identical JSON output shape with `port=dart`). The proto schemas live
+at `proto/bench/v1/bench.proto` (Config) and
+`proto/bench/v1/order.proto` (Order). The PXF input fixture
+`testdata/bench-test.pxf` is vendored from the spec repo.
 
 ## Working conventions
 
-- After any change touching `lib/src/encoding/pb/` or
+- After any change touching the proto-generated envelope or
   `lib/src/envelope/`, run the cross-port envelope check to confirm
   byte-equivalence with the Go reference: from the spec repo,
   `bash scripts/cross_envelope_check.sh` (with appropriate skip flags

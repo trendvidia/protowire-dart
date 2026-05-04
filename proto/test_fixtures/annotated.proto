@@ -1,0 +1,36 @@
+// Test fixture exercising (pxf.required) and (pxf.default) field
+// annotations. Mirrors the Go reference's annotated_test.proto so the
+// Dart enforcement path stays Go-aligned.
+syntax = "proto3";
+package annotated.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "proto/pxf/annotations.proto";
+
+message Config {
+  string name = 1 [(pxf.required) = true];
+  string role = 2 [(pxf.default) = "viewer"];
+  int32 priority = 3 [(pxf.default) = "5"];
+  bool enabled = 4 [(pxf.default) = "true"];
+  string email = 5;
+  bytes token = 6 [(pxf.default) = "AQID"];
+  double weight = 7 [(pxf.default) = "0.75"];
+  google.protobuf.Timestamp created_at = 8 [(pxf.default) = "2024-01-15T10:30:00Z"];
+  google.protobuf.Duration timeout = 9 [(pxf.default) = "30s"];
+  google.protobuf.StringValue nickname = 10 [(pxf.default) = "anon"];
+  Status status = 11 [(pxf.default) = "STATUS_ACTIVE"];
+  Endpoint endpoint = 12;
+}
+
+message Endpoint {
+  string host = 1 [(pxf.required) = true];
+  int32 port = 2 [(pxf.default) = "8080"];
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE = 1;
+  STATUS_INACTIVE = 2;
+}

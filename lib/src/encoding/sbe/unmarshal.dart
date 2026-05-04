@@ -127,8 +127,12 @@ void _setUintField(GeneratedMessage msg, FieldInfo fi, int v) {
   if ((fi.type & _BOOL_BIT) != 0) {
     msg.setField(fi.tagNumber, v != 0);
   } else if ((fi.type & _ENUM_BIT) != 0) {
-    msg.setField(fi.tagNumber, v);
-  } else if ((fi.type & _UINT64_BIT) != 0 || 
+    // protobuf-dart's FieldSet validates enum fields as ProtobufEnum, not
+    // raw ints. Map through the FieldInfo.valueOf callback that codegen
+    // attaches to every enum field.
+    final ev = fi.valueOf?.call(v) ?? fi.defaultEnumValue;
+    if (ev != null) msg.setField(fi.tagNumber, ev);
+  } else if ((fi.type & _UINT64_BIT) != 0 ||
              (fi.type & _FIXED64_BIT) != 0) {
     msg.setField(fi.tagNumber, Int64(v));
   } else {
