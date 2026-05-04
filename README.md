@@ -248,17 +248,19 @@ If you need nulls to survive a protobuf binary round-trip, add a field named `_n
 
 ### At a glance
 
-Performance comparison on Apple M1 (Dart 3.11).
+Steady-state JIT, Apple M-series, Dart 3.11.5, `package:benchmark_harness`. Measured on the canonical 11-field `Order` with a 3-entry `Fill` group (`benchmark/bench.dart`); median of three runs.
 
 | Format | Marshal (us) | Unmarshal (us) |
 |--------|--------------|----------------|
-| **SBE** | **4.38** | 18.12 |
-| Protobuf | 8.31 | 10.41 |
-| **SBE View** | -- | **8.64** (Read-only) |
-| **PXF** | 21.40 | 50.66 |
+| **SBE** | **4.23** | 16.15 |
+| Protobuf | 8.12 | 8.97 |
+| **SBE View** | — | **8.75** (read-only) |
+| **PXF** | 22.40 | 50.85 |
 
-*   **SBE Marshal** is ~2x faster than standard Protobuf `writeToBuffer()`.
+*   **SBE Marshal** is ~2× faster than `package:protobuf`'s `writeToBuffer()`.
 *   **SBE View** provides zero-allocation reads, bypassing full object decoding.
+
+For a numerically-stable, cross-port comparison see the bench harnesses at `bin/bench_pxf.dart` / `bin/bench_sbe.dart`, which mirror the Go reference's wall-clock loop and JSON output (`port=dart`, `ns_per_op`, …). See [BENCHMARKS.md](BENCHMARKS.md) for AOT numbers and methodology notes.
 
 ## Project structure
 
