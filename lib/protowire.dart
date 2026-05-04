@@ -6,6 +6,7 @@
 /// - **Envelope**: Standardized API response structure.
 library;
 
+export 'src/encoding/pxf/annotations.dart' show PxfAnnotations, FieldAnnotations;
 export 'src/encoding/pxf/decode.dart';
 export 'src/encoding/pxf/encode.dart';
 export 'src/encoding/pxf/options.dart';
@@ -15,10 +16,6 @@ export 'src/encoding/sbe/sbe.dart';
 export 'src/encoding/sbe/view.dart';
 export 'src/encoding/sbe/xmltoproto.dart';
 export 'src/encoding/sbe/prototoxml.dart';
-// `src/encoding/pb/native.dart` is deliberately NOT re-exported. It uses
-// `dart:mirrors`, which is unsupported on Flutter and AOT-compiled Dart;
-// importing it would crash any production build. Users who need it must
-// import the path explicitly and accept the JIT-only constraint.
 export 'src/envelope/envelope.dart';
 
 // Proto descriptor holders. Each .pb.dart file emits an `Annotations`

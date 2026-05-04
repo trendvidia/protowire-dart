@@ -139,8 +139,10 @@ void main() {
       expect(bytesToBigInt(dec.unscaled), expectedUnscaled);
 
       final output = marshal(msg);
-      expect(output, contains('myInt = 123456789012345678901234567890'));
-      expect(output, contains('myDecimal = -123.450'));
+      // PXF emits proto-canonical (snake_case) field names; the protoName
+      // here is auto-derived from the camelCase Dart name `myInt`.
+      expect(output, contains('my_int = 123456789012345678901234567890'));
+      expect(output, contains('my_decimal = -123.450'));
     });
   });
 }

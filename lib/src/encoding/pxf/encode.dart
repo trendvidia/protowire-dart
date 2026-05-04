@@ -102,15 +102,18 @@ class _Encoder {
 
     for (var tag in fieldNumbers) {
       var fi = info.fieldInfo[tag]!;
+      // PXF emits proto-canonical (snake_case) field names so the wire
+      // form is identical across all language ports.
+      final wireName = fi.protoName;
 
       // Skip _null field — the FieldMask's contents are emitted as
       // `field = null` lines at the matching scope below.
-      if (fi.name == '_null' && pathPrefix == '') continue;
+      if (wireName == '_null' && pathPrefix == '') continue;
 
-      final path = '$pathPrefix${fi.name}';
+      final path = '$pathPrefix$wireName';
       if (nullSet.contains(path)) {
         _writeIndent(level);
-        buf.write('${fi.name} = null\n');
+        buf.write('$wireName = null\n');
         continue;
       }
 
@@ -136,7 +139,7 @@ class _Encoder {
         continue;
       }
 
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, wireName);
       _writeScalar(fi, val);
       buf.write('\n');
     }
@@ -144,51 +147,52 @@ class _Encoder {
 
   void _encodeMessageField(FieldInfo fi, GeneratedMessage sub, int level) {
     var subInfo = sub.info_;
+    final wireName = fi.protoName;
 
     if (isTimestamp(subInfo)) {
       var t = readTimestamp(sub);
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, wireName);
       buf.write(t.toIso8601String());
       buf.write('\n');
       return;
     }
     if (isDuration(subInfo)) {
       var d = readDuration(sub);
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, wireName);
       buf.write(_formatDuration(d));
       buf.write('\n');
       return;
     }
     if (isWrapperType(subInfo)) {
       var valueFi = subInfo.fieldInfo[1]!;
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, wireName);
       _writeScalar(valueFi, sub.getField(1));
       buf.write('\n');
       return;
     }
 
     if (isBigInt(subInfo)) {
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, wireName);
       buf.write(_formatBigInt(sub));
       buf.write('\n');
       return;
     }
     if (isDecimal(subInfo)) {
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, wireName);
       buf.write(_formatDecimal(sub));
       buf.write('\n');
       return;
     }
 
     if (isAny(subInfo)) {
-      _writeAny(fi.name, sub, level);
+      _writeAny(wireName, sub, level);
       return;
     }
 
     _writeIndent(level);
-    buf.write('${fi.name} {\n');
+    buf.write('$wireName {\n');
     final oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix$wireName.';
     encodeMessage(sub, level + 1);
     pathPrefix = oldPrefix;
     _writeIndent(level);
@@ -242,7 +246,7 @@ class _Encoder {
   void _encodeListField(FieldInfo fi, List list, int level) {
     if (list.isEmpty && !emitDefaults) return;
 
-    _writeFieldPrefix(level, fi.name);
+    _writeFieldPrefix(level, fi.protoName);
     buf.write('[\n');
 
     for (int i = 0; i < list.length; i++) {
@@ -286,7 +290,7 @@ class _Encoder {
   void _encodeMapField(FieldInfo fi, Map map, int level) {
     if (map.isEmpty && !emitDefaults) return;
 
-    _writeFieldPrefix(level, fi.name);
+    _writeFieldPrefix(level, fi.protoName);
     buf.write('{\n');
 
     // MapFieldInfo carries the actual value FieldInfo so we can route

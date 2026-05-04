@@ -288,11 +288,18 @@ This project is a Dart port of [trendvidia/protowire](https://github.com/trendvi
 
 Built on the official `protobuf` Dart package (`GeneratedMessage`, `BuilderInfo`, `FieldInfo`, `MapFieldInfo`). A few items fall out of that or are deferred:
 
-- **`(pxf.required)` / `(pxf.default)` annotation enforcement is not yet implemented.** The Dart `protobuf` package exposes `FieldOptions` via `BuilderInfo` (unlike Swift's swift-protobuf), so this is tractable — it just hasn't landed yet. The decoder doesn't validate required-but-absent fields, and absent fields don't pick up declared defaults. **High-value contribution opportunity.**
-- **`bench-pxf` and `bench-sbe` cross-port harness binaries are missing.** The dart port ships `bin/dump_envelope.dart` (verified byte-identical to Go), but the bench harnesses need a buf-generated `bench.v1.Config` / `bench.v1.Order` under the local `proto/` tree (currently absent), plus runtime SBE template wiring sized to the canonical 94-byte fixture.
-- **`lib/src/encoding/pb/native.dart` uses `dart:mirrors`** — JIT/development only. The umbrella library deliberately does not re-export it; users opting in have to import the explicit path. Flutter and AOT-compiled binaries will crash if they pull it in. A non-mirrors codegen path would be welcome.
+- **`(pxf.required)` / `(pxf.default)` annotation enforcement is opt-in via [`PxfAnnotations`](lib/src/encoding/pxf/annotations.dart).** The Dart `protobuf` runtime does not expose `FieldOptions` extensions on `BuilderInfo`, so the registry parses them out of each message's `xxxDescriptor` blob (in `*.pbjson.dart`) at registration time. Pass it via `UnmarshalOptions(annotations: …)` and the decoder fails on absent required fields and applies declared defaults — matching Go's `UnmarshalFullDescriptor`. Sub-messages must each be registered explicitly; unregistered types are skipped silently.
 - **The umbrella library hides `BigInt`, `Decimal`, `BigFloat`, `Annotations`, and the proto-generated `Envelope` from re-export** to avoid name clashes. Users who need them import the explicit path with `as pxf` / `as pxf_anno` etc. Documented in [CLAUDE.md](CLAUDE.md).
 - **No standalone Dart CLI.** The shared CLI lives in [trendvidia/protowire/cmd/protowire](https://github.com/trendvidia/protowire/tree/main/cmd/protowire); Dart users invoke it as a binary.
+
+## Cross-port bench harnesses
+
+`bin/bench_pxf.dart` and `bin/bench_sbe.dart` mirror Go's `scripts/bench_pxf` and `scripts/bench_sbe` exactly — same canonical `bench.v1.Config` PXF input, same canonical `bench.v1.Order` SBE payload (94 bytes), same `--seconds` window, same JSON output shape. The spec repo's [`scripts/cross_pxf_bench.sh`](https://github.com/trendvidia/protowire/blob/main/scripts/cross_pxf_bench.sh) and `cross_sbe_bench.sh` aggregate output across ports.
+
+```bash
+dart run bin/bench_pxf.dart --seconds=3 --testdata=testdata
+dart run bin/bench_sbe.dart --seconds=3
+```
 
 ## Contributing & governance
 
