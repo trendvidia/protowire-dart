@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
@@ -38,6 +39,23 @@ void unmarshalMessage(
     final gBlockLength = buffer.getUint16(pos, byteOrder);
     final numInGroup = buffer.getUint16(pos + 2, byteOrder);
     pos += groupHeaderSize;
+
+    // HARDENING.md § SBE: reject zero block-length with non-empty count —
+    // adversarial input can set count=0xFFFF here, and a zero-block-length
+    // group would otherwise allocate that many entries from a zero-byte
+    // window. Also reject when the declared payload overruns the buffer:
+    // `numInGroup * gBlockLength` is bounded by 0xFFFF*0xFFFF (well inside
+    // Dart's 64-bit int range), so the multiply itself is safe.
+    if (gBlockLength == 0 && numInGroup > 0) {
+      throw Exception(
+          'sbe: group has zero block-length with non-zero count $numInGroup');
+    }
+    final groupBytes = numInGroup * gBlockLength;
+    if (pos + groupBytes > data.length) {
+      throw Exception(
+          'sbe: group payload (${numInGroup}x$gBlockLength=$groupBytes B) '
+          'overruns buffer');
+    }
 
     final list = msg.getField(gt.fi.tagNumber) as List;
     list.clear();
@@ -112,7 +130,10 @@ void _readField(
         while (n > 0 && bytes[n - 1] == 0) {
           n--;
         }
-        msg.setField(fi.tagNumber, String.fromCharCodes(bytes.take(n)));
+        // HARDENING.md § UTF-8: proto3 string fields must hold valid UTF-8.
+        // utf8.decode (default `allowMalformed: false`) throws on bad input.
+        msg.setField(
+            fi.tagNumber, utf8.decode(Uint8List.sublistView(bytes, 0, n)));
       } else {
         msg.setField(fi.tagNumber, bytes);
       }
