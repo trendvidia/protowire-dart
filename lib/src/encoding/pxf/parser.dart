@@ -5,10 +5,14 @@ import 'token.dart';
 import 'errors.dart';
 import 'duration.dart';
 
+/// HARDENING.md § Recursion — see decode.dart for the cross-port rationale.
+const int _maxNestingDepth = 100;
+
 class Parser {
   final Lexer lex;
   late Token current;
   List<Comment> comments = [];
+  int _depth = 0;
 
   Parser(String input) : lex = Lexer(input) {
     _advance();
@@ -203,16 +207,25 @@ class Parser {
   }
 
   List<Entry> _parseBody() {
-    var entries = <Entry>[];
-    while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
-      entries.add(_parseEntry());
+    if (_depth >= _maxNestingDepth) {
+      throw PxfError(current.pos,
+          'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
     }
+    _depth++;
+    try {
+      var entries = <Entry>[];
+      while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
+        entries.add(_parseEntry());
+      }
 
-    if (current.kind != TokenKind.rbrace) {
-      throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
+      if (current.kind != TokenKind.rbrace) {
+        throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
+      }
+      _advance();
+      return entries;
+    } finally {
+      _depth--;
     }
-    _advance();
-    return entries;
   }
 }
 

@@ -16,6 +16,10 @@ import 'duration.dart';
 /// per-message state.
 final Expando<Map<String, FieldInfo>> _byProtoNameCache = Expando('pxfByProto');
 
+/// HARDENING.md § Recursion. Decoder rejects past this many nested message
+/// blocks. The cross-port contract is 100; raising it here would diverge.
+const int _maxNestingDepth = 100;
+
 class DirectDecoder {
   final Lexer lex;
   late Token current;
@@ -25,6 +29,7 @@ class DirectDecoder {
   GeneratedMessage? rootMsg;
   FieldInfo? nullMaskFi;
   String pathPrefix = '';
+  int _depth = 0;
 
   DirectDecoder(
     String input, {
@@ -42,10 +47,17 @@ class DirectDecoder {
   void _advance() {
     while (true) {
       current = lex.next();
-      if (current.kind != TokenKind.comment &&
-          current.kind != TokenKind.newline) {
-        return;
+      if (current.kind == TokenKind.comment ||
+          current.kind == TokenKind.newline) {
+        continue;
       }
+      // Surface lexer-level rejections (UTF-8 violations, MaxNumericLiteralDigits,
+      // bad escapes, ...) as proper decoder errors. The illegal token carries
+      // the human-readable reason in its `value` field.
+      if (current.kind == TokenKind.illegal) {
+        throw PxfError(current.pos, current.value);
+      }
+      return;
     }
   }
 
@@ -73,6 +85,19 @@ class DirectDecoder {
   }
 
   void _decodeFields(GeneratedMessage msg, bool inBlock) {
+    if (_depth >= _maxNestingDepth) {
+      throw PxfError(current.pos,
+          'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
+    }
+    _depth++;
+    try {
+      _decodeFieldsInner(msg, inBlock);
+    } finally {
+      _depth--;
+    }
+  }
+
+  void _decodeFieldsInner(GeneratedMessage msg, bool inBlock) {
     var info = msg.info_;
     var setOneofs = <int, String>{}; // oneofIndex -> fieldName
 

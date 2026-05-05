@@ -63,7 +63,22 @@ bool isBigFloat(BuilderInfo info) {
   return info.qualifiedMessageName == 'pxf.BigFloat';
 }
 
+/// HARDENING.md § Numeric-literal cap. `BigInt.parse` is O(n²) in the digit
+/// count, so a multi-thousand-digit literal is a CPU-DoS vector. The
+/// cross-port spec mandates ≤ 4096 digits per numeric literal.
+const int maxNumericLiteralDigits = 4096;
+
+void _checkDigitCap(String digits) {
+  if (digits.length > maxNumericLiteralDigits) {
+    throw FormatException(
+        'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
+        '(${digits.length} digits)');
+  }
+}
+
 void setBigIntFields(GeneratedMessage msg, String raw) {
+  final digits = raw.startsWith('-') ? raw.substring(1) : raw;
+  _checkDigitCap(digits);
   var val = BigInt.parse(raw);
   var negative = val < BigInt.zero;
   var abs = val.abs();
@@ -74,7 +89,7 @@ void setBigIntFields(GeneratedMessage msg, String raw) {
 void setDecimalFields(GeneratedMessage msg, String raw) {
   var negative = raw.startsWith('-');
   if (negative) raw = raw.substring(1);
-  
+
   var dotIndex = raw.indexOf('.');
   int scale = 0;
   String unscaledStr;
@@ -84,7 +99,8 @@ void setDecimalFields(GeneratedMessage msg, String raw) {
     scale = raw.length - dotIndex - 1;
     unscaledStr = raw.replaceFirst('.', '');
   }
-  
+
+  _checkDigitCap(unscaledStr);
   var unscaled = BigInt.parse(unscaledStr);
   msg.setField(1, bigIntToBytes(unscaled));
   msg.setField(2, scale);
