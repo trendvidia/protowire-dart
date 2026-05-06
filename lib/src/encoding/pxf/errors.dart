@@ -1,6 +1,10 @@
 import 'token.dart';
 
-class PxfError extends Error {
+/// Thrown when PXF text fails to lex, parse, or decode.
+///
+/// Extends `Exception` (not `Error`) because parse failures are runtime
+/// conditions a caller is expected to handle — not programmer mistakes.
+class PxfError implements Exception {
   final Position pos;
   final String message;
 

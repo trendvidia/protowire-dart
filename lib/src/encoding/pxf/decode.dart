@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
+import 'annotations.dart' as ann;
 import 'token.dart';
 import 'lexer.dart';
 import 'errors.dart';
@@ -8,6 +9,16 @@ import 'options.dart';
 import 'result.dart';
 import 'wellknown.dart';
 import 'duration.dart';
+
+/// Caches the proto-name → FieldInfo lookup per [BuilderInfo]. Built once
+/// per message type and reused across decode calls — `BuilderInfo` instances
+/// are static-final per generated class, so the [Expando] never holds onto
+/// per-message state.
+final Expando<Map<String, FieldInfo>> _byProtoNameCache = Expando('pxfByProto');
+
+/// HARDENING.md § Recursion. Decoder rejects past this many nested message
+/// blocks. The cross-port contract is 100; raising it here would diverge.
+const int _maxNestingDepth = 100;
 
 class DirectDecoder {
   final Lexer lex;
@@ -18,6 +29,7 @@ class DirectDecoder {
   GeneratedMessage? rootMsg;
   FieldInfo? nullMaskFi;
   String pathPrefix = '';
+  int _depth = 0;
 
   DirectDecoder(
     String input, {
@@ -35,10 +47,17 @@ class DirectDecoder {
   void _advance() {
     while (true) {
       current = lex.next();
-      if (current.kind != TokenKind.comment &&
-          current.kind != TokenKind.newline) {
-        return;
+      if (current.kind == TokenKind.comment ||
+          current.kind == TokenKind.newline) {
+        continue;
       }
+      // Surface lexer-level rejections (UTF-8 violations, MaxNumericLiteralDigits,
+      // bad escapes, ...) as proper decoder errors. The illegal token carries
+      // the human-readable reason in its `value` field.
+      if (current.kind == TokenKind.illegal) {
+        throw PxfError(current.pos, current.value);
+      }
+      return;
     }
   }
 
@@ -66,6 +85,19 @@ class DirectDecoder {
   }
 
   void _decodeFields(GeneratedMessage msg, bool inBlock) {
+    if (_depth >= _maxNestingDepth) {
+      throw PxfError(current.pos,
+          'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
+    }
+    _depth++;
+    try {
+      _decodeFieldsInner(msg, inBlock);
+    } finally {
+      _depth--;
+    }
+  }
+
+  void _decodeFieldsInner(GeneratedMessage msg, bool inBlock) {
     var info = msg.info_;
     var setOneofs = <int, String>{}; // oneofIndex -> fieldName
 
@@ -93,7 +125,7 @@ class DirectDecoder {
       switch (current.kind) {
         case TokenKind.equals:
           _advance();
-          var fi = info.byName[key];
+          var fi = _lookupField(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipValue();
@@ -104,26 +136,30 @@ class DirectDecoder {
           _checkOneof(info, fi, setOneofs, pos);
 
           if (current.kind == TokenKind.null_) {
+            final path = pathPrefix + fi.protoName;
+            // Result tracking is opt-in via unmarshalFull.
             if (result != null) {
-              var path = pathPrefix + fi.name;
               result!.markNull(path);
-              if (nullMaskFi != null) {
-                _addToNullMask(rootMsg!, nullMaskFi!, path);
-              }
+            }
+            // _null FieldMask population happens whenever the message
+            // declares one — it's not gated on Result so plain unmarshal()
+            // also preserves null state across a protobuf-binary round-trip.
+            if (nullMaskFi != null) {
+              _addToNullMask(rootMsg!, nullMaskFi!, path);
             }
             _advance();
             continue;
           }
 
           if (result != null) {
-            result!.markPresent(pathPrefix + fi.name);
+            result!.markPresent(pathPrefix + fi.protoName);
           }
           _decodeFieldValue(msg, fi);
           break;
 
         case TokenKind.lbrace:
           _advance();
-          var fi = info.byName[key];
+          var fi = _lookupField(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipBraced();
@@ -136,7 +172,7 @@ class DirectDecoder {
           if (isAny(fi.subBuilder!().info_) && current.kind == TokenKind.atType) {
             _checkOneof(info, fi, setOneofs, pos);
             if (result != null) {
-              result!.markPresent(pathPrefix + fi.name);
+              result!.markPresent(pathPrefix + fi.protoName);
             }
             _decodeAnyInner(msg, fi);
             continue;
@@ -148,14 +184,14 @@ class DirectDecoder {
           _checkOneof(info, fi, setOneofs, pos);
 
           if (result != null) {
-            result!.markPresent(pathPrefix + fi.name);
+            result!.markPresent(pathPrefix + fi.protoName);
           }
 
           if (fi.isRepeated) {
             var list = msg.getField(fi.tagNumber) as List;
             var sub = fi.subBuilder!();
             var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.name}.';
+            pathPrefix = '$oldPrefix${fi.protoName}.';
             _decodeFields(sub, true);
             pathPrefix = oldPrefix;
             list.add(sub);
@@ -168,7 +204,7 @@ class DirectDecoder {
               sub = msg.getField(fi.tagNumber) as GeneratedMessage;
             }
             var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.name}.';
+            pathPrefix = '$oldPrefix${fi.protoName}.';
             _decodeFields(sub, true);
             pathPrefix = oldPrefix;
           }
@@ -178,6 +214,26 @@ class DirectDecoder {
           throw PxfError(current.pos, 'expected "=" or "{" after "$key", got ${current.kind.name}');
       }
     }
+  }
+
+  /// Resolves a PXF field name to its [FieldInfo].
+  ///
+  /// PXF uses proto-canonical (snake_case) field names on the wire, but the
+  /// Dart `BuilderInfo.byName` index is keyed by the codegen-side camelCase
+  /// name. We try the proto name first (the contract), then fall back to the
+  /// Dart name so hand-defined `BuilderInfo`s still resolve.
+  FieldInfo? _lookupField(BuilderInfo info, String key) {
+    var byProto = _byProtoNameCache[info];
+    if (byProto == null) {
+      byProto = <String, FieldInfo>{};
+      for (final fi in info.byName.values) {
+        byProto[fi.protoName] = fi;
+      }
+      _byProtoNameCache[info] = byProto;
+    }
+    final fi = byProto[key];
+    if (fi != null) return fi;
+    return info.byName[key];
   }
 
   void _checkOneof(BuilderInfo info, FieldInfo fi, Map<int, String> setOneofs, Position pos) {
@@ -287,7 +343,7 @@ class DirectDecoder {
       sub = msg.getField(fi.tagNumber) as GeneratedMessage;
     }
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     _decodeFields(sub, true);
     pathPrefix = oldPrefix;
   }
@@ -320,7 +376,7 @@ class DirectDecoder {
 
     var innerMsg = innerInfo.createEmptyInstance!();
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     _decodeFields(innerMsg, true);
     pathPrefix = oldPrefix;
 
@@ -382,33 +438,43 @@ class DirectDecoder {
 
   void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume {
-    var map = msg.getField(fi.tagNumber) as Map;
+
+    if (fi is! MapFieldInfo) {
+      throw PxfError(current.pos,
+          'internal: field "${fi.name}" is map-typed but FieldInfo is not MapFieldInfo');
+    }
+    final mapFi = fi;
+    final map = msg.getField(fi.tagNumber) as Map;
+    final valueFi = mapFi.valueFieldInfo;
 
     while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
-      var pos = current.pos;
+      final pos = current.pos;
       if (current.kind != TokenKind.ident &&
           current.kind != TokenKind.string &&
           current.kind != TokenKind.int) {
         throw PxfError(pos, 'expected map key, got ${current.kind.name}');
       }
-      var keyStr = current.value;
-      _advance();
+      final keyRaw = current.value;
+      _advance(); // consume key token
 
-      if (current.kind == TokenKind.colon) {
-        _advance();
-      } else if (current.kind == TokenKind.equals) {
-        throw PxfError(current.pos, 'unexpected "=" in map, use ":" for map entries');
-      } else {
-        throw PxfError(current.pos, 'expected ":" after map key, got ${current.kind.name}');
+      if (current.kind == TokenKind.equals) {
+        throw PxfError(current.pos,
+            'unexpected "=" in map, use ":" for map entries');
       }
-
-      Object key = keyStr; 
+      if (current.kind != TokenKind.colon) {
+        throw PxfError(current.pos,
+            'expected ":" after map key, got ${current.kind.name}');
+      }
+      _advance(); // consume :
 
       if (current.kind == TokenKind.null_) {
-        throw PxfError(current.pos, 'null is not allowed as map value in field "${fi.name}"');
+        throw PxfError(current.pos,
+            'null is not allowed as map value in field "${fi.name}"');
       }
 
-      _skipValue(); 
+      final key = _coerceMapKey(mapFi.keyFieldType, keyRaw, pos);
+      final value = _consumeMapValue(valueFi);
+      map[key] = value;
 
       if (current.kind == TokenKind.comma) {
         _advance();
@@ -508,17 +574,117 @@ class DirectDecoder {
     throw PxfError(pos, 'unsupported type ${fi.type} for field "${fi.name}"');
   }
 
-  int _consumeEnum(FieldInfo fi) {
-    var pos = current.pos;
-    if (current.kind == TokenKind.ident) {
-      throw PxfError(pos, 'enum lookup by name not yet implemented in Dart port');
-    } else if (current.kind == TokenKind.int) {
-      var v = int.parse(current.value);
-      _advance();
-      return v;
-    } else {
-      throw PxfError(pos, 'expected enum name or number for field "${fi.name}"');
+  /// Coerces a token value into the protobuf map key type.
+  /// Map keys are restricted by spec to string + integer + bool.
+  Object _coerceMapKey(int keyFieldType, String raw, Position pos) {
+    // The key field-type bits mirror PbFieldType: same _BOOL_BIT / _INT*_BIT
+    // / _UINT*_BIT / _STRING_BIT layout the SBE codec uses. We don't need
+    // every variant — proto map keys are always one of: string, bool, or
+    // an integer kind.
+    if ((keyFieldType & 0x40) != 0) return raw; // string
+    if ((keyFieldType & 0x10) != 0) {            // bool
+      if (raw == 'true') return true;
+      if (raw == 'false') return false;
+      throw PxfError(pos, 'invalid bool map key: "$raw"');
     }
+    // 64-bit integer kinds (Int64): _INT64 | _SINT64 | _SFIXED64
+    final i64Bits = 0x1000 | 0x4000 | 0x100000;
+    final u64Bits = 0x10000 | 0x40000;
+    if ((keyFieldType & i64Bits) != 0) {
+      return Int64.parseInt(raw);
+    }
+    if ((keyFieldType & u64Bits) != 0) {
+      return Int64.parseInt(raw);
+    }
+    // 32-bit integer kinds: _INT32/_SINT32/_SFIXED32/_UINT32/_FIXED32
+    final i32Bits = 0x800 | 0x2000 | 0x80000 | 0x8000 | 0x20000;
+    if ((keyFieldType & i32Bits) != 0) {
+      final n = int.tryParse(raw);
+      if (n == null) throw PxfError(pos, 'invalid integer map key: "$raw"');
+      return n;
+    }
+    throw PxfError(pos,
+        'unsupported map key type (proto field-type bits: 0x${keyFieldType.toRadixString(16)})');
+  }
+
+  /// Decodes a single map value at the current position. Handles scalars,
+  /// enums (by name or number), and message values (block syntax + WKT
+  /// shorthand for Timestamp / Duration / wrapper types).
+  Object _consumeMapValue(FieldInfo valueFi) {
+    if (valueFi.type == PbFieldType.OM) {
+      final subBuilder = valueFi.subBuilder!;
+      final subInfo = subBuilder().info_;
+      if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
+        final t = DateTime.parse(current.value);
+        final sub = subBuilder();
+        setTimestampFields(sub, t);
+        _advance();
+        return sub;
+      }
+      if (isDuration(subInfo) && current.kind == TokenKind.duration) {
+        final d = parseGoDuration(current.value);
+        final sub = subBuilder();
+        setDurationFields(sub, d);
+        _advance();
+        return sub;
+      }
+      if (isWrapperType(subInfo) && current.kind != TokenKind.lbrace) {
+        final innerFi = subInfo.fieldInfo[1]!;
+        final v = _consumeScalar(innerFi);
+        final sub = subBuilder();
+        sub.setField(1, v);
+        return sub;
+      }
+      if (current.kind != TokenKind.lbrace) {
+        throw PxfError(current.pos,
+            'expected "{" for message map value, got ${current.kind.name}');
+      }
+      _advance();
+      final sub = subBuilder();
+      _decodeFields(sub, true);
+      return sub;
+    }
+    if (valueFi.type == PbFieldType.OE) {
+      return _consumeEnum(valueFi);
+    }
+    return _consumeScalar(valueFi);
+  }
+
+  /// Decodes an enum value (by name or numeric form). Returns the
+  /// `ProtobufEnum` instance the protobuf package's `setField` accepts
+  /// for enum-typed fields. Mirrors the Go reference's `fd.Enum().Values()
+  /// .ByName(...)` lookup with a numeric fallback.
+  ProtobufEnum _consumeEnum(FieldInfo fi) {
+    final pos = current.pos;
+    final values = fi.enumValues;
+    if (current.kind == TokenKind.int) {
+      final n = int.parse(current.value);
+      final lookup = fi.valueOf;
+      if (lookup != null) {
+        final ev = lookup(n);
+        if (ev != null) {
+          _advance();
+          return ev;
+        }
+      }
+      throw PxfError(pos,
+          'unknown enum number $n for field "${fi.name}"');
+    }
+    if (current.kind != TokenKind.ident) {
+      throw PxfError(pos,
+          'expected enum name or number for field "${fi.name}", got ${current.kind.name}');
+    }
+    final name = current.value;
+    if (values != null) {
+      for (final ev in values) {
+        if (ev.name == name) {
+          _advance();
+          return ev;
+        }
+      }
+    }
+    throw PxfError(pos,
+        'unknown enum value "$name" for field "${fi.name}"');
   }
 
   void _skipValue() {
@@ -561,20 +727,68 @@ class DirectDecoder {
   }
 
   void _addToNullMask(GeneratedMessage rootMsg, FieldInfo nullMaskFi, String path) {
-    var fm = rootMsg.getField(nullMaskFi.tagNumber) as GeneratedMessage;
-    var paths = fm.getField(1) as List<String>;
+    // Ensure the FieldMask sub-message is mutably set on the root before
+    // appending. getField returns a frozen default for unset fields, so
+    // append-without-set throws "'add' on a read-only list".
+    GeneratedMessage fm;
+    if (!rootMsg.hasField(nullMaskFi.tagNumber)) {
+      fm = nullMaskFi.subBuilder!();
+      rootMsg.setField(nullMaskFi.tagNumber, fm);
+    } else {
+      fm = rootMsg.getField(nullMaskFi.tagNumber) as GeneratedMessage;
+    }
+    final paths = fm.getField(1) as List<String>;
     paths.add(path);
   }
 }
 
 /// Unmarshals PXF text from [input] into the provided [msg].
-/// 
-/// Options can be provided via [options] to customize the unmarshaling process.
+///
+/// Mirrors the Go reference's `pxf.Unmarshal` — silently absorbs `field = null`
+/// entries (without surfacing the null-state to the caller). Any null fields
+/// are recorded into [msg]'s `_null` FieldMask if it declares one, so the
+/// nulls survive a subsequent protobuf-binary round-trip.
+///
+/// Use [unmarshalFull] when you need a [Result] reporting which fields were
+/// set, null, or absent.
 void unmarshal(String input, GeneratedMessage msg, {UnmarshalOptions? options}) {
-  var d = DirectDecoder(
+  final annotations = options?.annotations;
+  // Tracking presence costs a hash-set insert per decoded field. Skip it
+  // unless the caller asked for annotation enforcement.
+  final result = annotations != null && !annotations.isEmpty ? Result() : null;
+  final d = DirectDecoder(
     input,
     typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
+    result: result,
+    rootMsg: msg,
   );
   d.decodeDocument(msg);
+  if (annotations != null && !annotations.isEmpty) {
+    ann.postDecode(msg, result!.presentFields, annotations, '');
+  }
+}
+
+/// Unmarshals PXF text from [input] into [msg] and returns a [Result] with
+/// per-field presence info (set / null / absent by dotted field path).
+///
+/// Mirrors the Go reference's `pxf.UnmarshalFull`. Like [unmarshal], any
+/// null fields are also recorded into [msg]'s `_null` FieldMask if it
+/// declares one.
+Result unmarshalFull(String input, GeneratedMessage msg,
+    {UnmarshalOptions? options}) {
+  final result = Result();
+  final d = DirectDecoder(
+    input,
+    typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
+    discardUnknown: options?.discardUnknown ?? false,
+    result: result,
+    rootMsg: msg,
+  );
+  d.decodeDocument(msg);
+  final annotations = options?.annotations;
+  if (annotations != null && !annotations.isEmpty) {
+    ann.postDecode(msg, result.presentFields, annotations, '');
+  }
+  return result;
 }

@@ -248,17 +248,19 @@ If you need nulls to survive a protobuf binary round-trip, add a field named `_n
 
 ### At a glance
 
-Performance comparison on Apple M1 (Dart 3.11).
+Steady-state JIT, Apple M-series, Dart 3.11.5, `package:benchmark_harness`. Measured on the canonical 11-field `Order` with a 3-entry `Fill` group (`benchmark/bench.dart`); median of three runs.
 
 | Format | Marshal (us) | Unmarshal (us) |
 |--------|--------------|----------------|
-| **SBE** | **4.38** | 18.12 |
-| Protobuf | 8.31 | 10.41 |
-| **SBE View** | -- | **8.64** (Read-only) |
-| **PXF** | 21.40 | 50.66 |
+| **SBE** | **4.23** | 16.15 |
+| Protobuf | 8.12 | 8.97 |
+| **SBE View** | — | **8.75** (read-only) |
+| **PXF** | 22.40 | 50.85 |
 
-*   **SBE Marshal** is ~2x faster than standard Protobuf `writeToBuffer()`.
+*   **SBE Marshal** is ~2× faster than `package:protobuf`'s `writeToBuffer()`.
 *   **SBE View** provides zero-allocation reads, bypassing full object decoding.
+
+For a numerically-stable, cross-port comparison see the bench harnesses at `bin/bench_pxf.dart` / `bin/bench_sbe.dart`, which mirror the Go reference's wall-clock loop and JSON output (`port=dart`, `ns_per_op`, …). See [BENCHMARKS.md](BENCHMARKS.md) for AOT numbers and methodology notes.
 
 ## Project structure
 
@@ -283,3 +285,28 @@ lib/
 ## Additional information
 
 This project is a Dart port of [trendvidia/protowire](https://github.com/trendvidia/protowire). It maintains binary compatibility with the Go implementation.
+
+## Limitations & open gaps
+
+Built on the official `protobuf` Dart package (`GeneratedMessage`, `BuilderInfo`, `FieldInfo`, `MapFieldInfo`). A few items fall out of that or are deferred:
+
+- **`(pxf.required)` / `(pxf.default)` annotation enforcement is opt-in via [`PxfAnnotations`](lib/src/encoding/pxf/annotations.dart).** The Dart `protobuf` runtime does not expose `FieldOptions` extensions on `BuilderInfo`, so the registry parses them out of each message's `xxxDescriptor` blob (in `*.pbjson.dart`) at registration time. Pass it via `UnmarshalOptions(annotations: …)` and the decoder fails on absent required fields and applies declared defaults — matching Go's `UnmarshalFullDescriptor`. Sub-messages must each be registered explicitly; unregistered types are skipped silently.
+- **The umbrella library hides `BigInt`, `Decimal`, `BigFloat`, `Annotations`, and the proto-generated `Envelope` from re-export** to avoid name clashes. Users who need them import the explicit path with `as pxf` / `as pxf_anno` etc. Documented in [CLAUDE.md](CLAUDE.md).
+- **No standalone Dart CLI.** The shared CLI lives in [trendvidia/protowire/cmd/protowire](https://github.com/trendvidia/protowire/tree/main/cmd/protowire); Dart users invoke it as a binary.
+
+## Cross-port bench harnesses
+
+`bin/bench_pxf.dart` and `bin/bench_sbe.dart` mirror Go's `scripts/bench_pxf` and `scripts/bench_sbe` exactly — same canonical `bench.v1.Config` PXF input, same canonical `bench.v1.Order` SBE payload (94 bytes), same `--seconds` window, same JSON output shape. The spec repo's [`scripts/cross_pxf_bench.sh`](https://github.com/trendvidia/protowire/blob/main/scripts/cross_pxf_bench.sh) and `cross_sbe_bench.sh` aggregate output across ports.
+
+```bash
+dart run bin/bench_pxf.dart --seconds=3 --testdata=testdata
+dart run bin/bench_sbe.dart --seconds=3
+```
+
+## Contributing & governance
+
+This repository is part of the `protowire-*` family and is governed by [**Steward**](https://github.com/trendvidia/steward) — the meritocratic, AI-driven governance engine that runs all of the ports. Voting weight is per-directory expertise, the constitution is public in [`governance.pxf`](https://github.com/trendvidia/steward/blob/main/governance.pxf), and Steward routes draft / first-time PRs through a [private mentorship pipeline](https://github.com/trendvidia/steward#-private-mentorship-mode) so initial contributions get private feedback rather than public-review friction.
+
+If any of the items above sound interesting, pull requests are welcome. New contributors start at zero trust and accumulate influence by shipping merged PRs in the directories they actually work on — the [escrow pipeline](https://github.com/trendvidia/steward#%EF%B8%8F-the-escrow-pipeline-zero-trust-onboarding) auto-routes large first-time PRs through 2–3 sandbox issues before unlocking them for community review.
+
+See the [Steward README](https://github.com/trendvidia/steward) for a longer walkthrough of vector reputation, escrow, and the immune system.

@@ -1,30 +1,30 @@
-# This file configures the static analysis results for your project (errors,
-# warnings, and lints).
-#
-# This enables the 'recommended' set of lints from `package:lints`.
-# This set helps identify many issues that may lead to problems when running
-# or consuming Dart code, and enforces writing Dart using a single, idiomatic
-# style and format.
-#
-# If you want a smaller set of lints you can change this to specify
-# 'package:lints/core.yaml'. These are just the most critical lints
-# (the recommended set includes the core lints).
-# The core lints are also what is used by pub.dev for scoring packages.
-
+# See https://dart.dev/guides/language/analysis-options
 include: package:lints/recommended.yaml
 
-# Uncomment the following section to specify additional rules.
+analyzer:
+  exclude:
+    # Generated proto code: keep the analyzer quiet on it. Style nits in
+    # auto-generated files would just churn the output of `buf generate`.
+    - lib/src/generated/**
+  errors:
+    # Promote noise-level findings to errors so the build catches them.
+    unused_import: error
+    unused_local_variable: error
+    unused_element: error
+    dead_code: error
+    # Keep the lowerCamelCase reminder informational — the existing private
+    # SCREAMING_SNAKE constants in the SBE codec mirror the proto field-bit
+    # encoding and are easier to read that way.
+    constant_identifier_names: ignore
+    # The bit-twiddling SBE codec deliberately uses `dynamic`-typed
+    # GeneratedMessage.getField/setField. Tightening to strict-casts is
+    # tracked as a future cleanup, not a PR1 blocker.
 
-# linter:
-#   rules:
-#     - camel_case_types
-
-# analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
-
-# For more information about the core and recommended set of lints, see
-# https://dart.dev/go/core-lints
-
-# For additional information about configuring this file, see
-# https://dart.dev/guides/language/analysis-options
+linter:
+  rules:
+    - avoid_dynamic_calls
+    - avoid_print
+    - avoid_returning_null_for_void
+    - prefer_const_constructors
+    - prefer_final_locals
+    - sort_pub_dependencies

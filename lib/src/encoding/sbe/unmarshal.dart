@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
@@ -34,6 +35,23 @@ void unmarshalMessage(Uint8List data, GeneratedMessage msg, MessageTemplate tmpl
     final gBlockLength = buffer.getUint16(pos, byteOrder);
     final numInGroup = buffer.getUint16(pos + 2, byteOrder);
     pos += groupHeaderSize;
+
+    // HARDENING.md § SBE: reject zero block-length with non-empty count —
+    // adversarial input can set count=0xFFFF here, and a zero-block-length
+    // group would otherwise allocate that many entries from a zero-byte
+    // window. Also reject when the declared payload overruns the buffer:
+    // `numInGroup * gBlockLength` is bounded by 0xFFFF*0xFFFF (well inside
+    // Dart's 64-bit int range), so the multiply itself is safe.
+    if (gBlockLength == 0 && numInGroup > 0) {
+      throw Exception(
+          'sbe: group has zero block-length with non-zero count $numInGroup');
+    }
+    final groupBytes = numInGroup * gBlockLength;
+    if (pos + groupBytes > data.length) {
+      throw Exception(
+          'sbe: group payload (${numInGroup}x$gBlockLength=$groupBytes B) '
+          'overruns buffer');
+    }
 
     final list = msg.getField(gt.fi.tagNumber) as List;
     list.clear();
@@ -105,7 +123,10 @@ void _readField(ByteData buffer, int baseOffset, FieldTemplate ft, GeneratedMess
       if ((fi.type & _STRING_BIT) != 0) {
         int n = bytes.length;
         while (n > 0 && bytes[n - 1] == 0) n--;
-        msg.setField(fi.tagNumber, String.fromCharCodes(bytes.take(n)));
+        // HARDENING.md § UTF-8: proto3 string fields must hold valid UTF-8.
+        // utf8.decode (default `allowMalformed: false`) throws on bad input.
+        msg.setField(fi.tagNumber,
+            utf8.decode(Uint8List.sublistView(bytes, 0, n)));
       } else {
         msg.setField(fi.tagNumber, bytes);
       }
@@ -127,8 +148,12 @@ void _setUintField(GeneratedMessage msg, FieldInfo fi, int v) {
   if ((fi.type & _BOOL_BIT) != 0) {
     msg.setField(fi.tagNumber, v != 0);
   } else if ((fi.type & _ENUM_BIT) != 0) {
-    msg.setField(fi.tagNumber, v);
-  } else if ((fi.type & _UINT64_BIT) != 0 || 
+    // protobuf-dart's FieldSet validates enum fields as ProtobufEnum, not
+    // raw ints. Map through the FieldInfo.valueOf callback that codegen
+    // attaches to every enum field.
+    final ev = fi.valueOf?.call(v) ?? fi.defaultEnumValue;
+    if (ev != null) msg.setField(fi.tagNumber, ev);
+  } else if ((fi.type & _UINT64_BIT) != 0 ||
              (fi.type & _FIXED64_BIT) != 0) {
     msg.setField(fi.tagNumber, Int64(v));
   } else {

@@ -1,5 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'token.dart';
+
+/// HARDENING.md § Numeric-literal cap. Applies to any contiguous digit run
+/// in a numeric token; covers integers, the integer/fractional/exponent
+/// segments of a float, and the integer head of a duration. The lexer is the
+/// natural choke-point — every downstream `int.parse` / `Int64.parseInt` /
+/// `BigInt.parse` would otherwise have to re-derive the cap.
+const int _maxNumericLiteralDigits = 4096;
 
 class Lexer {
   final String input;
@@ -18,17 +26,6 @@ class Lexer {
     int i = pos + offset;
     if (i >= input.length) return 0;
     return input.codeUnitAt(i);
-  }
-
-  String get _peek {
-    if (pos >= input.length) return '';
-    return input[pos];
-  }
-
-  String _peekAt(int offset) {
-    int i = pos + offset;
-    if (i >= input.length) return '';
-    return input[i];
   }
 
   int _advance() {
@@ -166,45 +163,175 @@ class Lexer {
 
   Token _lexString(Position p) {
     _advance(); // opening "
-    StringBuffer sb = StringBuffer();
+    // PXF strings carry proto3 `string` values, which the wire format defines
+    // as UTF-8. `\xHH` is a *byte* escape (matches Go's text-format behavior),
+    // so we accumulate bytes and run a strict UTF-8 decode at the end. That
+    // way `"\xFF\xFE"` (HARDENING.md § UTF-8) produces an invalid byte
+    // sequence and fails the decode rather than silently coercing to two
+    // legitimate codepoints U+00FF / U+00FE.
+    final bytes = BytesBuilder(copy: false);
     while (pos < input.length) {
-      int ch = _advance();
-      if (ch == 34) {
-        // "
-        return Token(TokenKind.string, sb.toString(), p);
+      final ch = _advance();
+      if (ch == 0x22) {
+        // closing "
+        try {
+          return Token(TokenKind.string, utf8.decode(bytes.toBytes()), p);
+        } on FormatException catch (e) {
+          return Token(TokenKind.illegal,
+              'string is not valid UTF-8: ${e.message}', p);
+        }
       }
-      if (ch == 92) {
-        // \
-        if (pos >= input.length) {
-          return Token(TokenKind.illegal, 'unterminated escape sequence', p);
-        }
-        int esc = _advance();
-        switch (esc) {
-          case 34: // "
-            sb.write('"');
-            break;
-          case 92: // \
-            sb.write('\\');
-            break;
-          case 110: // n
-            sb.write('\n');
-            break;
-          case 116: // t
-            sb.write('\t');
-            break;
-          case 114: // r
-            sb.write('\r');
-            break;
-          default:
-            sb.write('\\');
-            sb.write(String.fromCharCode(esc));
-        }
+      if (ch != 0x5C) {
+        // Literal char: re-encode as UTF-8. The input is a Dart String
+        // (UTF-16), so BMP code units pass straight through and surrogate
+        // halves are paired up to recover the supplementary codepoint.
+        _appendCodeUnitAsUtf8(bytes, ch);
         continue;
       }
-      sb.write(String.fromCharCode(ch));
+      if (pos >= input.length) {
+        return Token(TokenKind.illegal, 'unterminated escape sequence', p);
+      }
+      final esc = _advance();
+      switch (esc) {
+        case 0x22: // \"
+        case 0x5C: // \\
+        case 0x27: // \'
+        case 0x3F: // \?
+          bytes.addByte(esc);
+          break;
+        case 0x61: bytes.addByte(0x07); break; // \a
+        case 0x62: bytes.addByte(0x08); break; // \b
+        case 0x66: bytes.addByte(0x0C); break; // \f
+        case 0x6E: bytes.addByte(0x0A); break; // \n
+        case 0x72: bytes.addByte(0x0D); break; // \r
+        case 0x74: bytes.addByte(0x09); break; // \t
+        case 0x76: bytes.addByte(0x0B); break; // \v
+        case 0x78: // \xHH — raw byte escape; UTF-8 validity checked at close.
+          final b = _readHexByte();
+          if (b == null) {
+            return Token(TokenKind.illegal,
+                r'invalid \x escape: expected 2 hex digits', p);
+          }
+          bytes.addByte(b);
+          break;
+        case 0x30: case 0x31: case 0x32: case 0x33: // \nnn (3 octal, 0-3 first)
+          final b = _readOctRest(esc);
+          if (b == null) {
+            return Token(TokenKind.illegal,
+                'invalid octal escape: expected 3 octal digits', p);
+          }
+          bytes.addByte(b);
+          break;
+        case 0x75: // \uHHHH
+          final r = _readHexRune(4);
+          if (r == null || !_isValidRune(r)) {
+            return Token(TokenKind.illegal,
+                r'invalid \u escape: expected 4 hex digits forming a valid codepoint',
+                p);
+          }
+          _appendRuneAsUtf8(bytes, r);
+          break;
+        case 0x55: // \UHHHHHHHH
+          final r = _readHexRune(8);
+          if (r == null || !_isValidRune(r)) {
+            return Token(TokenKind.illegal,
+                r'invalid \U escape: expected 8 hex digits forming a valid codepoint',
+                p);
+          }
+          _appendRuneAsUtf8(bytes, r);
+          break;
+        default:
+          return Token(TokenKind.illegal,
+              'unknown escape sequence \\${String.fromCharCode(esc)}', p);
+      }
     }
     return Token(TokenKind.illegal, 'unterminated string', p);
   }
+
+  /// Appends a UTF-16 code unit as UTF-8. Pairs high+low surrogates by
+  /// peeking at the next code unit; an unpaired surrogate is emitted as if
+  /// it were a codepoint, which `utf8.decode` will then reject at close.
+  void _appendCodeUnitAsUtf8(BytesBuilder bytes, int cu) {
+    if (cu >= 0xD800 && cu <= 0xDBFF && pos < input.length) {
+      final low = input.codeUnitAt(pos);
+      if (low >= 0xDC00 && low <= 0xDFFF) {
+        _advance();
+        final r = 0x10000 + ((cu - 0xD800) << 10) + (low - 0xDC00);
+        _appendRuneAsUtf8(bytes, r);
+        return;
+      }
+    }
+    _appendRuneAsUtf8(bytes, cu);
+  }
+
+  void _appendRuneAsUtf8(BytesBuilder bytes, int r) {
+    if (r < 0x80) {
+      bytes.addByte(r);
+    } else if (r < 0x800) {
+      bytes.addByte(0xC0 | (r >> 6));
+      bytes.addByte(0x80 | (r & 0x3F));
+    } else if (r < 0x10000) {
+      bytes.addByte(0xE0 | (r >> 12));
+      bytes.addByte(0x80 | ((r >> 6) & 0x3F));
+      bytes.addByte(0x80 | (r & 0x3F));
+    } else {
+      bytes.addByte(0xF0 | (r >> 18));
+      bytes.addByte(0x80 | ((r >> 12) & 0x3F));
+      bytes.addByte(0x80 | ((r >> 6) & 0x3F));
+      bytes.addByte(0x80 | (r & 0x3F));
+    }
+  }
+
+  /// Reads exactly two hex digits and returns the assembled byte.
+  int? _readHexByte() {
+    if (pos + 1 >= input.length) return null;
+    final hi = _hexVal(input.codeUnitAt(pos));
+    final lo = _hexVal(input.codeUnitAt(pos + 1));
+    if (hi == null || lo == null) return null;
+    _advance();
+    _advance();
+    return (hi << 4) | lo;
+  }
+
+  /// Reads exactly `n` hex digits and returns the assembled code point.
+  int? _readHexRune(int n) {
+    if (pos + n > input.length) return null;
+    var value = 0;
+    for (var i = 0; i < n; i++) {
+      final v = _hexVal(input.codeUnitAt(pos));
+      if (v == null) return null;
+      value = (value << 4) | v;
+      _advance();
+    }
+    return value;
+  }
+
+  /// Reads two more octal digits after the leading one already consumed.
+  /// `first` is restricted to ASCII '0'-'3' so the value never overflows
+  /// a byte.
+  int? _readOctRest(int first) {
+    if (pos + 1 >= input.length) return null;
+    final d1 = _octVal(input.codeUnitAt(pos));
+    final d2 = _octVal(input.codeUnitAt(pos + 1));
+    if (d1 == null || d2 == null) return null;
+    _advance();
+    _advance();
+    return ((first - 0x30) << 6) | (d1 << 3) | d2;
+  }
+
+  static int? _hexVal(int ch) {
+    if (ch >= 0x30 && ch <= 0x39) return ch - 0x30;
+    if (ch >= 0x61 && ch <= 0x66) return ch - 0x61 + 10;
+    if (ch >= 0x41 && ch <= 0x46) return ch - 0x41 + 10;
+    return null;
+  }
+
+  static int? _octVal(int ch) =>
+      (ch >= 0x30 && ch <= 0x37) ? ch - 0x30 : null;
+
+  /// Mirrors Go's utf8.ValidRune: in [0, 0x10FFFF] and not a UTF-16 surrogate.
+  static bool _isValidRune(int r) =>
+      r >= 0 && r <= 0x10FFFF && (r < 0xD800 || r > 0xDFFF);
 
   Token _lexTripleString(Position p) {
     _advance(); // "
@@ -289,6 +416,12 @@ class Lexer {
       _advance();
     }
     int digitCount = pos - digitStart;
+    if (digitCount > _maxNumericLiteralDigits) {
+      return Token(TokenKind.illegal,
+          'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+          '($digitCount digits)',
+          p);
+    }
 
     // Timestamp: exactly 4 digits followed by '-', only non-negative
     if (!neg && digitCount == 4 && pos < input.length && _peekCode == 45) {
@@ -312,8 +445,14 @@ class Lexer {
     if (_peekCode == 46) {
       // .
       _advance();
+      int fracStart = pos;
       while (pos < input.length && _isDigit(_peekCode)) {
         _advance();
+      }
+      if (pos - fracStart > _maxNumericLiteralDigits) {
+        return Token(TokenKind.illegal,
+            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits',
+            p);
       }
     }
     if (pos < input.length && (_peekCode == 101 || _peekCode == 69)) {
@@ -323,8 +462,14 @@ class Lexer {
         // +, -
         _advance();
       }
+      int expStart = pos;
       while (pos < input.length && _isDigit(_peekCode)) {
         _advance();
+      }
+      if (pos - expStart > _maxNumericLiteralDigits) {
+        return Token(TokenKind.illegal,
+            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits',
+            p);
       }
     }
     return Token(TokenKind.float, input.substring(start, pos), p);

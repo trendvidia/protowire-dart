@@ -4,8 +4,9 @@
 /// - **PXF**: Human-friendly text serialization for Protobuf.
 /// - **SBE**: Ultra-low-latency binary encoding.
 /// - **Envelope**: Standardized API response structure.
-library protowire;
+library;
 
+export 'src/encoding/pxf/annotations.dart' show PxfAnnotations, FieldAnnotations;
 export 'src/encoding/pxf/decode.dart';
 export 'src/encoding/pxf/encode.dart';
 export 'src/encoding/pxf/options.dart';
@@ -15,11 +16,24 @@ export 'src/encoding/sbe/sbe.dart';
 export 'src/encoding/sbe/view.dart';
 export 'src/encoding/sbe/xmltoproto.dart';
 export 'src/encoding/sbe/prototoxml.dart';
-export 'src/encoding/pb/native.dart';
 export 'src/envelope/envelope.dart';
 
-// Generated types
-export 'src/generated/proto/pxf/bignum.pb.dart';
-export 'src/generated/proto/pxf/annotations.pb.dart';
-export 'src/generated/proto/sbe/annotations.pb.dart';
-export 'src/generated/proto/envelope/v1/envelope.pb.dart';
+// Proto descriptor holders. Each .pb.dart file emits an `Annotations`
+// holder class; we hide them here to avoid an `ambiguous_export` clash
+// between pxf/annotations.pb.dart and sbe/annotations.pb.dart. Users
+// who need the descriptors can import the relevant .pb.dart directly.
+export 'src/generated/proto/pxf/annotations.pb.dart' hide Annotations;
+export 'src/generated/proto/sbe/annotations.pb.dart' hide Annotations;
+// The bignum proto declares `BigInt`/`Decimal`/`BigFloat` types that
+// would shadow Dart core `BigInt` (and other arithmetic types) in any
+// file that imports `package:protowire/protowire.dart`. Hide them
+// from the umbrella; users that want them can do
+// `import 'package:protowire/src/generated/proto/pxf/bignum.pb.dart' as pxf;`
+// (the `pxf.BigInt` form already used in tests).
+export 'src/generated/proto/pxf/bignum.pb.dart' hide BigInt, Decimal, BigFloat;
+// The proto-generated `Envelope` from envelope/v1/envelope.pb.dart and the
+// hand-written `Envelope` (with builder ergonomics: ok / err / transportErr
+// / withField / withMeta) collide on the names Envelope, AppError, and
+// FieldError. The hand-written version is the canonical user-facing API;
+// the proto descriptor stays available via direct import for byte-level
+// cross-port work (dump_envelope, future PB harness).
