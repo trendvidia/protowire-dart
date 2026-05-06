@@ -50,7 +50,10 @@ class Parser {
 
     var entries = <Entry>[];
     while (current.kind != TokenKind.eof) {
-      entries.add(_parseEntry());
+      // Top-level: only field_entry is allowed. The document represents a
+      // proto message, never a map<K,V>; map_entry (`:` form) is reserved
+      // for the inside of a '{ ... }' block. See docs/grammar.ebnf -> document.
+      entries.add(_parseEntry(allowMapEntry: false));
     }
 
     return Document(
@@ -60,7 +63,7 @@ class Parser {
     );
   }
 
-  Entry _parseEntry() {
+  Entry _parseEntry({bool allowMapEntry = true}) {
     var leading = _flushComments();
     var pos = current.pos;
 
@@ -70,11 +73,19 @@ class Parser {
       throw PxfError(pos, 'expected identifier, string, or integer, got ${current.kind.name} ("${current.value}")');
     }
 
+    var keyKind = current.kind;
     var key = current.value;
     _advance();
 
     switch (current.kind) {
       case TokenKind.equals:
+        // `=` denotes a field assignment on a proto message; the key must
+        // be an identifier. Map-style keys (string / integer) are only
+        // valid with `:`.
+        if (keyKind != TokenKind.ident) {
+          throw PxfError(pos,
+              'field assignment with \'=\' requires an identifier key, got ${keyKind.name} ("$key"); use \':\' for map entries');
+        }
         _advance();
         var val = _parseValue();
         return Assignment(
@@ -85,6 +96,12 @@ class Parser {
         );
 
       case TokenKind.colon:
+        // Map entry. Only allowed inside a '{ ... }' block, never at
+        // document top level.
+        if (!allowMapEntry) {
+          throw PxfError(pos,
+              'map entry (\':\' form) is only allowed inside a \'{ … }\' block; use \'=\' for top-level field assignments');
+        }
         _advance();
         var val = _parseValue();
         return MapEntry(
@@ -95,6 +112,12 @@ class Parser {
         );
 
       case TokenKind.lbrace:
+        // `{ ... }` denotes a submessage field; same identifier-only rule
+        // as `=` applies.
+        if (keyKind != TokenKind.ident) {
+          throw PxfError(pos,
+              'submessage block requires an identifier key, got ${keyKind.name} ("$key")');
+        }
         _advance();
         var entries = _parseBody();
         return Block(
