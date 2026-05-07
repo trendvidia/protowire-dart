@@ -53,8 +53,3 @@ coordinated public release.
   that need a generated binding directly can import the specific
   file: `import 'package:protowire/src/generated/...';`.
 
-## 1.0.0 (pre-public)
-
-- Initial Dart port of `protowire` from the Go reference (private
-  development line; superseded by the `0.70.x` family-aligned line
-  above).
