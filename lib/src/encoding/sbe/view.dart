@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'sbe.dart';
@@ -97,7 +98,8 @@ class View {
     while (n > 0 && bytes[n - 1] == 0) {
       n--;
     }
-    return String.fromCharCodes(bytes.take(n));
+    // HARDENING.md § UTF-8: strict decode (throws on malformed bytes).
+    return utf8.decode(Uint8List.sublistView(bytes, 0, n));
   }
 
   Uint8List getBytes(String name) {
@@ -122,20 +124,36 @@ class View {
   GroupView getGroup(String name) {
     int pos = headerSize + block.lengthInBytes;
     for (final gi in schema.groupOrder) {
+      if (data.length < pos + groupHeaderSize) {
+        throw Exception('sbe: data too short for group header');
+      }
       final bl = ByteData.view(data.buffer, data.offsetInBytes + pos, 2)
           .getUint16(0, byteOrder);
       final n = ByteData.view(data.buffer, data.offsetInBytes + pos + 2, 2)
           .getUint16(0, byteOrder);
+      // HARDENING.md § SBE — same group-header sanity checks as unmarshal:
+      // reject zero block-length with non-empty count, and reject when the
+      // declared payload doesn't fit in the buffer. `n * bl` is bounded by
+      // 0xFFFF * 0xFFFF, well within Dart's 64-bit int range.
+      if (bl == 0 && n > 0) {
+        throw Exception(
+            'sbe: group has zero block-length with non-zero count $n');
+      }
+      final groupBytes = n * bl;
+      if (pos + groupHeaderSize + groupBytes > data.length) {
+        throw Exception(
+            'sbe: group payload (${n}x$bl=$groupBytes B) overruns buffer');
+      }
       if (gi.name == name) {
         return GroupView(
-          data: data, // Should be full data for absolute pos or sliced?
+          data: data,
           startPos: pos,
           blockLength: bl,
           count: n,
           schema: gi.schema,
         );
       }
-      pos += groupHeaderSize + n * bl;
+      pos += groupHeaderSize + groupBytes;
     }
     throw Exception('sbe: unknown group: $name');
   }
