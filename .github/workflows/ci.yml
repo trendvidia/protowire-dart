@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: dart-lang/setup-dart@v2
+      - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ matrix.sdk }}
 
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: dart-lang/setup-dart@v2
+      - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
       - run: dart pub get
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: dart-lang/setup-dart@v2
+      - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
       - run: dart pub get
@@ -98,7 +98,7 @@ jobs:
           repository: trendvidia/protowire
           path: protowire
 
-      - uses: dart-lang/setup-dart@v2
+      - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
