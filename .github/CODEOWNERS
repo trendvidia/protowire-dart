@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 TrendVidia, LLC.
+#
+# Code ownership for protowire-dart.
+
+*                              @trendvidia/maintainers
+
+# --- Wire-impacting source (cross-port equivalence promise applies) ------
+/lib/src/pb/                    @trendvidia/maintainers
+/lib/src/pxf/                   @trendvidia/maintainers
+/lib/src/sbe/                   @trendvidia/maintainers
+/lib/src/envelope/              @trendvidia/maintainers
+/lib/protowire.dart             @trendvidia/maintainers
+
+# --- Vendored proto annotations (part of the upstream wire contract) -----
+/proto/                         @trendvidia/maintainers
+
+# --- Tests + harnesses (open to broader reviewer pool) ------------------
+/test/                          @trendvidia/contributors @trendvidia/maintainers
+/benchmark/                     @trendvidia/contributors @trendvidia/maintainers
+/bin/                           @trendvidia/contributors @trendvidia/maintainers
+
+# --- Build, packaging, CI -----------------------------------------------
+/.github/                       @trendvidia/maintainers
+/pubspec.yaml                   @trendvidia/maintainers
+/analysis_options.yaml          @trendvidia/maintainers
+/buf.yaml                       @trendvidia/maintainers
+/buf.gen.yaml                   @trendvidia/maintainers

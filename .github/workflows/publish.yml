@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 TrendVidia, LLC.
+#
+# pub.dev publishing pipeline.
+#
+# Triggered manually or on a `v*` tag push. Uses pub.dev's OIDC
+# trusted publishing — there is no API-token equivalent on pub.dev,
+# so the bootstrap path is:
+#
+#   1. First release (v0.70.0) is published MANUALLY from a maintainer
+#      machine: `dart pub publish` triggers a Google OAuth flow against
+#      pub.dev and uploads the package. There is no automation path
+#      for this step.
+#   2. Once `protowire` exists on pub.dev, configure the GitHub repo
+#      as an automated publisher at
+#      https://pub.dev/packages/protowire/admin → "Automated
+#      publishing" → set repository = `trendvidia/protowire-dart`,
+#      tag-pattern = `v{{version}}`, environment = `pub.dev`.
+#   3. From v0.70.1 on, tag pushes trigger this workflow and pub.dev
+#      validates the OIDC claim against the configuration above.
+
+name: Publish to pub.dev
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    environment:
+      name: pub.dev
+      url: https://pub.dev/packages/protowire
+    permissions:
+      id-token: write  # required for OIDC trusted publishing
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dart-lang/setup-dart@v2
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Sanity check (analyze + test) before publish
+        run: |
+          dart format --output=none --set-exit-if-changed .
+          dart analyze --fatal-warnings
+          dart test
+
+      - name: dart pub publish
+        # `--force` skips the interactive confirmation only — publishing
+        # itself is gated by pub.dev's verifier on the OIDC claim.
+        run: dart pub publish --force

@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 TrendVidia, LLC.
+#
+# CodeQL doesn't ship a Dart analyzer (only python/javascript/cpp/java/
+# go/csharp/ruby/swift). For Dart we rely on `dart analyze` as the
+# static-analysis gate (configured in ci.yml) and on the hardening
+# corpus job for runtime safety. This file is a placeholder so the
+# workflow listing matches the rest of the family.
+
+name: CodeQL
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  noop:
+    name: CodeQL not yet supported for Dart
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Dart is not on the CodeQL language list. See ci.yml's analyze job."

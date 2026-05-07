@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 TrendVidia, LLC.
+#
+# Static-analysis config for protowire-dart. Uses the
+# `package:lints/recommended.yaml` baseline that pub.dev scores
+# against; sub-libraries opt into stricter rules where useful.
+#
+# The `errors:` block below silences info-level lints inside
+# protoc-generated code (`lib/src/generated/**`) and inside test
+# helpers that mirror Go's `SCREAMING_SNAKE_CASE` enum names from the
+# upstream proto fixtures (renaming would diverge from the
+# cross-port reference). For port-side .dart we still treat all
+# info-level lints as warnings so they show up in CI logs.
+
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    # Generated proto bindings — owned by `protoc` / buf, not us.
+    - lib/src/generated/**
+  errors:
+    # Test code intentionally uses SCREAMING_SNAKE_CASE for proto enum
+    # value mirroring; don't fail CI on it.
+    constant_identifier_names: ignore
+    # Pre-existing warnings in the encoding crates from a refactor that
+    # left a few locals + private methods unused. Real cleanup is
+    # tracked for 0.71.x; keeping these as info so they show up in CI
+    # logs without blocking the v0.70.0 release.
+    unused_local_variable: info
+    unused_element: info

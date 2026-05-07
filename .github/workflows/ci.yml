@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 TrendVidia, LLC.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Build + test on stable across {Linux, macOS, Windows}, plus beta on
+  # Linux as an early-warning for upcoming breaking changes.
+  # ---------------------------------------------------------------------
+  test:
+    name: test / ${{ matrix.os }} / ${{ matrix.sdk }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            sdk: stable
+          - os: ubuntu-latest
+            sdk: beta
+          - os: macos-latest
+            sdk: stable
+          - os: windows-latest
+            sdk: stable
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dart-lang/setup-dart@v2
+        with:
+          sdk: ${{ matrix.sdk }}
+
+      - run: dart pub get
+      - run: dart test
+
+  # ---------------------------------------------------------------------
+  # dart format — formatting check on every PR.
+  # ---------------------------------------------------------------------
+  format:
+    name: dart format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dart-lang/setup-dart@v2
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed .
+
+  # ---------------------------------------------------------------------
+  # dart analyze — lint gate. --fatal-warnings means warnings block,
+  # but info-level lints are allowed to surface in logs without
+  # failing the job (analysis_options.yaml downgrades a few
+  # pre-existing unused-locals to info; real cleanup is tracked for
+  # 0.71.x).
+  # ---------------------------------------------------------------------
+  analyze:
+    name: dart analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dart-lang/setup-dart@v2
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart analyze --fatal-warnings
+
+  # ---------------------------------------------------------------------
+  # Adversarial decoder corpus — HARDENING.md conformance reference.
+  # The spec script handles per-port build and corpus iteration; this
+  # job just sets up the sibling layout the script expects.
+  # ---------------------------------------------------------------------
+  hardening:
+    name: HARDENING.md corpus
+    runs-on: ubuntu-latest
+    steps:
+      # cross_security_check.sh resolves SIBLING_DIR=parent_of_spec and
+      # then DART_DIR=$SIBLING_DIR/protowire-dart. Check both repos out
+      # as siblings so the path math works.
+      - uses: actions/checkout@v6
+        with:
+          path: protowire-dart
+
+      - uses: actions/checkout@v6
+        with:
+          repository: trendvidia/protowire
+          path: protowire
+
+      - uses: dart-lang/setup-dart@v2
+        with:
+          sdk: stable
+
+      - name: dart pub get
+        working-directory: protowire-dart
+        run: dart pub get
+
+      - name: Run corpus
+        run: bash protowire/scripts/cross_security_check.sh
