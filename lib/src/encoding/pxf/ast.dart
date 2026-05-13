@@ -11,14 +11,18 @@ class Comment {
 
 class Document {
   String? typeUrl;
+
   /// Generic `@<name> *(prefix) [{ ... }]` directives in source order
   /// (draft §3.4.2). Excludes `@type`, `@dataset`, `@proto`.
   final List<Directive> directives;
+
   /// `@dataset` directives in source order (draft §3.4.4). A document
   /// with any `@dataset` MUST NOT have `@type` or top-level body entries.
   final List<DatasetDirective> datasets;
+
   /// `@proto` directives in source order (draft §3.4.5).
   final List<ProtoDirective> protos;
+
   /// Byte offset where the schema-typed body begins, after all directives.
   int bodyOffset;
   final List<Entry> entries;
@@ -45,10 +49,12 @@ class Directive {
   final Position pos;
   final String name;
   final List<String> prefixes;
+
   /// Back-compat single-prefix sugar: populated when exactly one prefix
   /// identifier was supplied. Empty for zero or 2+ prefixes; new code
   /// should read [prefixes] directly.
   final String type;
+
   /// Raw inner bytes of the block; `null` when the directive has no `{ ... }`.
   final List<int>? body;
   final List<Comment> leadingComments;
@@ -124,6 +130,7 @@ enum ProtoShape {
 class ProtoDirective {
   final Position pos;
   final ProtoShape shape;
+
   /// Dotted message type name; non-empty only when `shape == named`.
   final String typeName;
   final List<int> body;

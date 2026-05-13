@@ -197,8 +197,8 @@ class DirectDecoder {
     final columns = <String>[];
     while (true) {
       if (current.kind != TokenKind.ident) {
-        throw PxfError(
-            current.pos, 'expected column field name, got ${current.kind.name}');
+        throw PxfError(current.pos,
+            'expected column field name, got ${current.kind.name}');
       }
       final colName = current.value;
       if (colName.contains('.')) {

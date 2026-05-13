@@ -30,8 +30,8 @@ void main() {
     });
 
     test('single prefix populates legacy type', () {
-      final doc = parse(
-          '@header chameleon.v1.LayerHeader { id = "x" }\nbody = "z"\n');
+      final doc =
+          parse('@header chameleon.v1.LayerHeader { id = "x" }\nbody = "z"\n');
       final d = doc.directives[0];
       expect(d.name, equals('header'));
       expect(d.prefixes, equals(['chameleon.v1.LayerHeader']));
@@ -42,8 +42,7 @@ void main() {
     });
 
     test('two prefixes leave type empty', () {
-      final doc =
-          parse('@entry mylabel pkg.MsgType { x = 1 }\nname = "z"\n');
+      final doc = parse('@entry mylabel pkg.MsgType { x = 1 }\nname = "z"\n');
       final d = doc.directives[0];
       expect(d.prefixes, equals(['mylabel', 'pkg.MsgType']));
       expect(d.type, equals(''));
@@ -91,8 +90,7 @@ void main() {
     });
 
     test('line comment inside body', () {
-      final doc =
-          parse('@h T { a = 1 # trailing } comment\n  b = 2\n}\n');
+      final doc = parse('@h T { a = 1 # trailing } comment\n  b = 2\n}\n');
       expect(doc.directives[0].hasBody, isTrue);
     });
 
@@ -102,7 +100,8 @@ void main() {
     });
 
     test('@type without ident rejected', () {
-      expect(() => parse('@type =\n'),
+      expect(
+          () => parse('@type =\n'),
           throwsA(predicate((e) =>
               e is PxfError && e.toString().contains('expected type name'))));
     });
@@ -187,8 +186,8 @@ void main() {
     test('dotted column rejected', () {
       expect(
         () => parse('@dataset x.Row ( a.b )\n'),
-        throwsA(predicate((e) =>
-            e is PxfError && e.toString().contains('dotted column'))),
+        throwsA(predicate(
+            (e) => e is PxfError && e.toString().contains('dotted column'))),
       );
     });
 
@@ -212,7 +211,8 @@ void main() {
       expect(
         () => parse('@type other\n@dataset x.Row ( a )\n( 1 )\n'),
         throwsA(predicate((e) =>
-            e is PxfError && e.toString().contains('cannot coexist with @type'))),
+            e is PxfError &&
+            e.toString().contains('cannot coexist with @type'))),
       );
     });
 
@@ -220,7 +220,8 @@ void main() {
       expect(
         () => parse('@dataset x.Row ( a )\n@type other\n'),
         throwsA(predicate((e) =>
-            e is PxfError && e.toString().contains('cannot coexist with @type'))),
+            e is PxfError &&
+            e.toString().contains('cannot coexist with @type'))),
       );
     });
 
@@ -229,7 +230,9 @@ void main() {
         () => parse('@dataset x.Row ( a )\n( 1 )\nextra = 5\n'),
         throwsA(predicate((e) =>
             e is PxfError &&
-            e.toString().contains('cannot coexist with top-level field entries'))),
+            e
+                .toString()
+                .contains('cannot coexist with top-level field entries'))),
       );
     });
 
@@ -260,7 +263,8 @@ void main() {
       expect(
         () => parse('@dataset x.Row ( a, 123 )\n'),
         throwsA(predicate((e) =>
-            e is PxfError && e.toString().contains('expected column field name'))),
+            e is PxfError &&
+            e.toString().contains('expected column field name'))),
       );
     });
 
@@ -269,7 +273,9 @@ void main() {
         () => parse('@dataset x.Row ( a b )\n'),
         throwsA(predicate((e) =>
             e is PxfError &&
-            e.toString().contains('expected "," or ")" in @dataset column list'))),
+            e
+                .toString()
+                .contains('expected "," or ")" in @dataset column list'))),
       );
     });
 
@@ -285,8 +291,7 @@ void main() {
 
   group('@proto directive', () {
     test('anonymous captures raw bytes', () {
-      final doc =
-          parse('@proto { int32 id = 1; string name = 2; }\n');
+      final doc = parse('@proto { int32 id = 1; string name = 2; }\n');
       expect(doc.protos, hasLength(1));
       final p = doc.protos[0];
       expect(p.shape, equals(ProtoShape.anonymous));
@@ -297,8 +302,8 @@ void main() {
     });
 
     test('named captures raw bytes', () {
-      final doc = parse(
-          '@proto trades.v1.Trade { double px = 1; int64 qty = 2; }\n');
+      final doc =
+          parse('@proto trades.v1.Trade { double px = 1; int64 qty = 2; }\n');
       final p = doc.protos[0];
       expect(p.shape, equals(ProtoShape.named));
       expect(p.typeName, equals('trades.v1.Trade'));

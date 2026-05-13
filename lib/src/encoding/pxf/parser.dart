@@ -153,7 +153,8 @@ class Parser {
       }
       // Validate inner well-formedness by parsing the block.
       _parseBlockVal();
-      body = Uint8List.fromList(utf8.encode(lex.input.substring(open + 1, close)));
+      body =
+          Uint8List.fromList(utf8.encode(lex.input.substring(open + 1, close)));
       endOffset = close + 1;
     }
 
@@ -199,8 +200,8 @@ class Parser {
     final columns = <String>[];
     while (true) {
       if (current.kind != TokenKind.ident) {
-        throw PxfError(
-            current.pos, 'expected column field name, got ${current.kind.name}');
+        throw PxfError(current.pos,
+            'expected column field name, got ${current.kind.name}');
       }
       final colName = current.value;
       if (colName.contains('.')) {
