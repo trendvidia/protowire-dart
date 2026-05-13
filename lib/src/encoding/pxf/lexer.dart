@@ -125,6 +125,12 @@ class Lexer {
       case 93: // ]
         _advance();
         return Token(TokenKind.rbracket, ']', p);
+      case 40: // (
+        _advance();
+        return Token(TokenKind.lparen, '(', p);
+      case 41: // )
+        _advance();
+        return Token(TokenKind.rparen, ')', p);
       case 61: // =
         _advance();
         return Token(TokenKind.equals, '=', p);
@@ -424,10 +430,40 @@ class Lexer {
       _advance();
     }
     String name = input.substring(start, pos);
-    if (name == 'type') {
-      return Token(TokenKind.atType, '@type', p);
+    if (name.isEmpty) {
+      return Token(TokenKind.illegal, '@', p);
     }
-    return Token(TokenKind.illegal, '@$name', p);
+    switch (name) {
+      case 'type':
+        return Token(TokenKind.atType, '@type', p);
+      case 'dataset':
+        return Token(TokenKind.atDataset, '@dataset', p);
+      case 'proto':
+        return Token(TokenKind.atProto, '@proto', p);
+      default:
+        return Token(TokenKind.atDirective, name, p);
+    }
+  }
+
+  /// Opaque lexer state used for one-token lookahead.
+  LexerState save() => LexerState(pos, line, col);
+
+  /// Restores a previously-captured lexer position.
+  void restore(LexerState s) {
+    pos = s.pos;
+    line = s.line;
+    col = s.col;
+  }
+
+  /// Repositions the scanner to absolute offset [target]. Used by
+  /// `parseProtoDirective` after slicing a brace-bounded body out of
+  /// the input directly: the interior is protobuf source rather than
+  /// PXF. Walks one byte at a time so line/col stay accurate.
+  void repositionTo(int target) {
+    assert(target >= pos, 'lexer cannot reposition backwards');
+    while (pos < target && pos < input.length) {
+      _advance();
+    }
   }
 
   Token _lexNumber(Position p) {
@@ -519,8 +555,9 @@ class Lexer {
           ch == 44 ||
           ch == 93 ||
           ch == 125 ||
+          ch == 41 ||
           ch == 35) {
-        // ' ', \n, \t, \r, ,, ], }, #
+        // ' ', \n, \t, \r, ,, ], }, ), #
         break;
       }
       if (ch == 47 && (_peekCodeAt(1) == 47 || _peekCodeAt(1) == 42)) {
@@ -588,4 +625,12 @@ class Lexer {
       ch == 110 ||
       ch == 117; // h, m, s, n, u
   bool _isLowerAlpha(int ch) => ch >= 97 && ch <= 122;
+}
+
+/// Lexer state snapshot used for one-token lookahead in [Parser].
+class LexerState {
+  final int pos;
+  final int line;
+  final int col;
+  LexerState(this.pos, this.line, this.col);
 }

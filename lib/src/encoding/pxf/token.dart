@@ -20,11 +20,16 @@ enum TokenKind {
   rbrace,
   lbracket,
   rbracket,
+  lparen,
+  rparen,
   equals,
   colon,
   comma,
 
   atType,
+  atDataset,
+  atProto,
+  atDirective,
 }
 
 extension TokenKindExtension on TokenKind {
@@ -64,6 +69,10 @@ extension TokenKindExtension on TokenKind {
         return '[';
       case TokenKind.rbracket:
         return ']';
+      case TokenKind.lparen:
+        return '(';
+      case TokenKind.rparen:
+        return ')';
       case TokenKind.equals:
         return '=';
       case TokenKind.colon:
@@ -72,6 +81,12 @@ extension TokenKindExtension on TokenKind {
         return ',';
       case TokenKind.atType:
         return '@type';
+      case TokenKind.atDataset:
+        return '@dataset';
+      case TokenKind.atProto:
+        return '@proto';
+      case TokenKind.atDirective:
+        return '@<name>';
     }
   }
 }

@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
-import 'token.dart';
-import 'lexer.dart';
+import 'ast.dart';
+import 'brace_scan.dart';
+import 'duration.dart';
 import 'errors.dart';
+import 'lexer.dart';
 import 'options.dart';
 import 'result.dart';
+import 'schema.dart';
+import 'token.dart';
 import 'wellknown.dart';
-import 'duration.dart';
 
 /// Caches the proto-name → FieldInfo lookup per [BuilderInfo]. Built once
 /// per message type and reused across decode calls — `BuilderInfo` instances
@@ -75,15 +79,316 @@ class DirectDecoder {
   }
 
   void decodeDocument(GeneratedMessage msg) {
-    if (current.kind == TokenKind.atType) {
-      _advance();
-      if (current.kind != TokenKind.ident) {
-        throw PxfError(current.pos,
-            'expected type name after @type, got ${current.kind.name}');
+    _consumeDirectives();
+    _decodeFields(msg, false);
+  }
+
+  /// Drains any leading `@type` / `@<name>` / `@dataset` / `@proto`
+  /// directives at document root. The AST-aware accessors land on
+  /// [result] when running under `unmarshalFull`; otherwise the
+  /// directives are simply consumed. Enforces the @dataset standalone
+  /// constraint (draft §3.4.4).
+  void _consumeDirectives() {
+    bool sawType = false;
+    bool hasDataset = false;
+    Position? firstDatasetPos;
+    while (true) {
+      switch (current.kind) {
+        case TokenKind.atType:
+          if (hasDataset) {
+            throw PxfError(current.pos,
+                '@dataset directive cannot coexist with @type (draft §3.4.4)');
+          }
+          sawType = true;
+          _advance();
+          if (current.kind != TokenKind.ident) {
+            throw PxfError(current.pos,
+                'expected type name after @type, got ${current.kind.name}');
+          }
+          _advance();
+          continue;
+        case TokenKind.atDirective:
+          final dir = _consumeDirective();
+          result?.addDirective(dir);
+          continue;
+        case TokenKind.atDataset:
+          if (sawType) {
+            throw PxfError(current.pos,
+                '@dataset directive cannot coexist with @type (draft §3.4.4)');
+          }
+          final ds = _consumeDatasetDirective();
+          if (!hasDataset) {
+            firstDatasetPos = ds.pos;
+            hasDataset = true;
+          }
+          result?.addDataset(ds);
+          continue;
+        case TokenKind.atProto:
+          final pd = _consumeProtoDirective();
+          result?.addProto(pd);
+          continue;
+        default:
+          break;
       }
+      if (hasDataset && current.kind != TokenKind.eof) {
+        throw PxfError(firstDatasetPos!,
+            '@dataset directive cannot coexist with top-level field entries (draft §3.4.4)');
+      }
+      return;
+    }
+  }
+
+  /// Mirrors Parser._parseDirective for the streaming decode path.
+  Directive _consumeDirective() {
+    final atPos = current.pos;
+    final name = current.value;
+    if (isFutureReservedDirective(name)) {
+      throw PxfError(atPos,
+          '@$name is a spec-reserved directive name with no v1 semantics (draft §3.4.6)');
+    }
+    final prefixes = <String>[];
+    _advance();
+    while (current.kind == TokenKind.ident) {
+      final pk = _peekKind();
+      if (pk == TokenKind.equals || pk == TokenKind.colon) break;
+      prefixes.add(current.value);
       _advance();
     }
-    _decodeFields(msg, false);
+    List<int>? body;
+    if (current.kind == TokenKind.lbrace) {
+      final open = lex.pos - 1;
+      final close = findMatchingBrace(lex.input, open);
+      if (close < 0) {
+        throw PxfError(atPos, 'directive @$name: unmatched "{"');
+      }
+      body =
+          Uint8List.fromList(utf8.encode(lex.input.substring(open + 1, close)));
+      lex.repositionTo(close + 1);
+      _advance();
+    }
+    final typeField = prefixes.length == 1 ? prefixes[0] : '';
+    return Directive(
+      pos: atPos,
+      name: name,
+      prefixes: prefixes,
+      type: typeField,
+      body: body,
+    );
+  }
+
+  /// Mirrors Parser._parseDatasetDirective for the streaming path.
+  DatasetDirective _consumeDatasetDirective() {
+    final atPos = current.pos;
+    _advance();
+    var type = '';
+    if (current.kind == TokenKind.ident) {
+      type = current.value;
+      _advance();
+    }
+    if (current.kind != TokenKind.lparen) {
+      throw PxfError(current.pos,
+          'expected "(" to start @dataset column list, got ${current.kind.name}');
+    }
+    _advance();
+    if (current.kind != TokenKind.ident) {
+      throw PxfError(current.pos,
+          '@dataset column list must contain at least one field name, got ${current.kind.name}');
+    }
+    final columns = <String>[];
+    while (true) {
+      if (current.kind != TokenKind.ident) {
+        throw PxfError(
+            current.pos, 'expected column field name, got ${current.kind.name}');
+      }
+      final colName = current.value;
+      if (colName.contains('.')) {
+        throw PxfError(current.pos,
+            '@dataset column "$colName": dotted column paths are not supported in v1 (draft §3.4.4)');
+      }
+      columns.add(colName);
+      _advance();
+      if (current.kind == TokenKind.comma) {
+        _advance();
+        continue;
+      }
+      if (current.kind == TokenKind.rparen) break;
+      throw PxfError(current.pos,
+          'expected "," or ")" in @dataset column list, got ${current.kind.name}');
+    }
+    _advance();
+
+    final rows = <DatasetRow>[];
+    while (current.kind == TokenKind.lparen) {
+      final rowPos = current.pos;
+      _advance();
+      final cells = <Value?>[];
+      cells.add(_consumeRowCell());
+      while (current.kind == TokenKind.comma) {
+        _advance();
+        cells.add(_consumeRowCell());
+      }
+      if (current.kind != TokenKind.rparen) {
+        throw PxfError(current.pos,
+            'expected "," or ")" in @dataset row, got ${current.kind.name}');
+      }
+      _advance();
+      if (cells.length != columns.length) {
+        throw PxfError(rowPos,
+            '@dataset row has ${cells.length} cells, expected ${columns.length} (column count)');
+      }
+      rows.add(DatasetRow(pos: rowPos, cells: cells));
+    }
+    return DatasetDirective(
+      pos: atPos,
+      type: type,
+      columns: columns,
+      rows: rows,
+    );
+  }
+
+  /// Consumes one cell of a @dataset row. Returns null for an empty
+  /// cell. Rejects list and block values per v1 cell-grammar.
+  Value? _consumeRowCell() {
+    switch (current.kind) {
+      case TokenKind.comma:
+      case TokenKind.rparen:
+        return null;
+      case TokenKind.lbracket:
+        throw PxfError(current.pos,
+            '@dataset cells cannot contain list values in v1 (draft §3.4.4)');
+      case TokenKind.lbrace:
+        throw PxfError(current.pos,
+            '@dataset cells cannot contain block values in v1 (draft §3.4.4)');
+      default:
+        // Match Parser._parseValue subset used by row cells. Wrap as a
+        // minimal Value; we only need pos + null detection downstream.
+        final pos = current.pos;
+        switch (current.kind) {
+          case TokenKind.string:
+            final v = StringVal(pos, current.value);
+            _advance();
+            return v;
+          case TokenKind.int:
+            final v = IntVal(pos, current.value);
+            _advance();
+            return v;
+          case TokenKind.float:
+            final v = FloatVal(pos, current.value);
+            _advance();
+            return v;
+          case TokenKind.bool:
+            final v = BoolVal(pos, current.value == 'true');
+            _advance();
+            return v;
+          case TokenKind.bytes:
+            final decoded = base64.decode(current.value);
+            final v = BytesVal(pos, decoded);
+            _advance();
+            return v;
+          case TokenKind.timestamp:
+            final t = DateTime.parse(current.value);
+            final v = TimestampVal(pos, t, current.value);
+            _advance();
+            return v;
+          case TokenKind.duration:
+            final d = parseGoDuration(current.value);
+            final v = DurationVal(pos, d, current.value);
+            _advance();
+            return v;
+          case TokenKind.null_:
+            final v = NullVal(pos);
+            _advance();
+            return v;
+          case TokenKind.ident:
+            final v = IdentVal(pos, current.value);
+            _advance();
+            return v;
+          default:
+            throw PxfError(pos,
+                'expected value, got ${current.kind.name} ("${current.value}")');
+        }
+    }
+  }
+
+  /// Mirrors Parser._parseProtoDirective for the streaming path.
+  ProtoDirective _consumeProtoDirective() {
+    final atPos = current.pos;
+    _advance();
+    switch (current.kind) {
+      case TokenKind.lbrace:
+        final body = _captureBraceBody('@proto (anonymous form)');
+        return ProtoDirective(
+            pos: atPos, shape: ProtoShape.anonymous, body: body);
+      case TokenKind.ident:
+        final typeName = current.value;
+        _advance();
+        if (current.kind != TokenKind.lbrace) {
+          throw PxfError(current.pos,
+              'expected "{" after @proto $typeName, got ${current.kind.name}');
+        }
+        final body = _captureBraceBody('@proto $typeName');
+        return ProtoDirective(
+          pos: atPos,
+          shape: ProtoShape.named,
+          typeName: typeName,
+          body: body,
+        );
+      case TokenKind.string:
+        final bytes = Uint8List.fromList(utf8.encode(current.value));
+        _advance();
+        return ProtoDirective(
+            pos: atPos, shape: ProtoShape.source, body: bytes);
+      case TokenKind.bytes:
+        final raw = current.value;
+        List<int> decoded;
+        try {
+          decoded = base64.decode(raw);
+        } on FormatException {
+          try {
+            decoded = base64Url.decode(raw);
+          } on FormatException {
+            var padded = raw;
+            final rem = padded.length % 4;
+            if (rem != 0) padded = padded + ('=' * (4 - rem));
+            try {
+              decoded = base64Url.decode(padded);
+            } on FormatException {
+              throw PxfError(
+                  current.pos, '@proto descriptor body: invalid base64');
+            }
+          }
+        }
+        _advance();
+        return ProtoDirective(
+            pos: atPos, shape: ProtoShape.descriptor, body: decoded);
+      default:
+        throw PxfError(current.pos,
+            'expected "{", dotted identifier, triple-quoted string, or b"..." after @proto, got ${current.kind.name}');
+    }
+  }
+
+  List<int> _captureBraceBody(String label) {
+    final open = lex.pos - 1;
+    final close = findMatchingBrace(lex.input, open);
+    if (close < 0) {
+      throw PxfError(current.pos, '$label: unmatched "{"');
+    }
+    final body =
+        Uint8List.fromList(utf8.encode(lex.input.substring(open + 1, close)));
+    lex.repositionTo(close + 1);
+    _advance();
+    return body;
+  }
+
+  /// One-token lookahead with full state restore.
+  TokenKind _peekKind() {
+    final state = lex.save();
+    final savedCurrent = current;
+    _advance();
+    final peeked = current.kind;
+    lex.restore(state);
+    current = savedCurrent;
+    return peeked;
   }
 
   void _decodeFields(GeneratedMessage msg, bool inBlock) {
