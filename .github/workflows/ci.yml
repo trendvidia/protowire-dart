@@ -36,7 +36,7 @@ jobs:
           - os: windows-latest
             sdk: stable
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: dart-lang/setup-dart@v1
         with:
@@ -52,7 +52,7 @@ jobs:
     name: dart format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
@@ -70,7 +70,7 @@ jobs:
     name: dart analyze
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
@@ -89,11 +89,11 @@ jobs:
       # cross_security_check.sh resolves SIBLING_DIR=parent_of_spec and
       # then DART_DIR=$SIBLING_DIR/protowire-dart. Check both repos out
       # as siblings so the path math works.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: protowire-dart
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: trendvidia/protowire
           path: protowire
