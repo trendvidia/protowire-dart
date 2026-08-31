@@ -22,27 +22,27 @@ class Annotations {
   static final schemaId = $pb.Extension<$core.int>(
       _omitMessageNames ? '' : 'google.protobuf.FileOptions',
       _omitFieldNames ? '' : 'schemaId',
-      50100,
+      1319,
       $pb.PbFieldType.OU3);
   static final version = $pb.Extension<$core.int>(
       _omitMessageNames ? '' : 'google.protobuf.FileOptions',
       _omitFieldNames ? '' : 'version',
-      50101,
+      1320,
       $pb.PbFieldType.OU3);
   static final templateId = $pb.Extension<$core.int>(
       _omitMessageNames ? '' : 'google.protobuf.MessageOptions',
       _omitFieldNames ? '' : 'templateId',
-      50200,
+      1321,
       $pb.PbFieldType.OU3);
   static final length = $pb.Extension<$core.int>(
       _omitMessageNames ? '' : 'google.protobuf.FieldOptions',
       _omitFieldNames ? '' : 'length',
-      50300,
+      1322,
       $pb.PbFieldType.OU3);
   static final encoding = $pb.Extension<$core.String>(
       _omitMessageNames ? '' : 'google.protobuf.FieldOptions',
       _omitFieldNames ? '' : 'encoding',
-      50301,
+      1323,
       $pb.PbFieldType.OS);
   static void registerAllExtensions($pb.ExtensionRegistry registry) {
     registry.add(schemaId);

@@ -22,16 +22,16 @@ class Annotations {
   static final required = $pb.Extension<$core.bool>(
       _omitMessageNames ? '' : 'google.protobuf.FieldOptions',
       _omitFieldNames ? '' : 'required',
-      50000,
+      1314,
       $pb.PbFieldType.OB);
-  static final default_50001 = $pb.Extension<$core.String>(
+  static final default_1315 = $pb.Extension<$core.String>(
       _omitMessageNames ? '' : 'google.protobuf.FieldOptions',
-      _omitFieldNames ? '' : 'default_50001',
-      50001,
+      _omitFieldNames ? '' : 'default_1315',
+      1315,
       $pb.PbFieldType.OS);
   static void registerAllExtensions($pb.ExtensionRegistry registry) {
     registry.add(required);
-    registry.add(default_50001);
+    registry.add(default_1315);
   }
 }
 
