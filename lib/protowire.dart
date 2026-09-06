@@ -14,6 +14,7 @@ export 'src/encoding/pxf/options.dart';
 export 'src/encoding/pxf/errors.dart';
 export 'src/encoding/pxf/wellknown.dart';
 export 'src/encoding/sbe/sbe.dart';
+export 'src/encoding/sbe/descriptor.dart';
 export 'src/encoding/sbe/view.dart';
 export 'src/encoding/sbe/xmltoproto.dart';
 export 'src/encoding/sbe/prototoxml.dart';
