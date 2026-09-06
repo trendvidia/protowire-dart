@@ -433,7 +433,7 @@ class DirectDecoder {
       switch (current.kind) {
         case TokenKind.equals:
           _advance();
-          var fi = info.byName[key];
+          var fi = _fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipValue();
@@ -464,7 +464,7 @@ class DirectDecoder {
 
         case TokenKind.lbrace:
           _advance();
-          var fi = info.byName[key];
+          var fi = _fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipBraced();
@@ -886,15 +886,33 @@ class DirectDecoder {
     throw PxfError(pos, 'unsupported type ${fi.type} for field "${fi.name}"');
   }
 
-  int _consumeEnum(FieldInfo fi) {
+  // Enum fields hold a ProtobufEnum, never a bare int: FieldSet rejects
+  // `setField(tag, 1)` on an enum field, so both spellings resolve through
+  // the values generated code puts in FieldInfo.enumValues / valueOf.
+  ProtobufEnum _consumeEnum(FieldInfo fi) {
     var pos = current.pos;
     if (current.kind == TokenKind.ident) {
+      // By name, as every port writes them (draft -01 §3.2).
+      final name = current.value;
+      for (final e in fi.enumValues ?? const <ProtobufEnum>[]) {
+        if (e.name == name) {
+          _advance();
+          return e;
+        }
+      }
       throw PxfError(
-          pos, 'enum lookup by name not yet implemented in Dart port');
+          pos, 'unknown enum value "$name" for field "${fi.protoName}"');
     } else if (current.kind == TokenKind.int) {
       var v = int.parse(current.value);
+      final e = fi.valueOf?.call(v);
+      if (e == null) {
+        // A generated Dart enum has no instance for a number it does not
+        // declare, so an open-enum unknown value cannot be carried here.
+        throw PxfError(
+            pos, 'unknown enum number $v for field "${fi.protoName}"');
+      }
       _advance();
-      return v;
+      return e;
     } else {
       throw PxfError(
           pos, 'expected enum name or number for field "${fi.name}"');
@@ -946,6 +964,20 @@ class DirectDecoder {
     var paths = fm.getField(1) as List<String>;
     paths.add(path);
   }
+}
+
+/// Resolves a PXF entry name to a field. Entry names are the proto field
+/// names (draft -01 §3.2; `order_id`), which is what every other port
+/// writes and reads; [BuilderInfo.byName] indexes the Dart names generated
+/// code uses (`orderId`), so those are accepted too for documents written
+/// against this port. The proto-name index is built once per [BuilderInfo].
+FieldInfo? _fieldNamed(BuilderInfo info, String key) {
+  final byDart = info.byName[key];
+  if (byDart != null) return byDart;
+  final byProto = _byProtoNameCache[info] ??= {
+    for (final fi in info.fieldInfo.values) fi.protoName: fi,
+  };
+  return byProto[key];
 }
 
 /// Unmarshals PXF text from [input] into the provided [msg].
