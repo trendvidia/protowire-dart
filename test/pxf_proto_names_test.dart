@@ -133,7 +133,8 @@ parent_ticket {
     expect(
         () => unmarshal('all_fills = 1\n', Order.create()),
         throwsA(predicate((e) =>
-            '$e'.contains('repeated field "all_fills"') && !'$e'.contains('allFills'))));
+            '$e'.contains('repeated field "all_fills"') &&
+            !'$e'.contains('allFills'))));
   });
 }
 

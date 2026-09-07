@@ -549,7 +549,8 @@ class DirectDecoder {
       if (current.kind == TokenKind.lbrace) {
         _decodeMap(msg, fi);
       } else {
-        throw PxfError(current.pos, 'expected "{" for map field "${fi.protoName}"');
+        throw PxfError(
+            current.pos, 'expected "{" for map field "${fi.protoName}"');
       }
     } else if (fi.type == PbFieldType.OM) {
       _decodeMessageValue(msg, fi);
@@ -687,8 +688,8 @@ class DirectDecoder {
     while (
         current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
       if (current.kind == TokenKind.null_) {
-        throw PxfError(
-            current.pos, 'null is not allowed in repeated field "${fi.protoName}"');
+        throw PxfError(current.pos,
+            'null is not allowed in repeated field "${fi.protoName}"');
       }
       if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
         var sub = fi.subBuilder!();
@@ -883,7 +884,8 @@ class DirectDecoder {
     if (t == PbFieldType.OE || t == PbFieldType.PE || t == PbFieldType.QE) {
       return _consumeEnum(fi);
     }
-    throw PxfError(pos, 'unsupported type ${fi.type} for field "${fi.protoName}"');
+    throw PxfError(
+        pos, 'unsupported type ${fi.type} for field "${fi.protoName}"');
   }
 
   // Enum fields hold a ProtobufEnum, never a bare int: FieldSet rejects
