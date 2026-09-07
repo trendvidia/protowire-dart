@@ -9,6 +9,21 @@ The version number is kept aligned with the rest of the `protowire-*`
 stack — releases bump in lockstep across language ports when the wire
 format changes.
 
+## Unreleased
+
+### Changed
+
+- **PXF entries are proto field names on the way out, too** (#15). `marshal`
+  wrote Dart field names (`orderId`, `fillPrice`), which no other port can
+  read (draft -01 §3.2 makes entry names the proto field names,
+  `order_id`); it writes `FieldInfo.protoName` now at the root, in nested
+  blocks, list elements and map entries. The same change reaches the
+  decoder's `Result` presence paths, the `_null` `FieldMask` paths it
+  writes (a `FieldMask` carries proto names by definition), and the field
+  names in its diagnostics. Documents in the Dart-name dialect still
+  decode (#16); the benchmark and test fixtures written in it are moved
+  to proto names.
+
 ## 1.0.0
 
 Lockstep release with the rest of the `protowire-*` stack at the v1.0.0

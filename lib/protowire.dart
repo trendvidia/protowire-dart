@@ -11,6 +11,7 @@ library;
 export 'src/encoding/pxf/decode.dart';
 export 'src/encoding/pxf/encode.dart';
 export 'src/encoding/pxf/options.dart';
+export 'src/encoding/pxf/result.dart';
 export 'src/encoding/pxf/errors.dart';
 export 'src/encoding/pxf/wellknown.dart';
 export 'src/encoding/sbe/sbe.dart';
