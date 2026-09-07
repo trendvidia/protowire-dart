@@ -79,9 +79,9 @@ class _Encoder {
       var fi = info.fieldInfo[tag]!;
 
       // Skip _null field
-      if (fi.name == '_null' && pathPrefix == '') continue;
+      if (fi.protoName == '_null' && pathPrefix == '') continue;
 
-      var path = '$pathPrefix${fi.name}';
+      var path = '$pathPrefix${fi.protoName}';
 
       // TODO: Handle nullSet/nullFields
 
@@ -107,7 +107,7 @@ class _Encoder {
         continue;
       }
 
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, fi.protoName);
       _writeScalar(fi, val);
       buf.write('\n');
     }
@@ -118,34 +118,34 @@ class _Encoder {
 
     if (isTimestamp(subInfo)) {
       var t = readTimestamp(sub);
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, fi.protoName);
       buf.write(t.toIso8601String());
       buf.write('\n');
       return;
     }
     if (isDuration(subInfo)) {
       var d = readDuration(sub);
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, fi.protoName);
       buf.write(_formatDuration(d));
       buf.write('\n');
       return;
     }
     if (isWrapperType(subInfo)) {
       var valueFi = subInfo.fieldInfo[1]!;
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, fi.protoName);
       _writeScalar(valueFi, sub.getField(1));
       buf.write('\n');
       return;
     }
 
     if (isBigInt(subInfo)) {
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, fi.protoName);
       buf.write(_formatBigInt(sub));
       buf.write('\n');
       return;
     }
     if (isDecimal(subInfo)) {
-      _writeFieldPrefix(level, fi.name);
+      _writeFieldPrefix(level, fi.protoName);
       buf.write(_formatDecimal(sub));
       buf.write('\n');
       return;
@@ -154,9 +154,9 @@ class _Encoder {
     // TODO: BigInt, Decimal, BigFloat, Any
 
     _writeIndent(level);
-    buf.write('${fi.name} {\n');
+    buf.write('${fi.protoName} {\n');
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     encodeMessage(sub, level + 1);
     pathPrefix = oldPrefix;
     _writeIndent(level);
@@ -166,7 +166,7 @@ class _Encoder {
   void _encodeListField(FieldInfo fi, List list, int level) {
     if (list.isEmpty && !emitDefaults) return;
 
-    _writeFieldPrefix(level, fi.name);
+    _writeFieldPrefix(level, fi.protoName);
     buf.write('[\n');
 
     for (int i = 0; i < list.length; i++) {
@@ -210,7 +210,7 @@ class _Encoder {
   void _encodeMapField(FieldInfo fi, Map map, int level) {
     if (map.isEmpty && !emitDefaults) return;
 
-    _writeFieldPrefix(level, fi.name);
+    _writeFieldPrefix(level, fi.protoName);
     buf.write('{\n');
 
     var keys = map.keys.toList()..sort();

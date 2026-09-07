@@ -74,8 +74,8 @@ void main() {
     test('oneof exclusivity', () {
       final input = '''
         name = "test"
-        stringVal = "hello"
-        intVal = 42
+        string_val = "hello"
+        int_val = 42
       ''';
       final msg = OneofMessage();
       expect(
@@ -126,8 +126,8 @@ void main() {
 
     test('BigInt and Decimal literals', () {
       final input = '''
-        myInt = 123456789012345678901234567890
-        myDecimal = -123.450
+        my_int = 123456789012345678901234567890
+        my_decimal = -123.450
       ''';
       final msg = BigNumContainer();
       unmarshal(input, msg);
@@ -151,8 +151,8 @@ void main() {
       expect(bytesToBigInt(dec.unscaled), expectedUnscaled);
 
       final output = marshal(msg);
-      expect(output, contains('myInt = 123456789012345678901234567890'));
-      expect(output, contains('myDecimal = -123.450'));
+      expect(output, contains('my_int = 123456789012345678901234567890'));
+      expect(output, contains('my_decimal = -123.450'));
     });
   });
 }

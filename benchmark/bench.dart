@@ -49,34 +49,34 @@ class Fill extends GeneratedMessage {
 }
 
 const String benchPXF = '''
-orderId = 1001
-clOrdId = 2001
+order_id = 1001
+cl_ord_id = 2001
 account = "ACCT-001"
 symbol = "AAPL"
 side = 1
 price = 19150
 quantity = 100
-orderType = 2
-timeInForce = 1
-transactTime = 1719500400000000000
+order_type = 2
+time_in_force = 1
+transact_time = 1719500400000000000
 fills = [
   {
-    fillPrice = 19155
-    fillQty = 25
-    fillId = 5001
-    execTime = 1719500400000000100
+    fill_price = 19155
+    fill_qty = 25
+    fill_id = 5001
+    exec_time = 1719500400000000100
   }
   {
-    fillPrice = 19160
-    fillQty = 50
-    fillId = 5002
-    execTime = 1719500400000000200
+    fill_price = 19160
+    fill_qty = 50
+    fill_id = 5002
+    exec_time = 1719500400000000200
   }
   {
-    fillPrice = 19165
-    fillQty = 25
-    fillId = 5003
-    execTime = 1719500400000000300
+    fill_price = 19165
+    fill_qty = 25
+    fill_id = 5003
+    exec_time = 1719500400000000300
   }
 ]
 ''';

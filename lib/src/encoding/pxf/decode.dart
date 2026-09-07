@@ -446,7 +446,7 @@ class DirectDecoder {
 
           if (current.kind == TokenKind.null_) {
             if (result != null) {
-              var path = pathPrefix + fi.name;
+              var path = pathPrefix + fi.protoName;
               result!.markNull(path);
               if (nullMaskFi != null) {
                 _addToNullMask(rootMsg!, nullMaskFi!, path);
@@ -457,7 +457,7 @@ class DirectDecoder {
           }
 
           if (result != null) {
-            result!.markPresent(pathPrefix + fi.name);
+            result!.markPresent(pathPrefix + fi.protoName);
           }
           _decodeFieldValue(msg, fi);
           break;
@@ -479,7 +479,7 @@ class DirectDecoder {
               current.kind == TokenKind.atType) {
             _checkOneof(info, fi, setOneofs, pos);
             if (result != null) {
-              result!.markPresent(pathPrefix + fi.name);
+              result!.markPresent(pathPrefix + fi.protoName);
             }
             _decodeAnyInner(msg, fi);
             continue;
@@ -492,14 +492,14 @@ class DirectDecoder {
           _checkOneof(info, fi, setOneofs, pos);
 
           if (result != null) {
-            result!.markPresent(pathPrefix + fi.name);
+            result!.markPresent(pathPrefix + fi.protoName);
           }
 
           if (fi.isRepeated) {
             var list = msg.getField(fi.tagNumber) as List;
             var sub = fi.subBuilder!();
             var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.name}.';
+            pathPrefix = '$oldPrefix${fi.protoName}.';
             _decodeFields(sub, true);
             pathPrefix = oldPrefix;
             list.add(sub);
@@ -512,7 +512,7 @@ class DirectDecoder {
               sub = msg.getField(fi.tagNumber) as GeneratedMessage;
             }
             var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.name}.';
+            pathPrefix = '$oldPrefix${fi.protoName}.';
             _decodeFields(sub, true);
             pathPrefix = oldPrefix;
           }
@@ -531,9 +531,9 @@ class DirectDecoder {
     if (oneofIndex != null) {
       if (setOneofs.containsKey(oneofIndex)) {
         throw PxfError(pos,
-            'field "${fi.name}" conflicts with already-set field "${setOneofs[oneofIndex]}" in the same oneof');
+            'field "${fi.protoName}" conflicts with already-set field "${setOneofs[oneofIndex]}" in the same oneof');
       }
-      setOneofs[oneofIndex] = fi.name;
+      setOneofs[oneofIndex] = fi.protoName;
     }
   }
 
@@ -543,13 +543,14 @@ class DirectDecoder {
         _decodeList(msg, fi);
       } else {
         throw PxfError(
-            current.pos, 'expected "[" for repeated field "${fi.name}"');
+            current.pos, 'expected "[" for repeated field "${fi.protoName}"');
       }
     } else if (fi.isMapField) {
       if (current.kind == TokenKind.lbrace) {
         _decodeMap(msg, fi);
       } else {
-        throw PxfError(current.pos, 'expected "{" for map field "${fi.name}"');
+        throw PxfError(
+            current.pos, 'expected "{" for map field "${fi.protoName}"');
       }
     } else if (fi.type == PbFieldType.OM) {
       _decodeMessageValue(msg, fi);
@@ -626,7 +627,7 @@ class DirectDecoder {
 
     if (current.kind != TokenKind.lbrace) {
       throw PxfError(
-          current.pos, 'expected "{" for message field "${fi.name}"');
+          current.pos, 'expected "{" for message field "${fi.protoName}"');
     }
     _advance();
     GeneratedMessage sub;
@@ -637,7 +638,7 @@ class DirectDecoder {
       sub = msg.getField(fi.tagNumber) as GeneratedMessage;
     }
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     _decodeFields(sub, true);
     pathPrefix = oldPrefix;
   }
@@ -671,7 +672,7 @@ class DirectDecoder {
 
     var innerMsg = innerInfo.createEmptyInstance!();
     var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.name}.';
+    pathPrefix = '$oldPrefix${fi.protoName}.';
     _decodeFields(innerMsg, true);
     pathPrefix = oldPrefix;
 
@@ -687,8 +688,8 @@ class DirectDecoder {
     while (
         current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
       if (current.kind == TokenKind.null_) {
-        throw PxfError(
-            current.pos, 'null is not allowed in repeated field "${fi.name}"');
+        throw PxfError(current.pos,
+            'null is not allowed in repeated field "${fi.protoName}"');
       }
       if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
         var sub = fi.subBuilder!();
@@ -763,7 +764,7 @@ class DirectDecoder {
 
       if (current.kind == TokenKind.null_) {
         throw PxfError(current.pos,
-            'null is not allowed as map value in field "${fi.name}"');
+            'null is not allowed as map value in field "${fi.protoName}"');
       }
 
       _skipValue();
@@ -783,7 +784,7 @@ class DirectDecoder {
     var t = fi.type;
     if (t == PbFieldType.OS || t == PbFieldType.PS || t == PbFieldType.QS) {
       if (current.kind != TokenKind.string) {
-        throw PxfError(pos, 'expected string for field "${fi.name}"');
+        throw PxfError(pos, 'expected string for field "${fi.protoName}"');
       }
       var v = current.value;
       _advance();
@@ -791,7 +792,7 @@ class DirectDecoder {
     }
     if (t == PbFieldType.OB || t == PbFieldType.PB || t == PbFieldType.QB) {
       if (current.kind != TokenKind.bool) {
-        throw PxfError(pos, 'expected bool for field "${fi.name}"');
+        throw PxfError(pos, 'expected bool for field "${fi.protoName}"');
       }
       var v = current.value == 'true';
       _advance();
@@ -807,7 +808,7 @@ class DirectDecoder {
         t == PbFieldType.PSF3 ||
         t == PbFieldType.QSF3) {
       if (current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected integer for field "${fi.name}"');
+        throw PxfError(pos, 'expected integer for field "${fi.protoName}"');
       }
       var v = int.parse(current.value);
       _advance();
@@ -823,7 +824,7 @@ class DirectDecoder {
         t == PbFieldType.PSF6 ||
         t == PbFieldType.QSF6) {
       if (current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected integer for field "${fi.name}"');
+        throw PxfError(pos, 'expected integer for field "${fi.protoName}"');
       }
       var v = Int64.parseInt(current.value);
       _advance();
@@ -836,7 +837,7 @@ class DirectDecoder {
         t == PbFieldType.PF3 ||
         t == PbFieldType.QF3) {
       if (current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected integer for field "${fi.name}"');
+        throw PxfError(pos, 'expected integer for field "${fi.protoName}"');
       }
       var v = int.parse(current.value);
       _advance();
@@ -849,7 +850,7 @@ class DirectDecoder {
         t == PbFieldType.PF6 ||
         t == PbFieldType.QF6) {
       if (current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected integer for field "${fi.name}"');
+        throw PxfError(pos, 'expected integer for field "${fi.protoName}"');
       }
       var v = Int64.parseInt(current.value);
       _advance();
@@ -858,7 +859,7 @@ class DirectDecoder {
 
     if (t == PbFieldType.OF || t == PbFieldType.PF || t == PbFieldType.QF) {
       if (current.kind != TokenKind.float && current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected number for field "${fi.name}"');
+        throw PxfError(pos, 'expected number for field "${fi.protoName}"');
       }
       var v = double.parse(current.value);
       _advance();
@@ -866,7 +867,7 @@ class DirectDecoder {
     }
     if (t == PbFieldType.OD || t == PbFieldType.PD || t == PbFieldType.QD) {
       if (current.kind != TokenKind.float && current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected number for field "${fi.name}"');
+        throw PxfError(pos, 'expected number for field "${fi.protoName}"');
       }
       var v = double.parse(current.value);
       _advance();
@@ -874,7 +875,7 @@ class DirectDecoder {
     }
     if (t == PbFieldType.OY || t == PbFieldType.PY || t == PbFieldType.QY) {
       if (current.kind != TokenKind.bytes) {
-        throw PxfError(pos, 'expected bytes for field "${fi.name}"');
+        throw PxfError(pos, 'expected bytes for field "${fi.protoName}"');
       }
       var v = base64.decode(current.value);
       _advance();
@@ -883,7 +884,8 @@ class DirectDecoder {
     if (t == PbFieldType.OE || t == PbFieldType.PE || t == PbFieldType.QE) {
       return _consumeEnum(fi);
     }
-    throw PxfError(pos, 'unsupported type ${fi.type} for field "${fi.name}"');
+    throw PxfError(
+        pos, 'unsupported type ${fi.type} for field "${fi.protoName}"');
   }
 
   // Enum fields hold a ProtobufEnum, never a bare int: FieldSet rejects
@@ -915,7 +917,7 @@ class DirectDecoder {
       return e;
     } else {
       throw PxfError(
-          pos, 'expected enum name or number for field "${fi.name}"');
+          pos, 'expected enum name or number for field "${fi.protoName}"');
     }
   }
 
