@@ -219,6 +219,23 @@ final config = Config();
 unmarshal(pxfText, config);
 ```
 
+### Unmarshal with presence and schema annotations
+
+```dart
+import 'package:protowire/protowire.dart';
+
+// (pxf.required) / (pxf.default) live in the schema, not in generated
+// Dart code: read them from a FileDescriptorSet (protoc
+// --descriptor_set_out) and hand them to the decoder.
+final annotations = PxfAnnotations.fromBytes(File('schema.binpb').readAsBytesSync());
+final config = Config();
+final result = unmarshalFull(pxfText, config,
+    options: UnmarshalOptions(annotations: annotations));
+// An absent required field threw `required field "name" is absent`;
+// absent defaulted fields hold their default and read as absent here:
+result.isAbsent('retries');
+```
+
 ### Marshal
 
 ```dart
