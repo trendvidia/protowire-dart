@@ -736,15 +736,27 @@ class DirectDecoder {
     _advance();
   }
 
+  /// `field = { key: value, ... }` (draft -01 §3.9). Keys are converted by
+  /// the entry's key field type and values decoded by its value field —
+  /// scalar, enum by name or number, or a message as a `{ ... }` block
+  /// with the well-known-type shorthands a singular message value takes.
+  /// Mirrors the Go reference's `decodeMapInline` / `decodeMapKey`;
+  /// duplicate keys are last-wins there and here (#17).
   void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume {
     var map = msg.getField(fi.tagNumber) as Map;
+    var mfi = fi as MapFieldInfo;
+    var keyFi = mfi.mapEntryBuilderInfo.fieldInfo[1]!;
+    var valueFi = mfi.valueFieldInfo;
 
     while (current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
       var pos = current.pos;
+      // `true` / `false` lex as bool tokens here (the reference lexes them
+      // as identifiers), and they are the keys of a map<bool, V>.
       if (current.kind != TokenKind.ident &&
           current.kind != TokenKind.string &&
-          current.kind != TokenKind.int) {
+          current.kind != TokenKind.int &&
+          current.kind != TokenKind.bool) {
         throw PxfError(pos, 'expected map key, got ${current.kind.name}');
       }
       var keyStr = current.value;
@@ -760,14 +772,20 @@ class DirectDecoder {
             'expected ":" after map key, got ${current.kind.name}');
       }
 
-      Object key = keyStr;
+      var key = _decodeMapKey(keyFi, keyStr, pos);
 
       if (current.kind == TokenKind.null_) {
         throw PxfError(current.pos,
             'null is not allowed as map value in field "${fi.protoName}"');
       }
 
-      _skipValue();
+      Object value;
+      if (PbFieldType.isGroupOrMessage(valueFi.type)) {
+        value = _decodeMapMessageValue(mfi, valueFi);
+      } else {
+        value = _consumeScalar(valueFi);
+      }
+      map[key] = value;
 
       if (current.kind == TokenKind.comma) {
         _advance();
@@ -777,6 +795,94 @@ class DirectDecoder {
       throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
     }
     _advance();
+  }
+
+  /// A map key as its Dart representation for the entry's key type (the
+  /// token has already been read as text): string as written, integers
+  /// parsed in their width, bool from `true` / `false`. The reference's
+  /// `decodeMapKey`.
+  Object _decodeMapKey(FieldInfo keyFi, String key, Position pos) {
+    var t = keyFi.type;
+    if (t == PbFieldType.OS) return key;
+    if (t == PbFieldType.OB) {
+      if (key == 'true') return true;
+      if (key == 'false') return false;
+      throw PxfError(pos, 'invalid bool map key: $key');
+    }
+    if (t == PbFieldType.O3 || t == PbFieldType.OS3 || t == PbFieldType.OSF3) {
+      var n = int.tryParse(key);
+      if (n == null || n < -2147483648 || n > 2147483647) {
+        throw PxfError(pos, 'invalid int32 map key: $key');
+      }
+      return n;
+    }
+    if (t == PbFieldType.OU3 || t == PbFieldType.OF3) {
+      var n = int.tryParse(key);
+      if (n == null || n < 0 || n > 4294967295) {
+        throw PxfError(pos, 'invalid uint32 map key: $key');
+      }
+      return n;
+    }
+    if (t == PbFieldType.O6 || t == PbFieldType.OS6 || t == PbFieldType.OSF6) {
+      var n = Int64.tryParseInt(key);
+      if (n == null) throw PxfError(pos, 'invalid int64 map key: $key');
+      return n;
+    }
+    if (t == PbFieldType.OU6 || t == PbFieldType.OF6) {
+      var n = Int64.tryParseInt(key);
+      if (n == null || key.startsWith('-')) {
+        throw PxfError(pos, 'invalid uint64 map key: $key');
+      }
+      return n;
+    }
+    throw PxfError(pos, 'unsupported map key type $t');
+  }
+
+  /// A message-typed map value: the same forms a singular message field
+  /// accepts (`{ ... }` block, or the Timestamp / Duration / wrapper /
+  /// big-number shorthands), decoded into a fresh value message.
+  GeneratedMessage _decodeMapMessageValue(MapFieldInfo mfi, FieldInfo valueFi) {
+    var make = mfi.valueCreator!;
+    var subInfo = make().info_;
+
+    if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
+      var sub = make();
+      setTimestampFields(sub, DateTime.parse(current.value));
+      _advance();
+      return sub;
+    }
+    if (isDuration(subInfo) && current.kind == TokenKind.duration) {
+      var sub = make();
+      setDurationFields(sub, parseGoDuration(current.value));
+      _advance();
+      return sub;
+    }
+    if (isWrapperType(subInfo) && current.kind != TokenKind.lbrace) {
+      var sub = make();
+      sub.setField(1, _consumeScalar(subInfo.fieldInfo[1]!));
+      return sub;
+    }
+    if (isBigInt(subInfo) && current.kind == TokenKind.int) {
+      var sub = make();
+      setBigIntFields(sub, current.value);
+      _advance();
+      return sub;
+    }
+    if (isDecimal(subInfo) &&
+        (current.kind == TokenKind.float || current.kind == TokenKind.int)) {
+      var sub = make();
+      setDecimalFields(sub, current.value);
+      _advance();
+      return sub;
+    }
+    if (current.kind != TokenKind.lbrace) {
+      throw PxfError(current.pos,
+          'expected "{" for map message value in field "${mfi.protoName}"');
+    }
+    _advance();
+    var sub = make();
+    _decodeFields(sub, true);
+    return sub;
   }
 
   Object _consumeScalar(FieldInfo fi) {
