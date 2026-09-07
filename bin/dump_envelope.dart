@@ -7,9 +7,14 @@
 //
 //   dump_envelope                        canonical Envelope → pb hex
 //   dump_envelope --sbe FDS MESSAGE DOC  PXF DOC decoded against MESSAGE → SBE hex
-//   dump_envelope --pb  FDS MESSAGE DOC  not implemented here (exit 3): the PXF
-//                                        decoder reads no (pxf.*) annotation
-//                                        (issue #14)
+//   dump_envelope --pb  FDS MESSAGE DOC  PXF DOC decoded against MESSAGE → pb hex
+//
+// --pb is how the gate proves this port reads (pxf.required) = 1314 and
+// (pxf.default) = 1315: `PxfAnnotations.fromBytes(FDS)` indexes them and
+// `unmarshalFull` applies them while decoding into the generated type
+// (settings.pb.dart, from protowire/testdata/annotations/settings.proto).
+// A port looking for the wrong number accepts missing-required.pxf, or
+// emits ok.pxf without its defaulted fields (#14, #13).
 //
 // The envelope is the generated `envelope.v1.Envelope` message: the port's
 // `Envelope` class in lib/src/envelope/ is a value type with no pb codec,
@@ -26,8 +31,7 @@
 //
 // Exit 0 with hex on stdout; 1 with "reject: <reason>" on stderr when the
 // document cannot be decoded against the message; 2 for anything that is
-// the harness's fault; 3 with "not-implemented: <reason>" for a leg this
-// port does not have.
+// the harness's fault.
 
 import 'dart:io';
 
@@ -39,10 +43,12 @@ import 'package:protowire/src/generated/proto/google/protobuf/descriptor.pb.dart
     as pbd;
 
 import 'sbe_bench.pb.dart' as bench;
+import 'settings.pb.dart' as settings;
 
 /// Generated types the fixture modes can name.
 final Map<String, pb.GeneratedMessage Function()> generated = {
   'bench.v1.Order': bench.Order.create,
+  'settings.v1.Settings': settings.Settings.create,
 };
 
 void main(List<String> args) {
@@ -83,11 +89,42 @@ void dumpEnvelope() {
   print(hex(env.writeToBuffer()));
 }
 
+void dumpPB(String fdsPath, String message, String docPath) {
+  final make = generated[message];
+  if (make == null) {
+    fatal(2, '$message: no generated type in this dumper (see `generated`)');
+  }
+
+  late final pw.PxfAnnotations annotations;
+  late final String doc;
+  try {
+    annotations = pw.PxfAnnotations.fromBytes(File(fdsPath).readAsBytesSync());
+    doc = File(docPath).readAsStringSync();
+  } catch (e) {
+    fatal(2, '$e');
+  }
+  if (!annotations.hasMessage(message)) {
+    fatal(2, '$fdsPath: $message not found');
+  }
+
+  final msg = make();
+  try {
+    pw.unmarshalFull(doc, msg,
+        options: pw.UnmarshalOptions(annotations: annotations));
+  } on pw.PxfError catch (e) {
+    stderr.writeln('reject: $e');
+    exit(1);
+  } on FormatException catch (e) {
+    stderr.writeln('reject: ${e.message}');
+    exit(1);
+  }
+  print(hex(msg.writeToBuffer()));
+}
+
 void dumpFixture(String mode, String fdsPath, String message, String docPath) {
   if (mode == '--pb') {
-    stderr.writeln(
-        'not-implemented: the Dart PXF decoder reads no (pxf.required)/(pxf.default) annotation (protowire-dart#14)');
-    exit(3);
+    dumpPB(fdsPath, message, docPath);
+    return;
   }
   final make = generated[message];
   if (make == null) {

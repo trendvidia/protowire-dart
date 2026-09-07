@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
+import 'annotations.dart';
 import 'ast.dart';
 import 'brace_scan.dart';
 import 'duration.dart';
@@ -1090,13 +1091,227 @@ FieldInfo? _fieldNamed(BuilderInfo info, String key) {
 
 /// Unmarshals PXF text from [input] into the provided [msg].
 ///
-/// Options can be provided via [options] to customize the unmarshaling process.
+/// Options can be provided via [options] to customize the unmarshaling
+/// process. With [UnmarshalOptions.annotations] set, this is
+/// [unmarshalFull] minus the returned presence.
 void unmarshal(String input, GeneratedMessage msg,
     {UnmarshalOptions? options}) {
+  if (options?.annotations != null) {
+    unmarshalFull(input, msg, options: options);
+    return;
+  }
   var d = DirectDecoder(
     input,
     typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
   );
   d.decodeDocument(msg);
+}
+
+/// Unmarshals [input] into [msg] and reports which fields the document
+/// set, set to null, or left absent — the same `unmarshalFull` every
+/// full-tier port has. Paths are proto field names, dotted for nesting
+/// (`limits.max`).
+///
+/// With [UnmarshalOptions.annotations] the schema's `(pxf.required)` and
+/// `(pxf.default)` are applied afterwards, as the Go reference's
+/// `postDecode` does: for every field of the message's descriptor that is
+/// absent (a field set to `null` counts as present), `required` is a
+/// [PxfError] `required field "path" is absent`, otherwise `default` is
+/// applied by the field's type; present, non-null singular message fields
+/// are descended into (list elements and map values are not); a defaulted
+/// field stays absent in the [Result], since it was not in the input.
+Result unmarshalFull(String input, GeneratedMessage msg,
+    {UnmarshalOptions? options}) {
+  final result = Result();
+  var d = DirectDecoder(
+    input,
+    typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
+    discardUnknown: options?.discardUnknown ?? false,
+    result: result,
+    rootMsg: msg,
+  );
+  d.decodeDocument(msg);
+  final ann = options?.annotations;
+  if (ann != null) {
+    _postDecode(msg, result, ann, d.nullMaskFi, '');
+  }
+  return result;
+}
+
+// -- (pxf.required) / (pxf.default) -------------------------------------
+
+void _postDecode(GeneratedMessage msg, Result result, PxfAnnotations ann,
+    FieldInfo? nullMaskFi, String prefix) {
+  final info = msg.info_;
+  final tags = info.fieldInfo.keys.toList()..sort();
+  for (final tag in tags) {
+    final fi = info.fieldInfo[tag]!;
+    if (nullMaskFi != null && fi.tagNumber == nullMaskFi.tagNumber) continue;
+    final path = '$prefix${fi.protoName}';
+    if (result.isAbsent(path)) {
+      final a = ann.field(info.qualifiedMessageName, fi.protoName);
+      if (a == null) continue;
+      if (a.required) {
+        throw PxfError(Position(1, 1), 'required field "$path" is absent');
+      }
+      if (a.defaultLiteral != null &&
+          !_oneofAlreadyChosen(info, fi, result, prefix)) {
+        _applyDefault(msg, fi, a.defaultLiteral!);
+      }
+    } else if (fi.type == PbFieldType.OM &&
+        !result.isNull(path) &&
+        msg.hasField(tag)) {
+      _postDecode(
+          msg.getField(tag) as GeneratedMessage, result, ann, null, '$path.');
+    }
+  }
+}
+
+/// A default is not applied to a oneof member when another member of the
+/// same oneof is present (null included).
+bool _oneofAlreadyChosen(
+    BuilderInfo info, FieldInfo fi, Result result, String prefix) {
+  final idx = info.oneofs[fi.tagNumber];
+  if (idx == null) return false;
+  for (final entry in info.oneofs.entries) {
+    if (entry.value != idx || entry.key == fi.tagNumber) continue;
+    final other = info.fieldInfo[entry.key];
+    if (other != null && !result.isAbsent('$prefix${other.protoName}')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+PxfError _badDefault(String what, String literal, FieldInfo fi) => PxfError(
+    Position(1, 1),
+    'invalid default $what "$literal" for field "${fi.protoName}"');
+
+/// Applies a `(pxf.default)` literal to an absent field, read by the
+/// field's type as the reference's `applyDefaultImpl` /
+/// `applyMessageDefault` read it: a string is taken verbatim, `bool` is
+/// exactly `true` or `false`, numbers must parse in their width, `bytes`
+/// is base64, an enum names a value (or a number), and a message default
+/// is meaningful only for the well-known types with a bare literal form
+/// (Timestamp, Duration, the wrappers, pxf.BigInt, pxf.Decimal).
+void _applyDefault(GeneratedMessage msg, FieldInfo fi, String literal) {
+  if (fi.isMapField) {
+    throw PxfError(Position(1, 1),
+        'default values not supported for map field "${fi.protoName}"');
+  }
+  if (fi.isRepeated) {
+    throw PxfError(Position(1, 1),
+        'default values not supported for repeated field "${fi.protoName}"');
+  }
+  if (fi.type == PbFieldType.OM) {
+    msg.setField(fi.tagNumber, _messageDefault(fi, literal));
+    return;
+  }
+  msg.setField(fi.tagNumber, _scalarDefault(fi.type, literal, fi));
+}
+
+Object _scalarDefault(int t, String literal, FieldInfo fi) {
+  if (t == PbFieldType.OS) return literal;
+  if (t == PbFieldType.OB) {
+    if (literal == 'true') return true;
+    if (literal == 'false') return false;
+    throw _badDefault('bool', literal, fi);
+  }
+  if (t == PbFieldType.O3 || t == PbFieldType.OS3 || t == PbFieldType.OSF3) {
+    final n = int.tryParse(literal);
+    if (n == null || n < -2147483648 || n > 2147483647) {
+      throw _badDefault('int32', literal, fi);
+    }
+    return n;
+  }
+  if (t == PbFieldType.OU3 || t == PbFieldType.OF3) {
+    final n = int.tryParse(literal);
+    if (n == null || n < 0 || n > 4294967295) {
+      throw _badDefault('uint32', literal, fi);
+    }
+    return n;
+  }
+  if (t == PbFieldType.O6 || t == PbFieldType.OS6 || t == PbFieldType.OSF6) {
+    final n = Int64.tryParseInt(literal);
+    if (n == null) throw _badDefault('int64', literal, fi);
+    return n;
+  }
+  if (t == PbFieldType.OU6 || t == PbFieldType.OF6) {
+    final n = Int64.tryParseInt(literal);
+    if (n == null || literal.startsWith('-')) {
+      throw _badDefault('uint64', literal, fi);
+    }
+    return n;
+  }
+  if (t == PbFieldType.OF) {
+    final d = double.tryParse(literal);
+    if (d == null) throw _badDefault('float', literal, fi);
+    return d;
+  }
+  if (t == PbFieldType.OD) {
+    final d = double.tryParse(literal);
+    if (d == null) throw _badDefault('double', literal, fi);
+    return d;
+  }
+  if (t == PbFieldType.OY) {
+    try {
+      return base64.decode(base64.normalize(literal));
+    } on FormatException {
+      throw _badDefault('bytes', literal, fi);
+    }
+  }
+  if (t == PbFieldType.OE) {
+    for (final e in fi.enumValues ?? const <ProtobufEnum>[]) {
+      if (e.name == literal) return e;
+    }
+    final n = int.tryParse(literal);
+    final e = n == null ? null : fi.valueOf?.call(n);
+    if (e == null) throw _badDefault('enum', literal, fi);
+    return e;
+  }
+  throw PxfError(Position(1, 1),
+      'default values not supported for type $t (field "${fi.protoName}")');
+}
+
+GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
+  final sub = fi.subBuilder!();
+  final info = sub.info_;
+  if (isTimestamp(info)) {
+    final t = DateTime.tryParse(literal);
+    if (t == null) throw _badDefault('timestamp', literal, fi);
+    setTimestampFields(sub, t);
+    return sub;
+  }
+  if (isDuration(info)) {
+    try {
+      setDurationFields(sub, parseGoDuration(literal));
+    } on FormatException {
+      throw _badDefault('duration', literal, fi);
+    }
+    return sub;
+  }
+  if (isWrapperType(info)) {
+    final inner = info.fieldInfo[1]!;
+    sub.setField(1, _scalarDefault(inner.type, literal, fi));
+    return sub;
+  }
+  if (isBigInt(info)) {
+    if (BigInt.tryParse(literal) == null) {
+      throw _badDefault('big integer', literal, fi);
+    }
+    setBigIntFields(sub, literal);
+    return sub;
+  }
+  if (isDecimal(info)) {
+    if (double.tryParse(literal) == null) {
+      throw _badDefault('decimal', literal, fi);
+    }
+    setDecimalFields(sub, literal);
+    return sub;
+  }
+  throw PxfError(
+      Position(1, 1),
+      'default values not supported for message type '
+      '${info.qualifiedMessageName} (field "${fi.protoName}")');
 }

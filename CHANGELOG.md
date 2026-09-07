@@ -11,6 +11,25 @@ format changes.
 
 ## Unreleased
 
+### Added
+
+- **`(pxf.required)` and `(pxf.default)`** (#14), and `unmarshalFull`.
+  `PxfAnnotations.fromDescriptorSet` / `fromBytes` index the two
+  annotations (extension numbers 1314 and 1315) per message from a
+  `FileDescriptorSet` — the same input `Codec.registerFromDescriptorSet`
+  reads the SBE annotations from — and `UnmarshalOptions.annotations`
+  hands them to the decoder. `unmarshalFull(input, msg, options:)` returns
+  the `Result` presence every other full-tier port reports, and with
+  annotations rejects an absent required field (`required field "path" is
+  absent`) and applies defaults by field type, following the Go
+  reference's `postDecode`: `null` counts as present, present non-null
+  singular message fields are descended into, list elements and map
+  values are not, and a defaulted field stays absent in the `Result`.
+- `dump_envelope --pb FDS MESSAGE DOC`, the gate leg protowire's
+  `cross_envelope_check.sh` had listed as a declared omission for this
+  port (#13); `settings.v1.Settings` is generated into `bin/` from
+  protowire's `testdata/annotations/settings.proto`.
+
 ### Fixed
 
 - **Map fields decode** (#17). `unmarshal` parsed a map block's
