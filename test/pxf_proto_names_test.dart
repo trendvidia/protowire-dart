@@ -106,13 +106,12 @@ parent_ticket {
   });
 
   test('a marshalled document round-trips through the proto-name path', () {
-    // No map entry here: the decoder parses map blocks and discards their
-    // values (#17), so a map would not survive the trip for a reason
-    // unrelated to names. The encoder side of maps is covered above.
     final o = Order.create()
       ..setField(1, Int64(42))
       ..setField(2, Inner.create()..setField(1, Int64(7)));
     (o.getField(3) as List<Inner>).add(Inner.create()..setField(1, Int64(8)));
+    (o.getField(4) as Map<String, Inner>)['k'] = Inner.create()
+      ..setField(1, Int64(9));
     final back = Order.create();
     unmarshal(marshal(o), back);
     expect(back.writeToBuffer(), o.writeToBuffer());

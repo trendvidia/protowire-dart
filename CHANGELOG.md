@@ -11,6 +11,17 @@ format changes.
 
 ## Unreleased
 
+### Fixed
+
+- **Map fields decode** (#17). `unmarshal` parsed a map block's
+  `key: value` entries and discarded every value, so any `map<K, V>` field
+  came back empty — since the initial release. Keys now convert by the
+  entry's key type (string as written, integers in their width, `true` /
+  `false` for bool) and values by its value type (scalars, enums by name
+  or number, messages as `{ ... }` blocks with the same well-known-type
+  shorthands a singular message value takes), last key wins, `null` is
+  rejected — the Go reference's `decodeMapInline` / `decodeMapKey`.
+
 ### Changed
 
 - **PXF entries are proto field names on the way out, too** (#15). `marshal`
