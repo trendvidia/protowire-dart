@@ -29,9 +29,15 @@ class Annotations {
       _omitFieldNames ? '' : 'default_1315',
       1315,
       $pb.PbFieldType.OS);
+  static final key = $pb.Extension<$core.String>(
+      _omitMessageNames ? '' : 'google.protobuf.FieldOptions',
+      _omitFieldNames ? '' : 'key',
+      1316,
+      $pb.PbFieldType.OS);
   static void registerAllExtensions($pb.ExtensionRegistry registry) {
     registry.add(required);
     registry.add(default_1315);
+    registry.add(key);
   }
 }
 
