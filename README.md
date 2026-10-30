@@ -236,6 +236,20 @@ final result = unmarshalFull(pxfText, config,
 result.isAbsent('retries');
 ```
 
+### Keyed repeated fields
+
+```dart
+import 'package:protowire/protowire.dart';
+
+// (pxf.key) also comes from the descriptor set. With it, a repeated message
+// field reads and writes as named blocks: children { greeting { ... } }.
+// Without it the field is a plain list.
+final ann = PxfAnnotations.fromBytes(File('schema.binpb').readAsBytesSync());
+unmarshal(pxfText, node, options: UnmarshalOptions(annotations: ann));
+final text = marshal(node, options: MarshalOptions(annotations: ann));
+final canonical = formatPxf(pxfText, annotations: ann);
+```
+
 ### Marshal
 
 ```dart
