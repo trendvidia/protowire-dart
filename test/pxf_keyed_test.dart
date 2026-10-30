@@ -48,7 +48,10 @@ const rejects = {
 final PxfAnnotations ann =
     PxfAnnotations.fromBytes(File('$fixtureDir/keyed.binpb').readAsBytesSync());
 
-String read(String name) => File('$fixtureDir/$name').readAsStringSync();
+// Git may check the fixtures out with CRLF on Windows, and the fmt and
+// round-trip expectations are byte-for-byte.
+String read(String name) =>
+    File('$fixtureDir/$name').readAsStringSync().replaceAll('\r\n', '\n');
 
 /// The fixture without comment lines and the blank runs they leave: the
 /// document an encoder reproduces (comments are documentation, not content).
