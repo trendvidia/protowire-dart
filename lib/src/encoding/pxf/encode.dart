@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
+import 'format.dart';
 import 'keyed.dart';
 import 'result.dart';
 import 'wellknown.dart';
@@ -323,38 +324,7 @@ class _Encoder {
     }
   }
 
-  void _writeQuotedString(String s) {
-    buf.write('"');
-    for (int i = 0; i < s.length; i++) {
-      var char = s[i];
-      switch (char) {
-        case '"':
-          buf.write(r'\"');
-          break;
-        case r'\':
-          buf.write(r'\\');
-          break;
-        case '\n':
-          buf.write(r'\n');
-          break;
-        case '\r':
-          buf.write(r'\r');
-          break;
-        case '\t':
-          buf.write(r'\t');
-          break;
-        default:
-          var code = char.codeUnitAt(0);
-          if (code < 0x20) {
-            buf.write(r'\x');
-            buf.write(code.toRadixString(16).padLeft(2, '0'));
-          } else {
-            buf.write(char);
-          }
-      }
-    }
-    buf.write('"');
-  }
+  void _writeQuotedString(String s) => buf.write(quotePxfString(s));
 
   String _formatMapKey(Object key) {
     if (key is String) {
