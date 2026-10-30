@@ -28,6 +28,9 @@ class Document {
   final List<Entry> entries;
   final List<Comment> leadingComments;
 
+  /// Comments after the last entry, which no later entry can carry.
+  final List<Comment> trailingComments;
+
   Document({
     this.typeUrl,
     List<Directive>? directives,
@@ -36,6 +39,7 @@ class Document {
     this.bodyOffset = 0,
     required this.entries,
     required this.leadingComments,
+    this.trailingComments = const [],
   })  : directives = directives ?? [],
         datasets = datasets ?? [],
         protos = protos ?? [];
@@ -152,7 +156,14 @@ abstract class Entry {
 class Assignment implements Entry {
   @override
   final Position pos;
+
+  /// The unquoted value of the entry name.
   final String key;
+
+  /// True when [key] was written as a string literal (draft -01 "Keyed
+  /// Repeated Fields"). The grammar allows that everywhere; the schema
+  /// layer rejects it outside a keyed repeated field's block.
+  final bool keyQuoted;
   final Value value;
   final List<Comment> leadingComments;
   final String? trailingComment;
@@ -160,6 +171,7 @@ class Assignment implements Entry {
   Assignment({
     required this.pos,
     required this.key,
+    this.keyQuoted = false,
     required this.value,
     required this.leadingComments,
     this.trailingComment,
@@ -170,6 +182,9 @@ class MapEntry implements Entry {
   @override
   final Position pos;
   final String key;
+
+  /// True when [key] was written as a string literal.
+  final bool keyQuoted;
   final Value value;
   final List<Comment> leadingComments;
   final String? trailingComment;
@@ -177,6 +192,7 @@ class MapEntry implements Entry {
   MapEntry({
     required this.pos,
     required this.key,
+    this.keyQuoted = false,
     required this.value,
     required this.leadingComments,
     this.trailingComment,
@@ -186,13 +202,20 @@ class MapEntry implements Entry {
 class Block implements Entry {
   @override
   final Position pos;
+
+  /// The unquoted value of the entry name.
   final String name;
+
+  /// True when [name] was written as a string literal; see
+  /// [Assignment.keyQuoted].
+  final bool nameQuoted;
   final List<Entry> entries;
   final List<Comment> leadingComments;
 
   Block({
     required this.pos,
     required this.name,
+    this.nameQuoted = false,
     required this.entries,
     required this.leadingComments,
   });

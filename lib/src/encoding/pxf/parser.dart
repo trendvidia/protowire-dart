@@ -19,11 +19,16 @@ class Parser {
   List<Comment> comments = [];
   int _depth = 0;
 
+  /// The line the most recently consumed token ended on, which is how a
+  /// comment on the same line as a value is told from a leading comment.
+  int _lastTokenEndLine = 1;
+
   Parser(String input) : lex = Lexer(input) {
     _advance();
   }
 
   void _advance() {
+    _lastTokenEndLine = lex.line;
     while (true) {
       current = lex.next();
       if (current.kind == TokenKind.newline) {
@@ -115,6 +120,7 @@ class Parser {
       bodyOffset: bodyOffset,
       entries: entries,
       leadingComments: leadingComments,
+      trailingComments: _flushComments(),
     );
   }
 
@@ -413,6 +419,7 @@ class Parser {
     }
 
     var key = current.value;
+    var quoted = current.kind == TokenKind.string;
     _advance();
 
     switch (current.kind) {
@@ -422,8 +429,10 @@ class Parser {
         return Assignment(
           pos: pos,
           key: key,
+          keyQuoted: quoted,
           value: val,
           leadingComments: leading,
+          trailingComment: _takeTrailingComment(),
         );
 
       case TokenKind.colon:
@@ -432,8 +441,10 @@ class Parser {
         return MapEntry(
           pos: pos,
           key: key,
+          keyQuoted: quoted,
           value: val,
           leadingComments: leading,
+          trailingComment: _takeTrailingComment(),
         );
 
       case TokenKind.lbrace:
@@ -442,6 +453,7 @@ class Parser {
         return Block(
           pos: pos,
           name: key,
+          nameQuoted: quoted,
           entries: entries,
           leadingComments: leading,
         );
@@ -450,6 +462,15 @@ class Parser {
         throw PxfError(current.pos,
             'expected "=", ":", or "{" after "$key", got ${current.kind.name}');
     }
+  }
+
+  /// The comment written after a value on its line, if any. Without this
+  /// it would read as a leading comment of the next entry.
+  String? _takeTrailingComment() {
+    if (comments.isEmpty || comments.first.pos.line != _lastTokenEndLine) {
+      return null;
+    }
+    return comments.removeAt(0).text;
   }
 
   Value _parseValue() {
