@@ -17,6 +17,8 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'package:protowire/src/generated/proto/pxf/bignum.pb.dart' as $0;
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 /// Tree is self-recursive — used to construct deeply-nested PXF text and
@@ -257,6 +259,97 @@ class BigIntHolder extends $pb.GeneratedMessage {
   $core.bool hasValue() => $_has(0);
   @$pb.TagNumber(1)
   void clearValue() => $_clearField(1);
+}
+
+/// BigNumHolder carries the arbitrary-precision types, so the digit cap can be
+/// proved on a field that only the cap rejects (an int64 rejects a long
+/// literal as out of range, whatever the cap), and Decimal.scale can be bound
+/// on the PB wire (issue #279).
+class BigNumHolder extends $pb.GeneratedMessage {
+  factory BigNumHolder({
+    $0.BigInt? bigInt,
+    $0.Decimal? decimal,
+    $0.BigFloat? bigFloat,
+  }) {
+    final result = create();
+    if (bigInt != null) result.bigInt = bigInt;
+    if (decimal != null) result.decimal = decimal;
+    if (bigFloat != null) result.bigFloat = bigFloat;
+    return result;
+  }
+
+  BigNumHolder._();
+
+  factory BigNumHolder.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BigNumHolder.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BigNumHolder',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'adversarial.v1'),
+      createEmptyInstance: create)
+    ..aOM<$0.BigInt>(1, _omitFieldNames ? '' : 'bigInt',
+        subBuilder: $0.BigInt.create)
+    ..aOM<$0.Decimal>(2, _omitFieldNames ? '' : 'decimal',
+        subBuilder: $0.Decimal.create)
+    ..aOM<$0.BigFloat>(3, _omitFieldNames ? '' : 'bigFloat',
+        subBuilder: $0.BigFloat.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BigNumHolder clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BigNumHolder copyWith(void Function(BigNumHolder) updates) =>
+      super.copyWith((message) => updates(message as BigNumHolder))
+          as BigNumHolder;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BigNumHolder create() => BigNumHolder._();
+  @$core.override
+  BigNumHolder createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BigNumHolder getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BigNumHolder>(create);
+  static BigNumHolder? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $0.BigInt get bigInt => $_getN(0);
+  @$pb.TagNumber(1)
+  set bigInt($0.BigInt value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasBigInt() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBigInt() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $0.BigInt ensureBigInt() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $0.Decimal get decimal => $_getN(1);
+  @$pb.TagNumber(2)
+  set decimal($0.Decimal value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDecimal() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDecimal() => $_clearField(2);
+  @$pb.TagNumber(2)
+  $0.Decimal ensureDecimal() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $0.BigFloat get bigFloat => $_getN(2);
+  @$pb.TagNumber(3)
+  set bigFloat($0.BigFloat value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBigFloat() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBigFloat() => $_clearField(3);
+  @$pb.TagNumber(3)
+  $0.BigFloat ensureBigFloat() => $_ensure(2);
 }
 
 const $core.bool _omitFieldNames =

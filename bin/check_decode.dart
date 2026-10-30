@@ -133,6 +133,8 @@ pb.GeneratedMessage _newMessage(String schema) {
       return adv.BytesHolder();
     case 'adversarial.v1.BigIntHolder':
       return adv.BigIntHolder();
+    case 'adversarial.v1.BigNumHolder':
+      return adv.BigNumHolder();
     default:
       throw _Reject('unknown schema: $schema');
   }

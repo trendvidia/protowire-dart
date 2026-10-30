@@ -73,3 +73,40 @@ const BigIntHolder$json = {
 /// Descriptor for `BigIntHolder`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List bigIntHolderDescriptor =
     $convert.base64Decode('CgxCaWdJbnRIb2xkZXISFAoFdmFsdWUYASABKANSBXZhbHVl');
+
+@$core.Deprecated('Use bigNumHolderDescriptor instead')
+const BigNumHolder$json = {
+  '1': 'BigNumHolder',
+  '2': [
+    {
+      '1': 'big_int',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.pxf.BigInt',
+      '10': 'bigInt'
+    },
+    {
+      '1': 'decimal',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.pxf.Decimal',
+      '10': 'decimal'
+    },
+    {
+      '1': 'big_float',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.pxf.BigFloat',
+      '10': 'bigFloat'
+    },
+  ],
+};
+
+/// Descriptor for `BigNumHolder`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bigNumHolderDescriptor = $convert.base64Decode(
+    'CgxCaWdOdW1Ib2xkZXISJAoHYmlnX2ludBgBIAEoCzILLnB4Zi5CaWdJbnRSBmJpZ0ludBImCg'
+    'dkZWNpbWFsGAIgASgLMgwucHhmLkRlY2ltYWxSB2RlY2ltYWwSKgoJYmlnX2Zsb2F0GAMgASgL'
+    'Mg0ucHhmLkJpZ0Zsb2F0UghiaWdGbG9hdA==');
