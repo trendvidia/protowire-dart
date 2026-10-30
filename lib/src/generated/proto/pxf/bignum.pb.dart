@@ -168,9 +168,12 @@ class Decimal extends $pb.GeneratedMessage {
   void clearNegative() => $_clearField(3);
 }
 
-/// Arbitrary-precision binary floating point.
+/// Arbitrary-precision binary floating point: value = (-1)^negative × mantissa × 2^exponent,
+/// rounded to prec bits.
 /// Wire: unsigned big-endian integer mantissa + binary exponent + precision + sign flag.
-/// PXF text: float literal with arbitrary mantissa precision.
+/// PXF text: numeric literal with a precision suffix, "p" and a bit count
+/// (e.g. "0.10000000000000001p53"), read at that precision, or at 256 bits
+/// without one. See draft -01 § PXF Annotations.
 class BigFloat extends $pb.GeneratedMessage {
   factory BigFloat({
     $core.List<$core.int>? mantissa,
