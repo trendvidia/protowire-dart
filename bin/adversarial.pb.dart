@@ -25,10 +25,12 @@ class Tree extends $pb.GeneratedMessage {
   factory Tree({
     Tree? child,
     $core.String? label,
+    $core.Iterable<Tree>? children,
   }) {
     final result = create();
     if (child != null) result.child = child;
     if (label != null) result.label = label;
+    if (children != null) result.children.addAll(children);
     return result;
   }
 
@@ -47,6 +49,7 @@ class Tree extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOM<Tree>(1, _omitFieldNames ? '' : 'child', subBuilder: Tree.create)
     ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..pPM<Tree>(3, _omitFieldNames ? '' : 'children', subBuilder: Tree.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -86,6 +89,11 @@ class Tree extends $pb.GeneratedMessage {
   $core.bool hasLabel() => $_has(1);
   @$pb.TagNumber(2)
   void clearLabel() => $_clearField(2);
+
+  /// children alternates a list with a block, so a document can descend
+  /// through both kinds of PXF nesting (issue #301).
+  @$pb.TagNumber(3)
+  $pb.PbList<Tree> get children => $_getList(2);
 }
 
 /// StringHolder isolates a single proto3 `string` field for the UTF-8

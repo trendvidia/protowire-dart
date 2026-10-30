@@ -30,13 +30,22 @@ const Tree$json = {
       '10': 'child'
     },
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {
+      '1': 'children',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.adversarial.v1.Tree',
+      '10': 'children'
+    },
   ],
 };
 
 /// Descriptor for `Tree`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List treeDescriptor = $convert.base64Decode(
     'CgRUcmVlEioKBWNoaWxkGAEgASgLMhQuYWR2ZXJzYXJpYWwudjEuVHJlZVIFY2hpbGQSFAoFbG'
-    'FiZWwYAiABKAlSBWxhYmVs');
+    'FiZWwYAiABKAlSBWxhYmVsEjAKCGNoaWxkcmVuGAMgAygLMhQuYWR2ZXJzYXJpYWwudjEuVHJl'
+    'ZVIIY2hpbGRyZW4=');
 
 @$core.Deprecated('Use stringHolderDescriptor instead')
 const StringHolder$json = {
