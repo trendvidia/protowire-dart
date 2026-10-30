@@ -9,6 +9,7 @@ import 'ast.dart';
 import 'brace_scan.dart';
 import 'duration.dart';
 import 'errors.dart';
+import 'keyed.dart';
 import 'lexer.dart';
 import 'options.dart';
 import 'result.dart';
@@ -31,16 +32,28 @@ class DirectDecoder {
   late Token current;
   final TypeRegistry typeRegistry;
   final bool discardUnknown;
+
+  /// The schema's `(pxf.key)` options. Without them no field is keyed.
+  final PxfAnnotations? annotations;
   Result? result;
   GeneratedMessage? rootMsg;
   FieldInfo? nullMaskFi;
   String pathPrefix = '';
   int _depth = 0;
 
+  /// Applies to exactly the next message body: the immediate entries of
+  /// one element of a keyed repeated field.
+  KeyedElemState? _keyedElem;
+
+  /// How many keyed elements enclose the current entry. A `_null` mask path
+  /// names fields, not list elements, so a null in here stays out of it.
+  int _keyedElemDepth = 0;
+
   DirectDecoder(
     String input, {
     this.typeRegistry = const TypeRegistry.empty(),
     this.discardUnknown = false,
+    this.annotations,
     this.result,
     this.rootMsg,
   }) : lex = Lexer(input) {
@@ -408,6 +421,8 @@ class DirectDecoder {
   void _decodeFieldsInner(GeneratedMessage msg, bool inBlock) {
     var info = msg.info_;
     var setOneofs = <int, String>{}; // oneofIndex -> fieldName
+    final keyedElem = _keyedElem;
+    _keyedElem = null; // nested bodies must not inherit the key checks
 
     while (true) {
       if (inBlock && current.kind == TokenKind.rbrace) {
@@ -429,11 +444,15 @@ class DirectDecoder {
             'expected identifier, string, or integer, got ${current.kind.name} ("${current.value}")');
       }
       var key = current.value;
+      final keyQuoted = current.kind == TokenKind.string;
       _advance();
 
       switch (current.kind) {
         case TokenKind.equals:
           _advance();
+          // The grammar takes a string here everywhere. In message context
+          // it never names a field; keyed blocks have their own loop.
+          if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
           var fi = _fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
@@ -449,12 +468,18 @@ class DirectDecoder {
             if (result != null) {
               var path = pathPrefix + fi.protoName;
               result!.markNull(path);
-              if (nullMaskFi != null) {
+              if (nullMaskFi != null && _keyedElemDepth == 0) {
                 _addToNullMask(rootMsg!, nullMaskFi!, path);
               }
             }
             _advance();
             continue;
+          }
+
+          if (keyedElem != null &&
+              fi.protoName == keyedElem.keyName &&
+              current.kind == TokenKind.string) {
+            keyedElem.checkExplicitKey(current.value, current.pos);
           }
 
           if (result != null) {
@@ -464,6 +489,7 @@ class DirectDecoder {
           break;
 
         case TokenKind.lbrace:
+          if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
           _advance();
           var fi = _fieldNamed(info, key);
           if (fi == null) {
@@ -473,6 +499,15 @@ class DirectDecoder {
             }
             throw PxfError(
                 pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
+          }
+
+          final keyFi = keyFieldOf(annotations, info, fi);
+          if (keyFi != null) {
+            if (result != null) {
+              result!.markPresent(pathPrefix + fi.protoName);
+            }
+            _decodeKeyedBlockBody(msg, fi, keyFi);
+            continue;
           }
 
           // Any sugar handling: name { @type = "..." ... }
@@ -540,8 +575,13 @@ class DirectDecoder {
 
   void _decodeFieldValue(GeneratedMessage msg, FieldInfo fi) {
     if (fi.isRepeated) {
+      final keyFi = keyFieldOf(annotations, msg.info_, fi);
       if (current.kind == TokenKind.lbracket) {
-        _decodeList(msg, fi);
+        _decodeList(msg, fi, keyFi);
+      } else if (keyFi != null && current.kind == TokenKind.lbrace) {
+        // `name = { ... }`: a block-tail abbreviates exactly this.
+        _advance();
+        _decodeKeyedBlockBody(msg, fi, keyFi);
       } else {
         throw PxfError(
             current.pos, 'expected "[" for repeated field "${fi.protoName}"');
@@ -683,7 +723,9 @@ class DirectDecoder {
     msg.setField(fi.tagNumber, anyMsg);
   }
 
-  void _decodeList(GeneratedMessage msg, FieldInfo fi) {
+  /// [keyFi] is the key field when [fi] is keyed; this is then the anonymous
+  /// form, whose elements must decode as the keyed form's do.
+  void _decodeList(GeneratedMessage msg, FieldInfo fi, FieldInfo? keyFi) {
     _advance(); // consume [
     var list = msg.getField(fi.tagNumber) as List;
     while (
@@ -696,7 +738,12 @@ class DirectDecoder {
         var sub = fi.subBuilder!();
         if (current.kind == TokenKind.lbrace) {
           _advance();
-          _decodeFields(sub, true);
+          if (keyFi != null) {
+            _decodeKeyedElement(sub, fi, list.length,
+                KeyedElemState(field: fi.protoName, keyName: keyFi.protoName));
+          } else {
+            _decodeFields(sub, true);
+          }
           list.add(sub);
         } else {
           var subInfo = sub.info_;
@@ -735,6 +782,88 @@ class DirectDecoder {
       throw PxfError(current.pos, 'expected "]", got ${current.kind.name}');
     }
     _advance();
+  }
+
+  /// The block form of a keyed repeated field: named entries, `name { ... }`
+  /// or `name = { ... }`, where each name populates the element's key field
+  /// and entry order is list order. The opening `{` has been consumed; the
+  /// closing `}` is consumed here. Mirrors the reference's
+  /// `decodeKeyedBlockBody`.
+  void _decodeKeyedBlockBody(
+      GeneratedMessage msg, FieldInfo fi, FieldInfo keyFi) {
+    if (_depth >= _maxNestingDepth) {
+      throw PxfError(current.pos,
+          'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
+    }
+    _depth++;
+    try {
+      var list = msg.getField(fi.tagNumber) as List;
+      final seen = <String>{};
+      while (true) {
+        if (current.kind == TokenKind.rbrace) {
+          _advance();
+          return;
+        }
+        if (current.kind == TokenKind.eof) {
+          throw PxfError(current.pos,
+              'expected "}" to close keyed field "${fi.protoName}", got EOF');
+        }
+        if (current.kind != TokenKind.ident &&
+            current.kind != TokenKind.string) {
+          throw PxfError(current.pos,
+              'expected entry name (identifier or string) in keyed field "${fi.protoName}", got ${current.kind.name}');
+        }
+        final namePos = current.pos;
+        final name = current.value;
+        if (name.isEmpty) throw keyedEmptyNameError(namePos, fi.protoName);
+        if (!seen.add(name)) {
+          throw keyedDuplicateKeyError(namePos, fi.protoName, name);
+        }
+        _advance();
+
+        if (current.kind == TokenKind.equals) {
+          _advance();
+          if (current.kind != TokenKind.lbrace) {
+            throw PxfError(current.pos,
+                'keyed entry "$name" of field "${fi.protoName}" must have a block value ("{ ... }"): the element type is a message');
+          }
+        } else if (current.kind != TokenKind.lbrace) {
+          throw PxfError(current.pos,
+              'expected "{" or "=" after entry name "$name" in keyed field "${fi.protoName}", got ${current.kind.name}');
+        }
+        _advance();
+
+        var sub = fi.subBuilder!();
+        sub.setField(keyFi.tagNumber, name);
+        _decodeKeyedElement(
+            sub,
+            fi,
+            list.length,
+            KeyedElemState(
+                field: fi.protoName,
+                keyName: keyFi.protoName,
+                entryName: name));
+        list.add(sub);
+      }
+    } finally {
+      _depth--;
+    }
+  }
+
+  /// Decodes the body of element [index] of keyed field [fi], under the
+  /// reference's element path `name[i].`.
+  void _decodeKeyedElement(
+      GeneratedMessage sub, FieldInfo fi, int index, KeyedElemState state) {
+    var oldPrefix = pathPrefix;
+    pathPrefix = '$oldPrefix${fi.protoName}[$index].';
+    _keyedElem = state;
+    _keyedElemDepth++;
+    try {
+      _decodeFields(sub, true);
+    } finally {
+      _keyedElemDepth--;
+      pathPrefix = oldPrefix;
+    }
   }
 
   /// `field = { key: value, ... }` (draft -01 §3.9). Keys are converted by
@@ -1093,7 +1222,14 @@ FieldInfo? _fieldNamed(BuilderInfo info, String key) {
 ///
 /// Options can be provided via [options] to customize the unmarshaling
 /// process. With [UnmarshalOptions.annotations] set, this is
-/// [unmarshalFull] minus the returned presence.
+/// [unmarshalFull] minus the returned presence, and the schema's keyed
+/// repeated fields decode from their block form:
+///
+/// ```dart
+/// final ann = PxfAnnotations.fromBytes(descriptorSetBytes);
+/// unmarshal('children { greeting { type = "Label" } }', node,
+///     options: UnmarshalOptions(annotations: ann));
+/// ```
 void unmarshal(String input, GeneratedMessage msg,
     {UnmarshalOptions? options}) {
   if (options?.annotations != null) {
@@ -1128,6 +1264,7 @@ Result unmarshalFull(String input, GeneratedMessage msg,
     input,
     typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
+    annotations: options?.annotations,
     result: result,
     rootMsg: msg,
   );

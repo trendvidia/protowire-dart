@@ -3,6 +3,8 @@
 import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
+import 'annotations.dart';
+import 'keyed.dart';
 import 'result.dart';
 import 'wellknown.dart';
 
@@ -13,12 +15,18 @@ class MarshalOptions {
   final TypeRegistry typeRegistry;
   final Result? nullFields;
 
+  /// The schema's `(pxf.key)` options. With them a keyed repeated field is
+  /// emitted in the keyed block form whenever it is eligible; generated
+  /// messages carry no field options, so without them it never is.
+  final PxfAnnotations? annotations;
+
   MarshalOptions({
     this.indent = '  ',
     this.emitDefaults = false,
     this.typeUrl,
     this.typeRegistry = const TypeRegistry.empty(),
     this.nullFields,
+    this.annotations,
   });
 
   String marshal(GeneratedMessage msg) {
@@ -29,6 +37,7 @@ class MarshalOptions {
       emitDefaults: emitDefaults,
       typeRegistry: typeRegistry,
       nullFields: nullFields,
+      annotations: annotations,
     );
 
     // TODO: null_mask discovery
@@ -48,6 +57,7 @@ class _Encoder {
   final bool emitDefaults;
   final TypeRegistry typeRegistry;
   final Result? nullFields;
+  final PxfAnnotations? annotations;
   final Set<String>? nullSet = null; // TODO: implement nullSet from null_mask
   String pathPrefix = '';
 
@@ -57,6 +67,7 @@ class _Encoder {
     required this.emitDefaults,
     required this.typeRegistry,
     this.nullFields,
+    this.annotations,
   });
 
   void _writeIndent(int level) {
@@ -70,12 +81,15 @@ class _Encoder {
     buf.write('$name = ');
   }
 
-  void encodeMessage(GeneratedMessage msg, int level) {
+  /// [skipTag] is a field to leave out: the key field of a keyed-block
+  /// entry, whose name already carries it.
+  void encodeMessage(GeneratedMessage msg, int level, {int? skipTag}) {
     var info = msg.info_;
     // Sort fields by tag number to ensure deterministic output
     var fieldNumbers = info.fieldInfo.keys.toList()..sort();
 
     for (var tag in fieldNumbers) {
+      if (tag == skipTag) continue;
       var fi = info.fieldInfo[tag]!;
 
       // Skip _null field
@@ -97,7 +111,7 @@ class _Encoder {
       }
 
       if (fi.isRepeated) {
-        _encodeListField(fi, val as List, level);
+        _encodeListField(info, fi, val as List, level);
         continue;
       }
 
@@ -163,8 +177,15 @@ class _Encoder {
     buf.write('}\n');
   }
 
-  void _encodeListField(FieldInfo fi, List list, int level) {
+  void _encodeListField(BuilderInfo owner, FieldInfo fi, List list, int level) {
     if (list.isEmpty && !emitDefaults) return;
+
+    // Elements with absent or duplicate keys can only be written anonymously.
+    final keyFi = keyFieldOf(annotations, owner, fi);
+    if (keyFi != null && list.isNotEmpty && _keyedFormEligible(list, keyFi)) {
+      _encodeKeyedList(fi, list, keyFi, level);
+      return;
+    }
 
     _writeFieldPrefix(level, fi.protoName);
     buf.write('[\n');
@@ -205,6 +226,38 @@ class _Encoder {
 
     _writeIndent(level);
     buf.write(']\n');
+  }
+
+  bool _keyedFormEligible(List list, FieldInfo keyFi) {
+    final seen = <String>{};
+    for (final elem in list) {
+      final key = (elem as GeneratedMessage).getField(keyFi.tagNumber);
+      if (key == '' || !seen.add(key as String)) return false;
+    }
+    return true;
+  }
+
+  /// One named block per element, in list order; the name is unquoted when
+  /// identifier-safe, and the key is not repeated inside the block.
+  void _encodeKeyedList(FieldInfo fi, List list, FieldInfo keyFi, int level) {
+    _writeIndent(level);
+    buf.write('${fi.protoName} {\n');
+    for (final elem in list) {
+      final sub = elem as GeneratedMessage;
+      final key = sub.getField(keyFi.tagNumber) as String;
+      _writeIndent(level + 1);
+      if (isIdentSafeEntryName(key)) {
+        buf.write(key);
+      } else {
+        _writeQuotedString(key);
+      }
+      buf.write(' {\n');
+      encodeMessage(sub, level + 2, skipTag: keyFi.tagNumber);
+      _writeIndent(level + 1);
+      buf.write('}\n');
+    }
+    _writeIndent(level);
+    buf.write('}\n');
   }
 
   void _encodeMapField(FieldInfo fi, Map map, int level) {
@@ -311,11 +364,7 @@ class _Encoder {
     return key.toString();
   }
 
-  bool _isValidIdent(String s) {
-    if (s.isEmpty || s == 'true' || s == 'false' || s == 'null') return false;
-    final identRegex = RegExp(r'^[a-zA-Z_][a-zA-Z0-9._]*$');
-    return identRegex.hasMatch(s);
-  }
+  bool _isValidIdent(String s) => isIdentSafeEntryName(s);
 
   String _formatBigInt(GeneratedMessage msg) {
     var absBytes = msg.getField(1) as List<int>;
@@ -378,6 +427,13 @@ class _Encoder {
 /// Marshals the provided [msg] into PXF text format.
 ///
 /// Options can be provided via [options] to customize indentation and output.
+/// With [MarshalOptions.annotations] the schema's keyed repeated fields are
+/// emitted in their block form:
+///
+/// ```dart
+/// final ann = PxfAnnotations.fromBytes(descriptorSetBytes);
+/// marshal(node, options: MarshalOptions(annotations: ann));
+/// ```
 String marshal(GeneratedMessage msg, {MarshalOptions? options}) {
   return (options ?? MarshalOptions()).marshal(msg);
 }
