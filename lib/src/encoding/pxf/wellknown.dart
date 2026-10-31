@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 
+import 'lexer.dart' show countSignificantDigits;
+
 bool isTimestamp(BuilderInfo info) {
   return info.qualifiedMessageName == 'google.protobuf.Timestamp';
 }
@@ -64,21 +66,34 @@ bool isBigFloat(BuilderInfo info) {
 
 /// HARDENING.md § Numeric-literal cap. `BigInt.parse` is O(n²) in the digit
 /// count, so a multi-thousand-digit literal is a CPU-DoS vector. The
-/// cross-port spec mandates ≤ 4096 digits per numeric literal.
+/// cross-port spec mandates ≤ 4096 significant digits per numeric literal.
 const int maxNumericLiteralDigits = 4096;
 
-void _checkDigitCap(String digits) {
-  if (digits.length > maxNumericLiteralDigits) {
+void _checkDigitCap(String literal) {
+  if (literal.length <= maxNumericLiteralDigits) return;
+  final n = countSignificantDigits(literal);
+  if (n > maxNumericLiteralDigits) {
     throw FormatException(
         'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
-        '(${digits.length} digits)');
+        '($n digits)');
   }
 }
 
+/// [BigInt.parse] matches its input with a backtracking regular expression
+/// that overflows the stack on a few million characters, and the cap does
+/// not count leading zeros. Dropping them is what keeps its input bounded.
+String _trimLeadingZeros(String digits) {
+  final start = digits.startsWith('-') ? 1 : 0;
+  var i = start;
+  while (i < digits.length - 1 && digits.codeUnitAt(i) == 48) {
+    i++;
+  }
+  return i == start ? digits : digits.substring(0, start) + digits.substring(i);
+}
+
 void setBigIntFields(GeneratedMessage msg, String raw) {
-  final digits = raw.startsWith('-') ? raw.substring(1) : raw;
-  _checkDigitCap(digits);
-  var val = BigInt.parse(raw);
+  _checkDigitCap(raw);
+  var val = BigInt.parse(_trimLeadingZeros(raw));
   var negative = val < BigInt.zero;
   var abs = val.abs();
   msg.setField(1, bigIntToBytes(abs));
@@ -100,7 +115,14 @@ void setDecimalFields(GeneratedMessage msg, String raw) {
   }
 
   _checkDigitCap(unscaledStr);
-  var unscaled = BigInt.parse(unscaledStr);
+  // The digit cap no longer bounds the scale: leading zeros are not
+  // significant (protowire#410), so `0.000…1` counts one digit however many
+  // places it has. The scale is bounded on its own, inclusive.
+  if (scale > maxNumericLiteralDigits) {
+    throw FormatException(
+        'pxf.Decimal scale $scale exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits');
+  }
+  var unscaled = BigInt.parse(_trimLeadingZeros(unscaledStr));
   msg.setField(1, bigIntToBytes(unscaled));
   msg.setField(2, scale);
   msg.setField(3, negative);

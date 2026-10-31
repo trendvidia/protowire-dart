@@ -120,7 +120,7 @@ void _pxfDecode(String text, String schema) {
 
 void _pbDecode(Uint8List bytes, String schema) {
   final msg = _newMessage(schema);
-  msg.mergeFromBuffer(bytes);
+  pw.mergeFromBufferChecked(msg, bytes);
 }
 
 pb.GeneratedMessage _newMessage(String schema) {
@@ -133,6 +133,8 @@ pb.GeneratedMessage _newMessage(String schema) {
       return adv.BytesHolder();
     case 'adversarial.v1.BigIntHolder':
       return adv.BigIntHolder();
+    case 'adversarial.v1.BigNumHolder':
+      return adv.BigNumHolder();
     default:
       throw _Reject('unknown schema: $schema');
   }
