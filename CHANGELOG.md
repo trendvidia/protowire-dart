@@ -32,6 +32,14 @@ format changes.
 
 ### Fixed
 
+- **`MaxNestingDepth` counts from a root at depth 0, and counts lists** (#24,
+  protowire#301). The decoder counted the root as depth 1, so a document
+  exactly 100 descents deep was rejected, and it did not count `[` at all;
+  the text parser did not count `[` either, so `[[[[…` was unbounded there.
+  Every `{` block and `[` list is one descent now, in both, and 100 are
+  accepted and 101 rejected. `check_decode`'s `adversarial.v1.Tree` was
+  stale: it lacked `children`, so the `deep-nesting-lists-*` rows rejected
+  on an unknown field. It is regenerated with the field.
 - **Map fields decode** (#17). `unmarshal` parsed a map block's
   `key: value` entries and discarded every value, so any `map<K, V>` field
   came back empty — since the initial release. Keys now convert by the

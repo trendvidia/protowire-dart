@@ -392,14 +392,26 @@ class DirectDecoder {
     return peeked;
   }
 
-  void _decodeFields(GeneratedMessage msg, bool inBlock) {
+  /// Counts one descent, HARDENING.md § Recursion: every `{` or `[` is one,
+  /// and a document exactly [_maxNestingDepth] deep is accepted. The caller
+  /// undoes it with `_depth--` once the block or list is read.
+  void _enterNesting() {
     if (_depth >= _maxNestingDepth) {
       throw PxfError(current.pos,
           'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
     }
     _depth++;
+  }
+
+  void _decodeFields(GeneratedMessage msg, bool inBlock) {
+    // The root message has no `{` of its own: it is depth 0.
+    if (!inBlock) {
+      _decodeFieldsInner(msg, false);
+      return;
+    }
+    _enterNesting();
     try {
-      _decodeFieldsInner(msg, inBlock);
+      _decodeFieldsInner(msg, true);
     } finally {
       _depth--;
     }
@@ -685,6 +697,15 @@ class DirectDecoder {
 
   void _decodeList(GeneratedMessage msg, FieldInfo fi) {
     _advance(); // consume [
+    _enterNesting();
+    try {
+      _decodeListBody(msg, fi);
+    } finally {
+      _depth--;
+    }
+  }
+
+  void _decodeListBody(GeneratedMessage msg, FieldInfo fi) {
     var list = msg.getField(fi.tagNumber) as List;
     while (
         current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {

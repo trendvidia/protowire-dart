@@ -524,20 +524,27 @@ class Parser {
     var pos = current.pos;
     _advance(); // consume [
 
-    var elems = <Value>[];
-    while (
-        current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
-      elems.add(_parseValue());
-      if (current.kind == TokenKind.comma) {
-        _advance();
+    // A list is a descent like a block (HARDENING.md § Recursion), and
+    // nothing else bounds `[[[[…`.
+    _enterNesting();
+    try {
+      var elems = <Value>[];
+      while (
+          current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
+        elems.add(_parseValue());
+        if (current.kind == TokenKind.comma) {
+          _advance();
+        }
       }
-    }
 
-    if (current.kind != TokenKind.rbracket) {
-      throw PxfError(current.pos, 'expected "]", got ${current.kind.name}');
+      if (current.kind != TokenKind.rbracket) {
+        throw PxfError(current.pos, 'expected "]", got ${current.kind.name}');
+      }
+      _advance();
+      return ListVal(pos, elems);
+    } finally {
+      _depth--;
     }
-    _advance();
-    return ListVal(pos, elems);
   }
 
   Value _parseBlockVal() {
@@ -547,12 +554,19 @@ class Parser {
     return BlockVal(pos, entries);
   }
 
-  List<Entry> _parseBody() {
+  /// Counts one descent; the caller undoes it with `_depth--`. The document
+  /// root is depth 0, so [_maxNestingDepth] levels are accepted, the same
+  /// bound the decoder applies.
+  void _enterNesting() {
     if (_depth >= _maxNestingDepth) {
       throw PxfError(current.pos,
           'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
     }
     _depth++;
+  }
+
+  List<Entry> _parseBody() {
+    _enterNesting();
     try {
       var entries = <Entry>[];
       while (
