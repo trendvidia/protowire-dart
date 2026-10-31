@@ -11,6 +11,8 @@ format changes.
 
 ## Unreleased
 
+## 1.1.0
+
 ### Fixed
 
 - **`marshal` refuses a `pxf.Decimal` past the bounds** (protowire#448). A scale
