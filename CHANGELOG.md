@@ -80,6 +80,12 @@ format changes.
   names in its diagnostics. Documents in the Dart-name dialect still
   decode (#16); the benchmark and test fixtures written in it are moved
   to proto names.
+- **`(pxf.required)` with `(pxf.default)` on one field fails at bind** (#41),
+  as draft -01 "Required and Default" requires (protowire#453).
+  `PxfAnnotations.fromDescriptorSet` and `fromBytes` throw a `PxfError` naming
+  every such field, over every message of the descriptor set, nested ones
+  included. Such a schema used to bind, and which option won depended on the
+  engine. `(pxf.required) = false` beside a default stays accepted.
 
 ## 1.0.0
 

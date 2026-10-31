@@ -4,6 +4,8 @@ import 'package:protobuf/protobuf.dart';
 
 import '../../generated/proto/google/protobuf/descriptor.pb.dart' as pbd;
 import '../../generated/proto/pxf/annotations.pb.dart' as pxf_ann;
+import 'errors.dart';
+import 'token.dart';
 
 /// An [ExtensionRegistry] that knows `(pxf.required)` = 1314 and
 /// `(pxf.default)` = 1315, for parsing a `FileDescriptorSet` whose field
@@ -39,19 +41,29 @@ class PxfFieldAnnotations {
 /// `FieldInfo.protoName`).
 class PxfAnnotations {
   final Map<String, Map<String, PxfFieldAnnotations>> _byMessage = {};
+  final List<String> _violations = [];
 
   PxfAnnotations._();
 
   /// Indexes every message of [fds], nested ones included. [fds] must
   /// have been parsed with [pxfExtensionRegistry] (or built in memory
   /// with the extensions set); see [PxfAnnotations.fromBytes].
+  ///
+  /// This is the bind: `(pxf.required)` with `(pxf.default)` on one field,
+  /// anywhere in [fds], is a [PxfError] naming every such field (draft -01
+  /// "Required and Default"), whatever a document says. The scope the draft
+  /// fixes for this check is the bound file's import closure, so [fds]
+  /// should be built with `protoc --include_imports`.
   factory PxfAnnotations.fromDescriptorSet(pbd.FileDescriptorSet fds) {
     final a = PxfAnnotations._();
     for (final file in fds.file) {
       final prefix = file.package.isEmpty ? '' : '${file.package}.';
       for (final m in file.messageType) {
-        a._index(m, prefix);
+        a._index(m, prefix, file.name);
       }
+    }
+    if (a._violations.isNotEmpty) {
+      throw PxfError(Position(1, 1), a._violations.join('; '));
     }
     return a;
   }
@@ -62,7 +74,7 @@ class PxfAnnotations {
       PxfAnnotations.fromDescriptorSet(
           pbd.FileDescriptorSet.fromBuffer(bytes, pxfExtensionRegistry()));
 
-  void _index(pbd.DescriptorProto m, String prefix) {
+  void _index(pbd.DescriptorProto m, String prefix, String fileName) {
     final fullName = '$prefix${m.name}';
     final fields = <String, PxfFieldAnnotations>{};
     for (final fd in m.field) {
@@ -72,6 +84,12 @@ class PxfAnnotations {
       final def = o.hasExtension(pxf_ann.Annotations.default_1315)
           ? o.getExtension(pxf_ann.Annotations.default_1315) as String
           : null;
+      if (required && def != null) {
+        _violations.add('$fileName: field "$fullName.${fd.name}": '
+            '(pxf.required) and (pxf.default) are exclusive on one field: '
+            'the first rejects a document where the field is absent, and '
+            'the second treats it as supplied');
+      }
       if (required || def != null) {
         fields[fd.name] =
             PxfFieldAnnotations(required: required, defaultLiteral: def);
@@ -79,7 +97,7 @@ class PxfAnnotations {
     }
     _byMessage[fullName] = fields;
     for (final n in m.nestedType) {
-      _index(n, '$fullName.');
+      _index(n, '$fullName.', fileName);
     }
   }
 
