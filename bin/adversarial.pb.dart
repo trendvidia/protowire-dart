@@ -25,10 +25,16 @@ class Tree extends $pb.GeneratedMessage {
   factory Tree({
     Tree? child,
     $core.String? label,
+    $core.Iterable<Tree>? children,
+    $core.Iterable<$core.MapEntry<$core.String, Tree>>? branches,
+    $core.Iterable<$core.MapEntry<$core.String, $core.String>>? tags,
   }) {
     final result = create();
     if (child != null) result.child = child;
     if (label != null) result.label = label;
+    if (children != null) result.children.addAll(children);
+    if (branches != null) result.branches.addEntries(branches);
+    if (tags != null) result.tags.addEntries(tags);
     return result;
   }
 
@@ -47,6 +53,19 @@ class Tree extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOM<Tree>(1, _omitFieldNames ? '' : 'child', subBuilder: Tree.create)
     ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..pPM<Tree>(3, _omitFieldNames ? '' : 'children', subBuilder: Tree.create)
+    ..m<$core.String, Tree>(4, _omitFieldNames ? '' : 'branches',
+        entryClassName: 'Tree.BranchesEntry',
+        keyFieldType: $pb.PbFieldType.OS,
+        valueFieldType: $pb.PbFieldType.OM,
+        valueCreator: Tree.create,
+        valueDefaultOrMaker: Tree.getDefault,
+        packageName: const $pb.PackageName('adversarial.v1'))
+    ..m<$core.String, $core.String>(5, _omitFieldNames ? '' : 'tags',
+        entryClassName: 'Tree.TagsEntry',
+        keyFieldType: $pb.PbFieldType.OS,
+        valueFieldType: $pb.PbFieldType.OS,
+        packageName: const $pb.PackageName('adversarial.v1'))
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -86,6 +105,20 @@ class Tree extends $pb.GeneratedMessage {
   $core.bool hasLabel() => $_has(1);
   @$pb.TagNumber(2)
   void clearLabel() => $_clearField(2);
+
+  /// children alternates a list with a block, so a document can descend
+  /// through both kinds of PXF nesting (issue #301).
+  @$pb.TagNumber(3)
+  $pb.PbList<Tree> get children => $_getList(2);
+
+  /// branches and tags descend through a map, with a message value and a
+  /// scalar value: a map's `{` and every PB map entry are descents whatever
+  /// the value's type (issue #449).
+  @$pb.TagNumber(4)
+  $pb.PbMap<$core.String, Tree> get branches => $_getMap(3);
+
+  @$pb.TagNumber(5)
+  $pb.PbMap<$core.String, $core.String> get tags => $_getMap(4);
 }
 
 /// StringHolder isolates a single proto3 `string` field for the UTF-8
