@@ -187,6 +187,87 @@ void main() {
     });
   });
 
+  group('required with default', () {
+    // Bound before any document exists: the pair has no single meaning, so
+    // the schema itself is refused (draft -01 "Required and Default").
+    pbd.FileDescriptorSet pair(
+        {required bool isRequired, void Function(pbd.DescriptorProto)? nest}) {
+      final m = pbd.DescriptorProto()
+        ..name = 'M'
+        ..field.add(field('f', 1, pbd.FieldDescriptorProto_Type.TYPE_STRING,
+            defaultLiteral: 'x'));
+      m.field.first.options
+          .setExtension(pxf_ann.Annotations.required, isRequired);
+      nest?.call(m);
+      return pbd.FileDescriptorSet()
+        ..file.add(pbd.FileDescriptorProto()
+          ..name = 'bind.proto'
+          ..package = 'bind.v1'
+          ..messageType.add(m));
+    }
+
+    final refused = throwsA(isA<PxfError>().having(
+        (e) => e.message,
+        'message',
+        contains('(pxf.required) and (pxf.default) are exclusive on one '
+            'field')));
+
+    test('is refused when bound, in memory and from bytes', () {
+      final fds = pair(isRequired: true);
+      expect(() => PxfAnnotations.fromDescriptorSet(fds), refused);
+      expect(() => PxfAnnotations.fromBytes(fds.writeToBuffer()), refused);
+      expect(
+          () => PxfAnnotations.fromDescriptorSet(fds),
+          throwsA(predicate(
+              (e) => '$e'.contains('bind.proto: field "bind.v1.M.f":'))));
+    });
+
+    test('(pxf.required) = false beside a default stays accepted', () {
+      final fds = pair(isRequired: false);
+      for (final a in [
+        PxfAnnotations.fromDescriptorSet(fds),
+        PxfAnnotations.fromBytes(fds.writeToBuffer()),
+      ]) {
+        expect(a.field('bind.v1.M', 'f')?.required, isFalse);
+        expect(a.field('bind.v1.M', 'f')?.defaultLiteral, 'x');
+      }
+    });
+
+    test('an empty default still counts as a default', () {
+      final fds = pair(isRequired: true);
+      fds.file.first.messageType.first.field.first.options
+          .setExtension(pxf_ann.Annotations.default_1315, '');
+      expect(() => PxfAnnotations.fromDescriptorSet(fds), refused);
+    });
+
+    test('reaches nested messages and every file of the set', () {
+      final nested = pair(
+          isRequired: false,
+          nest: (m) => m.nestedType.add(pbd.DescriptorProto()
+            ..name = 'Inner'
+            ..field.add(field('g', 1, pbd.FieldDescriptorProto_Type.TYPE_STRING,
+                required: true, defaultLiteral: 'y'))));
+      expect(() => PxfAnnotations.fromDescriptorSet(nested), refused);
+
+      final imported = pair(isRequired: true)
+        ..file.insert(0, pbd.FileDescriptorProto()..name = 'clean.proto');
+      expect(() => PxfAnnotations.fromDescriptorSet(imported), refused);
+    });
+
+    test('names every violation', () {
+      final fds = pair(
+          isRequired: true,
+          nest: (m) => m.field.add(field(
+              'g', 2, pbd.FieldDescriptorProto_Type.TYPE_STRING,
+              required: true, defaultLiteral: 'y')));
+      expect(
+          () => PxfAnnotations.fromDescriptorSet(fds),
+          throwsA(predicate((e) =>
+              '$e'.contains('"bind.v1.M.f"') &&
+              '$e'.contains('"bind.v1.M.g"'))));
+    });
+  });
+
   group('required', () {
     test('absent is rejected with the reference message', () {
       expect(
