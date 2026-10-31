@@ -50,6 +50,14 @@ format changes.
 
 ### Fixed
 
+- **`MaxNestingDepth` counts from a root at depth 0, and counts lists** (#24,
+  protowire#301). The decoder counted the root as depth 1, so a document
+  exactly 100 descents deep was rejected, and it did not count `[` at all;
+  the text parser did not count `[` either, so `[[[[…` was unbounded there.
+  Every `{` block and `[` list is one descent now, in both, and 100 are
+  accepted and 101 rejected. `check_decode`'s `adversarial.v1.Tree` was
+  stale: it lacked `children`, so the `deep-nesting-lists-*` rows rejected
+  on an unknown field. It is regenerated with the field.
 - **Map fields decode** (#17). `unmarshal` parsed a map block's
   `key: value` entries and discarded every value, so any `map<K, V>` field
   came back empty — since the initial release. Keys now convert by the
@@ -58,6 +66,15 @@ format changes.
   or number, messages as `{ ... }` blocks with the same well-known-type
   shorthands a singular message value takes), last key wins, `null` is
   rejected — the Go reference's `decodeMapInline` / `decodeMapKey`.
+- **`MaxNumericLiteralDigits` counts significant mantissa digits only**
+  (#25, protowire#410). The cap counted leading zeros and an exponent, and
+  measured the integer and fraction parts of a float apart. It now counts
+  the mantissa's significant digits either side of the point, in the lexer
+  and on the `(pxf.default)` path, so `0.000…1` at scale 4096 decodes, and
+  a `pxf.Decimal` scale past 4096 is rejected on its own bound. The cap was
+  already inclusive on a `pxf.BigInt` field: the rows failed because
+  `check_decode` did not know `adversarial.v1.BigNumHolder` and rejected
+  both of them as an unknown schema. It links that type now.
 
 ### Changed
 
@@ -66,6 +83,14 @@ format changes.
 
 - **The vendored shared schemas are re-synced with [trendvidia/protos](https://github.com/trendvidia/protos) v0.1.2** ([trendvidia/protowire#447](https://github.com/trendvidia/protowire/issues/447)). They gain protos' file options, and `envelope.proto`'s `go_package` now names a published package. Declarations and field numbers are unchanged, and so is this port's public API.
 
+- **A map's `{` and every PB map entry count toward `MaxNestingDepth`**
+  (protowire#449), as HARDENING.md says and protowire-go now does. The PXF
+  decoder skipped the map's own `{`, so a document nesting maps past the bound
+  decoded while `parse` refused it. package:protobuf does not count a map
+  entry at all, so the new `mergeFromBufferChecked` walks the input first;
+  `check_decode` calls it, and untrusted PB should go through it rather than
+  `mergeFromBuffer`. `check_decode`'s `adversarial.v1.Tree` gains `children`,
+  `branches` and `tags`.
 - **PXF entries are proto field names on the way out, too** (#15). `marshal`
   wrote Dart field names (`orderId`, `fillPrice`), which no other port can
   read (draft -01 §3.2 makes entry names the proto field names,

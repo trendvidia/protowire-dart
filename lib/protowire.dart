@@ -21,6 +21,7 @@ export 'src/encoding/sbe/descriptor.dart';
 export 'src/encoding/sbe/view.dart';
 export 'src/encoding/sbe/xmltoproto.dart';
 export 'src/encoding/sbe/prototoxml.dart';
+export 'src/encoding/pb/depth.dart';
 export 'src/encoding/pb/native.dart';
 export 'src/envelope/envelope.dart';
 
