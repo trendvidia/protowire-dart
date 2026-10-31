@@ -767,11 +767,7 @@ class DirectDecoder {
   void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     // A map's `{` is a descent like any other, whatever its values are
     // (HARDENING.md § Recursion; protowire#449).
-    if (_depth >= _maxNestingDepth) {
-      throw PxfError(current.pos,
-          'message nesting exceeds MaxNestingDepth=$_maxNestingDepth');
-    }
-    _depth++;
+    _enterNesting();
     try {
       _decodeMapBody(msg, fi);
     } finally {
