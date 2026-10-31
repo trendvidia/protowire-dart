@@ -69,9 +69,7 @@ class PxfSchemaField {
 /// ```
 class PxfAnnotations {
   final Map<String, Map<String, PxfFieldAnnotations>> _byMessage = {};
-  final Map<String, pbd.DescriptorProto> _descriptors = {};
-  final Map<String, String> _declaringFile = {};
-  final Map<String, Map<String, PxfSchemaField>> _shapes = {};
+  final List<String> _violations = [];
 
   PxfAnnotations._();
 
@@ -79,10 +77,11 @@ class PxfAnnotations {
   /// have been parsed with [pxfExtensionRegistry] (or built in memory
   /// with the extensions set); see [PxfAnnotations.fromBytes].
   ///
-  /// This is the bind: a misplaced `(pxf.key)` anywhere in [fds] is a
-  /// [PxfError] naming every violation, so [fds] must hold the bound file's
-  /// import closure (`protoc --include_imports`), which is the scope the
-  /// draft fixes for bind-time checks.
+  /// This is the bind: `(pxf.required)` with `(pxf.default)` on one field,
+  /// anywhere in [fds], is a [PxfError] naming every such field (draft -01
+  /// "Required and Default"), whatever a document says. The scope the draft
+  /// fixes for this check is the bound file's import closure, so [fds]
+  /// should be built with `protoc --include_imports`.
   factory PxfAnnotations.fromDescriptorSet(pbd.FileDescriptorSet fds) {
     final a = PxfAnnotations._();
     for (final file in fds.file) {
@@ -91,7 +90,9 @@ class PxfAnnotations {
         a._index(m, prefix, file.name);
       }
     }
-    a._bindShapes();
+    if (a._violations.isNotEmpty) {
+      throw PxfError(Position(1, 1), a._violations.join('; '));
+    }
     return a;
   }
 
@@ -113,63 +114,20 @@ class PxfAnnotations {
       final def = o.hasExtension(pxf_ann.Annotations.default_1315)
           ? o.getExtension(pxf_ann.Annotations.default_1315) as String
           : null;
-      final key = o.hasExtension(pxf_ann.Annotations.key)
-          ? o.getExtension(pxf_ann.Annotations.key) as String
-          : null;
-      if (required || def != null || key != null) {
-        fields[fd.name] = PxfFieldAnnotations(
-            required: required, defaultLiteral: def, key: key);
+      if (required && def != null) {
+        _violations.add('$fileName: field "$fullName.${fd.name}": '
+            '(pxf.required) and (pxf.default) are exclusive on one field: '
+            'the first rejects a document where the field is absent, and '
+            'the second treats it as supplied');
+      }
+      if (required || def != null) {
+        fields[fd.name] =
+            PxfFieldAnnotations(required: required, defaultLiteral: def);
       }
     }
     _byMessage[fullName] = fields;
     for (final n in m.nestedType) {
       _index(n, '$fullName.', fileName);
-    }
-  }
-
-  /// Second pass, once every message is indexed: records each field's
-  /// shape and applies the `(pxf.key)` placement rules (draft -01 "Schema
-  /// Placement"), which need the element message.
-  void _bindShapes() {
-    final violations = <String>[];
-    _descriptors.forEach((fullName, m) {
-      final shapes = _shapes[fullName] = {};
-      for (final fd in m.field) {
-        final typeName = fd.typeName.startsWith('.')
-            ? fd.typeName.substring(1)
-            : fd.typeName;
-        final isMessage = fd.type == pbd.FieldDescriptorProto_Type.TYPE_MESSAGE;
-        final elem = isMessage ? _descriptors[typeName] : null;
-        final isMap = elem != null && elem.options.mapEntry;
-        final isList =
-            fd.label == pbd.FieldDescriptorProto_Label.LABEL_REPEATED && !isMap;
-        shapes[fd.name] = PxfSchemaField(
-          isList: isList,
-          isMap: isMap,
-          messageType:
-              isMap ? _mapValueMessage(elem) : (isMessage ? typeName : null),
-        );
-        final key = _byMessage[fullName]?[fd.name]?.key;
-        if (key == null) continue;
-        final detail =
-            _keyPlacementProblem(isList && isMessage, typeName, elem, key);
-        if (detail != null) {
-          violations.add('${_declaringFile[fullName]}: field '
-              '"$fullName.${fd.name}": invalid (pxf.key) = "$key": $detail '
-              '(draft -01 §3.13)');
-        }
-      }
-    });
-    if (violations.isNotEmpty) {
-      throw PxfError(Position(1, 1), violations.join('; '));
-    }
-  }
-
-  String? _mapValueMessage(pbd.DescriptorProto entry) {
-    final value = entry.field.where((f) => f.number == 2).firstOrNull;
-    if (value == null ||
-        value.type != pbd.FieldDescriptorProto_Type.TYPE_MESSAGE) {
-      return null;
     }
     return value.typeName.startsWith('.')
         ? value.typeName.substring(1)
