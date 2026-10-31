@@ -1,6 +1,10 @@
 version: v1
 deps:
   - buf.build/protocolbuffers/well-known-types
+build:
+  excludes:
+    # Vendored cross-port fixtures; their imports resolve against proto/.
+    - test/testdata
 breaking:
   use:
     - FILE

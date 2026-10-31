@@ -13,6 +13,24 @@ format changes.
 
 ### Added
 
+- **Keyed repeated fields and quoted entry names** (draft `-01` "Keyed
+  Repeated Fields"; #10, protowire#116). A `repeated <Message>` field with
+  `(pxf.key)` can be written as a block of named blocks: the entry name is
+  the key, entry order is list order. Generated Dart messages carry no field
+  options, so the option comes from `PxfAnnotations`, which now indexes
+  extension number 1316 and rejects a misplaced `(pxf.key)` when the
+  descriptor set is bound; without annotations nothing is keyed.
+  `UnmarshalOptions.annotations` decodes both surface forms and rejects
+  duplicate, empty and conflicting keys. The new
+  `MarshalOptions.annotations` emits the keyed form when every key is
+  present, non-empty and distinct, and the list form otherwise.
+  `formatPxf` is new: it pretty-prints a document and, given annotations,
+  canonicalizes keyed fields (anonymous form to keyed where eligible,
+  identifier-safe names unquoted, redundant key assignments dropped). It
+  refuses documents with directives rather than dropping them. The AST
+  records whether an entry name was quoted. The spec repo's `testdata/keyed/`
+  corpus is vendored under `test/testdata/keyed/`. This port has no tolerant
+  parse mode, so the keyed errors are always hard errors.
 - **`(pxf.required)` and `(pxf.default)`** (#14), and `unmarshalFull`.
   `PxfAnnotations.fromDescriptorSet` / `fromBytes` index the two
   annotations (extension numbers 1314 and 1315) per message from a
@@ -59,6 +77,9 @@ format changes.
   both of them as an unknown schema. It links that type now.
 
 ### Changed
+
+- A quoted entry name outside a keyed repeated field's block is now a
+  decode error, as the draft requires (`"id" = "x"` used to bind `id`).
 
 - **The vendored shared schemas are re-synced with [trendvidia/protos](https://github.com/trendvidia/protos) v0.1.2** ([trendvidia/protowire#447](https://github.com/trendvidia/protowire/issues/447)). They gain protos' file options, and `envelope.proto`'s `go_package` now names a published package. Declarations and field numbers are unchanged, and so is this port's public API.
 

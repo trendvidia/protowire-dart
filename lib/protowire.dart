@@ -10,6 +10,7 @@ library;
 
 export 'src/encoding/pxf/decode.dart';
 export 'src/encoding/pxf/encode.dart';
+export 'src/encoding/pxf/format.dart' show formatPxf;
 export 'src/encoding/pxf/options.dart';
 export 'src/encoding/pxf/annotations.dart';
 export 'src/encoding/pxf/result.dart';
