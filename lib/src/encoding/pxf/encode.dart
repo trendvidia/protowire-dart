@@ -4,9 +4,11 @@ import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
+import 'errors.dart';
 import 'format.dart';
 import 'keyed.dart';
 import 'result.dart';
+import 'token.dart' show Position;
 import 'wellknown.dart';
 
 class MarshalOptions {
@@ -342,13 +344,22 @@ class _Encoder {
     if (absBytes.isEmpty) return '0';
     var hex = absBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
     var val = BigInt.parse(hex, radix: 16);
-    return negative ? '-$val' : '$val';
+    return _boundLiteral('pxf.BigInt', negative ? '-$val' : '$val');
   }
 
+  /// value = unscaled × 10^(-scale). The scale is four bytes whoever wrote
+  /// the message chose, so it is bounded before any work, on both signs
+  /// (HARDENING.md § Arbitrary-precision magnitudes). A positive scale places
+  /// the point, and a negative one means trailing zeros: 5 at -2 is 500.
   String _formatDecimal(GeneratedMessage msg) {
     var unscaledBytes = msg.getField(1) as List<int>;
     var scale = msg.getField(2) as int;
     var negative = msg.getField(3) as bool;
+
+    if (scale.abs() > maxNumericLiteralDigits) {
+      throw PxfError(Position(1, 1),
+          'pxf.Decimal scale $scale exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits');
+    }
 
     String s;
     if (unscaledBytes.isEmpty) {
@@ -366,8 +377,26 @@ class _Encoder {
       } else {
         s = '${s.substring(0, s.length - scale)}.${s.substring(s.length - scale)}';
       }
+    } else if (scale < 0 && s != '0') {
+      s = s + '0' * -scale;
     }
-    return negative ? '-$s' : s;
+    return _boundLiteral('pxf.Decimal', negative ? '-$s' : s);
+  }
+
+  /// A producer never writes a value past a bound. Leading zeros are not
+  /// significant, so `0.000…5` at the largest scale counts one digit.
+  String _boundLiteral(String kind, String literal) {
+    if (literal.length <= maxNumericLiteralDigits) return literal;
+    var n = 0;
+    for (final c in literal.codeUnits) {
+      if (c < 0x30 || c > 0x39 || (n == 0 && c == 0x30)) continue;
+      n++;
+    }
+    if (n > maxNumericLiteralDigits) {
+      throw PxfError(Position(1, 1),
+          '$kind renders to $n digits; MaxNumericLiteralDigits=$maxNumericLiteralDigits');
+    }
+    return literal;
   }
 
   String _formatDuration(Duration d) {

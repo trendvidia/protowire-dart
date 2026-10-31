@@ -42,6 +42,8 @@ final limitError = throwsA(predicate(
     'an error naming MaxNumericLiteralDigits=4096'));
 
 void main() {
+  _producerTests();
+
   final atCap = '1' * maxNumericLiteralDigits;
   final pastCap = '1' * (maxNumericLiteralDigits + 1);
 
@@ -174,6 +176,43 @@ void main() {
       expect(msg.scale, 4096);
       expect(() => setDecimalFields(pxf.Decimal(), '0.${'0' * 4096}1'),
           limitError);
+    });
+  });
+}
+
+// A producer of PXF text fails on a value past a bound, and five input bytes
+// must not cost two gigabytes (HARDENING.md § Arbitrary-precision magnitudes).
+void _producerTests() {
+  BigNumHolder holder(List<int> unscaled, int scale) => BigNumHolder()
+    ..decimal = (pxf.Decimal()
+      ..unscaled = unscaled
+      ..scale = scale);
+
+  group('marshal a pxf.Decimal', () {
+    for (final scale in [4097, -4097, 0x7fffffff, -0x80000000]) {
+      test('refuses scale $scale', () {
+        expect(
+            () => marshal(holder([25], scale)),
+            throwsA(isA<PxfError>().having((e) => e.message, 'message',
+                contains('exceeds MaxNumericLiteralDigits'))));
+      });
+    }
+
+    test('a negative scale is trailing zeros', () {
+      expect(marshal(holder([5], -2)), contains('decimal = 500'));
+      expect(marshal(holder([], -2)), contains('decimal = 0'));
+    });
+
+    test('scale 4096 renders, since leading zeros do not count', () {
+      expect(
+          marshal(holder([5], 4096)), contains('decimal = 0.${'0' * 4095}5'));
+    });
+
+    test('a literal past the cap is refused', () {
+      expect(
+          () => marshal(holder([10], -4096)),
+          throwsA(isA<PxfError>().having((e) => e.message, 'message',
+              contains('renders to 4098 digits'))));
     });
   });
 }

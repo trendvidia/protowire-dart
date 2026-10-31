@@ -11,6 +11,15 @@ format changes.
 
 ## Unreleased
 
+### Fixed
+
+- **`marshal` refuses a `pxf.Decimal` past the bounds** (protowire#448). A scale
+  near 2^31 built a 2 GB string from five input bytes. A scale past
+  `MaxNumericLiteralDigits` on either sign now fails before any work, as does a
+  `BigInt` or `Decimal` literal past the digit cap.
+- **A negative `Decimal` scale keeps its value.** It was dropped, so `5` at
+  scale `-2` was written as `5` rather than `500`.
+
 ### Added
 
 - **Keyed repeated fields and quoted entry names** (draft `-01` "Keyed
