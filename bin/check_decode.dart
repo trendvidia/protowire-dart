@@ -104,6 +104,9 @@ Future<void> _run(
     case 'pb':
       final bytes = await File(input).readAsBytes();
       _pbDecode(bytes, schema);
+    case 'pb-render':
+      final bytes = await File(input).readAsBytes();
+      _pbRender(bytes, schema);
     case 'envelope':
       throw _Reject('envelope decode not yet implemented in this reference');
     case 'sbe':
@@ -116,6 +119,14 @@ Future<void> _run(
 void _pxfDecode(String text, String schema) {
   final msg = _newMessage(schema);
   pw.unmarshal(text, msg);
+}
+
+/// The producer's side of the bounds (HARDENING.md § Arbitrary-precision
+/// magnitudes): plain `mergeFromBuffer` stores the fields and bounds nothing,
+/// and they are then written as PXF (protowire#448).
+void _pbRender(Uint8List bytes, String schema) {
+  final msg = _newMessage(schema)..mergeFromBuffer(bytes);
+  pw.marshal(msg);
 }
 
 void _pbDecode(Uint8List bytes, String schema) {
