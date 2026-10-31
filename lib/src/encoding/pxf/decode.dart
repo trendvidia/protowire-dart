@@ -741,13 +741,13 @@ class DirectDecoder {
     _advance(); // consume [
     _enterNesting();
     try {
-      _decodeListBody(msg, fi);
+      _decodeListBody(msg, fi, keyFi);
     } finally {
       _depth--;
     }
   }
 
-  void _decodeListBody(GeneratedMessage msg, FieldInfo fi) {
+  void _decodeListBody(GeneratedMessage msg, FieldInfo fi, FieldInfo? keyFi) {
     var list = msg.getField(fi.tagNumber) as List;
     while (
         current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
