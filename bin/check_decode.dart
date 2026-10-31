@@ -120,7 +120,7 @@ void _pxfDecode(String text, String schema) {
 
 void _pbDecode(Uint8List bytes, String schema) {
   final msg = _newMessage(schema);
-  msg.mergeFromBuffer(bytes);
+  pw.mergeFromBufferChecked(msg, bytes);
 }
 
 pb.GeneratedMessage _newMessage(String schema) {

@@ -43,6 +43,14 @@ format changes.
 
 ### Changed
 
+- **A map's `{` and every PB map entry count toward `MaxNestingDepth`**
+  (protowire#449), as HARDENING.md says and protowire-go now does. The PXF
+  decoder skipped the map's own `{`, so a document nesting maps past the bound
+  decoded while `parse` refused it. package:protobuf does not count a map
+  entry at all, so the new `mergeFromBufferChecked` walks the input first;
+  `check_decode` calls it, and untrusted PB should go through it rather than
+  `mergeFromBuffer`. `check_decode`'s `adversarial.v1.Tree` gains `children`,
+  `branches` and `tags`.
 - **PXF entries are proto field names on the way out, too** (#15). `marshal`
   wrote Dart field names (`orderId`, `fillPrice`), which no other port can
   read (draft -01 §3.2 makes entry names the proto field names,
