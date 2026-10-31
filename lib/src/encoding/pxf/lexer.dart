@@ -11,6 +11,24 @@ import 'token.dart';
 /// `BigInt.parse` would otherwise have to re-derive the cap.
 const int _maxNumericLiteralDigits = 4096;
 
+/// What MaxNumericLiteralDigits counts in `s[start:end]`: the significant
+/// digits of a literal's mantissa, either side of the point, leading zeros
+/// excluded (HARDENING.md § Mandatory limits, protowire#410). A sign and a
+/// point are not digits; an exponent and a precision suffix are bounded on
+/// their own, so the count stops at either marker.
+int countSignificantDigits(String s, [int start = 0, int? end]) {
+  int n = 0;
+  bool leading = true;
+  for (int i = start; i < (end ?? s.length); i++) {
+    final ch = s.codeUnitAt(i);
+    if (ch == 101 || ch == 69 || ch == 112) break; // e, E, p
+    if (ch < 48 || ch > 57 || (leading && ch == 48)) continue;
+    leading = false;
+    n++;
+  }
+  return n;
+}
+
 class Lexer {
   final String input;
   int pos = 0;
@@ -483,13 +501,8 @@ class Lexer {
       _advance();
     }
     int digitCount = pos - digitStart;
-    if (digitCount > _maxNumericLiteralDigits) {
-      return Token(
-          TokenKind.illegal,
-          'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
-          '($digitCount digits)',
-          p);
-    }
+    final overCap = _checkDigitCap(p, digitStart);
+    if (overCap != null) return overCap;
 
     // Timestamp: exactly 4 digits followed by '-', only non-negative
     if (!neg && digitCount == 4 && pos < input.length && _peekCode == 45) {
@@ -503,6 +516,15 @@ class Lexer {
     }
     // Duration: digits followed by a time unit letter
     if (pos < input.length && _isDurationUnit(_peekCode)) {
+      // Not a numeric literal, so its digits are not the cap's to count, but
+      // the duration pattern must not see input of unbounded length.
+      if (digitCount > _maxNumericLiteralDigits) {
+        return Token(
+            TokenKind.illegal,
+            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+            '($digitCount digits)',
+            p);
+      }
       return _lexDuration(p, start);
     }
 
@@ -513,16 +535,11 @@ class Lexer {
     if (_peekCode == 46) {
       // .
       _advance();
-      int fracStart = pos;
       while (pos < input.length && _isDigit(_peekCode)) {
         _advance();
       }
-      if (pos - fracStart > _maxNumericLiteralDigits) {
-        return Token(
-            TokenKind.illegal,
-            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits',
-            p);
-      }
+      final overCap = _checkDigitCap(p, start);
+      if (overCap != null) return overCap;
     }
     if (pos < input.length && (_peekCode == 101 || _peekCode == 69)) {
       // e, E
@@ -531,18 +548,25 @@ class Lexer {
         // +, -
         _advance();
       }
-      int expStart = pos;
       while (pos < input.length && _isDigit(_peekCode)) {
         _advance();
       }
-      if (pos - expStart > _maxNumericLiteralDigits) {
-        return Token(
-            TokenKind.illegal,
-            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits',
-            p);
-      }
     }
     return Token(TokenKind.float, input.substring(start, pos), p);
+  }
+
+  /// The illegal token for a mantissa `input[from:pos]` past the cap, or
+  /// null. A mantissa no longer than the cap needs no counting, and that is
+  /// every literal a real document carries.
+  Token? _checkDigitCap(Position p, int from) {
+    if (pos - from <= _maxNumericLiteralDigits) return null;
+    final n = countSignificantDigits(input, from, pos);
+    if (n <= _maxNumericLiteralDigits) return null;
+    return Token(
+        TokenKind.illegal,
+        'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+        '($n digits)',
+        p);
   }
 
   Token _lexTimestamp(Position p, int start) {

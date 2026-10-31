@@ -48,6 +48,15 @@ format changes.
   or number, messages as `{ ... }` blocks with the same well-known-type
   shorthands a singular message value takes), last key wins, `null` is
   rejected — the Go reference's `decodeMapInline` / `decodeMapKey`.
+- **`MaxNumericLiteralDigits` counts significant mantissa digits only**
+  (#25, protowire#410). The cap counted leading zeros and an exponent, and
+  measured the integer and fraction parts of a float apart. It now counts
+  the mantissa's significant digits either side of the point, in the lexer
+  and on the `(pxf.default)` path, so `0.000…1` at scale 4096 decodes, and
+  a `pxf.Decimal` scale past 4096 is rejected on its own bound. The cap was
+  already inclusive on a `pxf.BigInt` field: the rows failed because
+  `check_decode` did not know `adversarial.v1.BigNumHolder` and rejected
+  both of them as an unknown schema. It links that type now.
 
 ### Changed
 
