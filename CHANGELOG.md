@@ -11,6 +11,13 @@ format changes.
 
 ## Unreleased
 
+### Fixed
+
+- **`Result` reports a keyed entry's name as setting the key field**
+  (protowire-go#214). After `kd { alpha {} }`, `isSet('kd[0].name')` is true
+  and `isAbsent('kd[0].name')` is false; both said the opposite, although the
+  element's key was `alpha`. Decoded messages do not change.
+
 ## 1.1.0
 
 ### Fixed
