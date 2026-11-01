@@ -877,6 +877,11 @@ class DirectDecoder {
       GeneratedMessage sub, FieldInfo fi, int index, KeyedElemState state) {
     var oldPrefix = pathPrefix;
     pathPrefix = '$oldPrefix${fi.protoName}[$index].';
+    // An entry name supplies the key field, so whatever reads presence must
+    // not take it as absent (protowire-go#214).
+    if (state.entryName != null) {
+      result?.markPresent('$pathPrefix${state.keyName}');
+    }
     _keyedElem = state;
     _keyedElemDepth++;
     try {
