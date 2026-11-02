@@ -1,8 +1,8 @@
 name: protowire
 description: >-
   Dart port of protowire — PXF text format, SBE binary, struct-tag protobuf,
-  and standard API response envelope. Verified for byte-equivalence with the
-  canonical Go reference and seven other sibling ports.
+  and standard API response envelope. CI compares its PXF verdicts, PB bytes
+  and written PXF with the Go reference on the spec's document corpora.
 version: 1.1.0
 homepage: https://protowire.org
 repository: https://github.com/trendvidia/protowire-dart
