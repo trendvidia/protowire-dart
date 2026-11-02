@@ -52,6 +52,12 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
+  enforced** (protowire#299), each 64 MiB by default and lowered per call with
+  `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
+  through `mergeFromBufferChecked` and `unmarshalNative`, and on SBE through
+  `Codec.unmarshal` and `Codec.view`. Input past a limit used to decode.
+  `check_decode` gains `--limit NAME=VALUE` and SBE decoding.
 - **`@required` and `@default` are read** from the 1327 annotation carrier, and
   every bind check applies to both spellings. Two spellings of one default that
   disagree are refused. A `@default` on a `pxf.BigFloat` is refused at bind
@@ -112,6 +118,12 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
+  enforced** (protowire#299), each 64 MiB by default and lowered per call with
+  `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
+  through `mergeFromBufferChecked` and `unmarshalNative`, and on SBE through
+  `Codec.unmarshal` and `Codec.view`. Input past a limit used to decode.
+  `check_decode` gains `--limit NAME=VALUE` and SBE decoding.
 - **Keyed repeated fields and quoted entry names** (draft `-01` "Keyed
   Repeated Fields"; #10, protowire#116). A `repeated <Message>` field with
   `(pxf.key)` can be written as a block of named blocks: the entry name is
@@ -215,6 +227,12 @@ directive grammar (drafts §3.4.2–§3.4.6).
 
 ### Added
 
+- **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
+  enforced** (protowire#299), each 64 MiB by default and lowered per call with
+  `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
+  through `mergeFromBufferChecked` and `unmarshalNative`, and on SBE through
+  `Codec.unmarshal` and `Codec.view`. Input past a limit used to decode.
+  `check_decode` gains `--limit NAME=VALUE` and SBE decoding.
 - **`@<name>` generic directives** (draft §3.4.2): top-of-document
   `@<name> *(<prefix-id>) [{ ... }]` blocks, e.g. chameleon's
   `@header chameleon.v1.LayerHeader { id = "x" }`. Captured on
@@ -249,6 +267,12 @@ coordinated public release.
 
 ### Added
 
+- **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
+  enforced** (protowire#299), each 64 MiB by default and lowered per call with
+  `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
+  through `mergeFromBufferChecked` and `unmarshalNative`, and on SBE through
+  `Codec.unmarshal` and `Codec.view`. Input past a limit used to decode.
+  `check_decode` gains `--limit NAME=VALUE` and SBE decoding.
 - **pub.dev distribution** as the `protowire` package.
 - **HARDENING.md decoder safety** (M8): bounded recursion depth and
   PB length-prefix overflow rejection in `lib/src/encoding/pxf/` and

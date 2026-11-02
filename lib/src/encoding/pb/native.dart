@@ -6,6 +6,9 @@ import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 
+import '../../limits.dart';
+import 'depth.dart';
+
 class ProtoTag {
   final int tag;
   final bool zigzag;
@@ -18,9 +21,10 @@ class ProtoTag {
 /// message field or a map's message value.
 Uint8List marshalNative(Object obj) => _toMessage(obj).writeToBuffer();
 
-void unmarshalNative(Uint8List data, Object obj) {
+void unmarshalNative(Uint8List data, Object obj,
+    {DecodeLimits limits = const DecodeLimits()}) {
   final root = _DynamicMessage(_builderFor(obj.runtimeType));
-  root.mergeFromBuffer(data);
+  mergeFromBufferChecked(root, data, ExtensionRegistry.EMPTY, limits);
   _populateNativeObject(obj, root, _getStructInfo(obj.runtimeType));
 }
 

@@ -4,11 +4,15 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
+import '../../limits.dart';
 import 'sbe.dart';
 import 'template.dart';
 
 void unmarshalMessage(
-    Uint8List data, GeneratedMessage msg, MessageTemplate tmpl) {
+    Uint8List data, GeneratedMessage msg, MessageTemplate tmpl,
+    [DecodeLimits limits = const DecodeLimits()]) {
+  final tooBig = limits.checkSize(data.length);
+  if (tooBig != null) throw Exception('sbe: $tooBig');
   if (data.length < headerSize) {
     throw Exception('sbe: data too short for header');
   }
@@ -49,6 +53,10 @@ void unmarshalMessage(
     if (gBlockLength == 0 && numInGroup > 0) {
       throw Exception(
           'sbe: group has zero block-length with non-zero count $numInGroup');
+    }
+    if (numInGroup > limits.maxRepeatedCount) {
+      throw Exception('sbe: group count $numInGroup exceeds '
+          'MaxRepeatedCount=${limits.maxRepeatedCount}');
     }
     final groupBytes = numInGroup * gBlockLength;
     if (pos + groupBytes > data.length) {

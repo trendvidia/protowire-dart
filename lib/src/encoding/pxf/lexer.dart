@@ -2,6 +2,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'dart:convert';
 import 'dart:typed_data';
+import '../../limits.dart';
 import 'duration.dart';
 import 'token.dart';
 
@@ -36,7 +37,10 @@ class Lexer {
   int line = 1;
   int col = 1;
 
-  Lexer(this.input);
+  /// The decoded length one `b"..."` literal may have.
+  final int maxBytesLiteralLength;
+
+  Lexer(this.input, {this.maxBytesLiteralLength = defaultMaxMessageSize});
 
   int get _peekCode {
     if (pos >= input.length) return 0;
@@ -439,6 +443,21 @@ class Lexer {
     Token tok = _lexString(p);
     if (tok.kind != TokenKind.string) {
       return tok;
+    }
+    // From the encoded length, before anything is decoded: four characters
+    // are three bytes, and padding only lowers that.
+    final decoded = tok.value.length ~/ 4 * 3 + (tok.value.length % 4) * 3 ~/ 4;
+    final padding = tok.value.endsWith('==')
+        ? 2
+        : tok.value.endsWith('=')
+            ? 1
+            : 0;
+    if (decoded - padding > maxBytesLiteralLength) {
+      return Token(
+          TokenKind.illegal,
+          'bytes literal of ${decoded - padding} bytes exceeds '
+          'MaxBytesLiteralLength=$maxBytesLiteralLength',
+          p);
     }
     try {
       base64.decode(tok.value);

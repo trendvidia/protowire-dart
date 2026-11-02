@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
+import '../../limits.dart';
 import 'sbe.dart';
 import 'template.dart';
 
@@ -11,7 +12,13 @@ class View {
   final ByteData block;
   final ViewSchema schema;
 
-  View({required this.data, required this.block, required this.schema});
+  final DecodeLimits limits;
+
+  View(
+      {required this.data,
+      required this.block,
+      required this.schema,
+      this.limits = const DecodeLimits()});
 
   FieldTemplate _field(String name) {
     final ft = schema.fields[name];
@@ -118,6 +125,7 @@ class View {
       block:
           ByteData.view(block.buffer, block.offsetInBytes + ft.offset, ft.size),
       schema: ft.compositeView!,
+      limits: limits,
     );
   }
 
@@ -138,6 +146,10 @@ class View {
       if (bl == 0 && n > 0) {
         throw Exception(
             'sbe: group has zero block-length with non-zero count $n');
+      }
+      if (n > limits.maxRepeatedCount) {
+        throw Exception('sbe: group count $n exceeds '
+            'MaxRepeatedCount=${limits.maxRepeatedCount}');
       }
       final groupBytes = n * bl;
       if (pos + groupHeaderSize + groupBytes > data.length) {

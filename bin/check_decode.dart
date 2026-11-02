@@ -11,7 +11,12 @@
 //   check_decode --format <pxf|pb|sbe|envelope> \
 //                --schema <fully.qualified.MessageType> \
 //                --proto  <path-to-adversarial.proto> \
-//                --input  <path>
+//                --input  <path> \
+//                [--limit NAME=VALUE]...
+//
+// --limit lowers a HARDENING.md limit for the call, so the corpus can prove a
+// 64 MiB cap with a small fixture: MaxMessageSize, MaxBytesLiteralLength,
+// MaxRepeatedCount.
 //
 //   Exit 0 → input was accepted (decode succeeded)
 //   Exit 1 → input was rejected (clean error; "reject: <msg>" on stderr)
@@ -30,6 +35,9 @@ import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart' as pb;
 import 'package:protowire/protowire.dart' as pw;
 
+import 'package:protowire/src/generated/proto/google/protobuf/descriptor.pb.dart'
+    as pbd;
+
 import 'adversarial.pb.dart' as adv;
 
 void main(List<String> args) async {
@@ -37,6 +45,7 @@ void main(List<String> args) async {
   String? schema;
   String? proto;
   String? input;
+  final overrides = <String, int>{};
 
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
@@ -50,6 +59,8 @@ void main(List<String> args) async {
         proto = next();
       case '--input':
         input = next();
+      case '--limit':
+        _addLimit(overrides, next());
       default:
         if (a.startsWith('--format=')) {
           format = a.substring('--format='.length);
@@ -59,6 +70,8 @@ void main(List<String> args) async {
           proto = a.substring('--proto='.length);
         } else if (a.startsWith('--input=')) {
           input = a.substring('--input='.length);
+        } else if (a.startsWith('--limit=')) {
+          _addLimit(overrides, a.substring('--limit='.length));
         } else {
           stderr.writeln('check_decode: unknown arg "$a"');
           exit(2);
@@ -73,7 +86,14 @@ void main(List<String> args) async {
   }
 
   try {
-    await _run(format, schema, proto, input);
+    final limits = pw.DecodeLimits(
+      maxMessageSize: overrides['MaxMessageSize'] ?? pw.defaultMaxMessageSize,
+      maxBytesLiteralLength:
+          overrides['MaxBytesLiteralLength'] ?? pw.defaultMaxMessageSize,
+      maxRepeatedCount:
+          overrides['MaxRepeatedCount'] ?? pw.defaultMaxMessageSize,
+    );
+    await _run(format, schema, proto, input, limits);
     exit(0);
   } on _Reject catch (e) {
     stderr.writeln('reject: ${e.message}');
@@ -95,30 +115,49 @@ void main(List<String> args) async {
   }
 }
 
-Future<void> _run(
-    String format, String schema, String? protoPath, String input) async {
+Future<void> _run(String format, String schema, String? protoPath, String input,
+    pw.DecodeLimits limits) async {
   switch (format) {
     case 'pxf':
       final text = await File(input).readAsString();
-      _pxfDecode(text, schema);
+      _pxfDecode(text, schema, limits);
     case 'pb':
       final bytes = await File(input).readAsBytes();
-      _pbDecode(bytes, schema);
+      _pbDecode(bytes, schema, limits);
     case 'pb-render':
       final bytes = await File(input).readAsBytes();
       _pbRender(bytes, schema);
     case 'envelope':
       throw _Reject('envelope decode not yet implemented in this reference');
     case 'sbe':
-      throw _Reject('sbe decode not yet implemented in this reference');
+      final bytes = await File(input).readAsBytes();
+      _sbeDecode(bytes, schema, protoPath, limits);
     default:
       throw _Reject('unsupported format: $format');
   }
 }
 
-void _pxfDecode(String text, String schema) {
+void _pxfDecode(String text, String schema, pw.DecodeLimits limits) {
   final msg = _newMessage(schema);
-  pw.unmarshal(text, msg);
+  pw.unmarshal(text, msg, options: pw.UnmarshalOptions(limits: limits));
+}
+
+/// A `.binpb` beside the `--proto` file holds its compiled descriptor set, as
+/// this port has no .proto compiler.
+void _sbeDecode(
+    Uint8List bytes, String schema, String? protoPath, pw.DecodeLimits limits) {
+  if (protoPath == null) throw _Reject('sbe needs --proto');
+  final fds = pbd.FileDescriptorSet.fromBuffer(
+      File(protoPath.replaceFirst(RegExp(r'\.proto$'), '.binpb'))
+          .readAsBytesSync(),
+      pw.sbeExtensionRegistry());
+  final msg = _newMessage(schema);
+  final codec = pw.Codec()..registerFromDescriptorSet(fds, msg);
+  try {
+    codec.unmarshal(bytes, msg, limits: limits);
+  } on Exception catch (e) {
+    throw _Reject('$e');
+  }
 }
 
 /// The producer's side of the bounds (HARDENING.md § Arbitrary-precision
@@ -129,9 +168,20 @@ void _pbRender(Uint8List bytes, String schema) {
   pw.marshal(msg);
 }
 
-void _pbDecode(Uint8List bytes, String schema) {
+void _pbDecode(Uint8List bytes, String schema, pw.DecodeLimits limits) {
   final msg = _newMessage(schema);
-  pw.mergeFromBufferChecked(msg, bytes);
+  pw.mergeFromBufferChecked(msg, bytes, pb.ExtensionRegistry.EMPTY, limits);
+}
+
+void _addLimit(Map<String, int> overrides, String? arg) {
+  final parts = (arg ?? '').split('=');
+  final value = parts.length == 2 ? int.tryParse(parts[1]) : null;
+  const known = {'MaxMessageSize', 'MaxBytesLiteralLength', 'MaxRepeatedCount'};
+  if (value == null || !known.contains(parts[0])) {
+    stderr.writeln('check_decode: bad --limit "$arg"');
+    exit(2);
+  }
+  overrides[parts[0]] = value;
 }
 
 pb.GeneratedMessage _newMessage(String schema) {
@@ -146,6 +196,10 @@ pb.GeneratedMessage _newMessage(String schema) {
       return adv.BigIntHolder();
     case 'adversarial.v1.BigNumHolder':
       return adv.BigNumHolder();
+    case 'adversarial.v1.ListHolder':
+      return adv.ListHolder();
+    case 'adversarial.v1.SbeWithGroup':
+      return adv.SbeWithGroup();
     default:
       throw _Reject('unknown schema: $schema');
   }

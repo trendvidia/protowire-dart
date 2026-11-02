@@ -2,6 +2,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'dart:convert';
 import 'dart:typed_data';
+import '../../limits.dart';
 import 'ast.dart';
 import 'brace_scan.dart';
 import 'dataset.dart' show columnPathError;
@@ -26,13 +27,20 @@ class Parser {
   /// comment on the same line as a value is told from a leading comment.
   int _lastTokenEndLine = 1;
 
-  Parser(String input) : lex = Lexer(input) {
+  final DecodeLimits limits;
+
+  Parser(String input, {this.limits = const DecodeLimits()})
+      : lex =
+            Lexer(input, maxBytesLiteralLength: limits.maxBytesLiteralLength) {
+    final tooBig =
+        limits.checkSize(utf8LengthUpTo(input, limits.maxMessageSize));
+    if (tooBig != null) throw PxfError(Position(1, 1), tooBig);
     _advance();
   }
 
   /// Continues on [lex] at the token [current], so a value parses exactly as
   /// under [parse] and the caller resumes at the token after it.
-  Parser.resume(this.lex, this.current);
+  Parser.resume(this.lex, this.current, this.limits);
 
   void _advance() {
     _lastTokenEndLine = lex.line;
@@ -596,6 +604,10 @@ class Parser {
       var elems = <Value>[];
       while (
           current.kind != TokenKind.rbracket && current.kind != TokenKind.eof) {
+        if (elems.length >= limits.maxRepeatedCount) {
+          throw PxfError(current.pos,
+              'list exceeds MaxRepeatedCount=${limits.maxRepeatedCount}');
+        }
         elems.add(_parseValue());
         if (current.kind == TokenKind.comma) {
           _advance();
@@ -657,6 +669,6 @@ class Parser {
   }
 }
 
-Document parse(String input) {
-  return Parser(input).parseDocument();
+Document parse(String input, {DecodeLimits limits = const DecodeLimits()}) {
+  return Parser(input, limits: limits).parseDocument();
 }

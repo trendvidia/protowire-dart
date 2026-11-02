@@ -2,6 +2,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'package:protobuf/protobuf.dart';
 
+import '../../limits.dart';
 import 'annotations.dart';
 
 class UnmarshalOptions {
@@ -17,9 +18,13 @@ class UnmarshalOptions {
   /// a descriptor set here.
   final PxfAnnotations? annotations;
 
+  /// The per-call decode limits, HARDENING.md's defaults unless lowered.
+  final DecodeLimits limits;
+
   UnmarshalOptions({
     this.typeRegistry = const TypeRegistry.empty(),
     this.discardUnknown = false,
     this.annotations,
+    this.limits = const DecodeLimits(),
   });
 }

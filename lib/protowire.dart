@@ -8,6 +8,7 @@
 /// - **Envelope**: Standardized API response structure.
 library;
 
+export 'src/limits.dart' show DecodeLimits, defaultMaxMessageSize;
 export 'src/encoding/pxf/dataset.dart' show bindDatasetRow;
 export 'src/encoding/pxf/decode.dart' hide fieldNamed;
 export 'src/encoding/pxf/encode.dart';
