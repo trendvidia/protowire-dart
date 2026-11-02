@@ -39,6 +39,13 @@ Each of these rejects a document that used to decode.
   and the formatter, which keep it as a `TypeEntry`.
 - **`parse` accepts bool map keys,** and a `map<bool, V>` takes a bare `1` or
   `0` as well as `true`, `false`, `"true"` and `"false"`.
+- **The native `pb` codec handles `Map<K, V>` fields** as proto3 maps, each
+  entry carrying its key and value, zero-valued or not, and **a nested
+  `@ProtoTag` class as a message field.** A field type it cannot encode now
+  fails with an error naming the field. Both used to trip an assertion inside
+  `package:protobuf`.
+- **`dump_envelope --vector zero-map-entry`** prints the map-entry vector of
+  protowire#295. An unknown vector exits 3 with `not-implemented: <name>`.
 
 ### Fixed
 
