@@ -7,6 +7,7 @@ import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
 import 'ast.dart';
+import 'bigfloat.dart';
 import 'brace_scan.dart';
 import 'dataset.dart' show columnPathError;
 import 'errors.dart';
@@ -666,9 +667,41 @@ class DirectDecoder {
     }
   }
 
+  /// A precision suffix is grammatical on any number, but only a
+  /// pxf.BigFloat takes one, and the schema layer rejects the rest.
+  void _rejectPrecision(FieldInfo fi) {
+    if (current.prec == null) return;
+    throw PxfError(current.pos,
+        'precision suffix p${current.prec} on field "${fi.protoName}": only a pxf.BigFloat takes one');
+  }
+
+  /// Reads a number into the pxf.BigFloat [sub]. False when the token is not
+  /// one, so the caller goes on to the block form.
+  bool _consumeBigFloat(GeneratedMessage sub) {
+    if (current.kind != TokenKind.int && current.kind != TokenKind.float) {
+      return false;
+    }
+    try {
+      setBigFloatLiteral(sub, current.value, current.prec);
+    } on FormatException catch (e) {
+      throw PxfError(current.pos, e.message);
+    }
+    _advance();
+    return true;
+  }
+
   void _decodeMessageValue(GeneratedMessage msg, FieldInfo fi) {
     var subBuilder = fi.subBuilder!;
     var subInfo = subBuilder().info_;
+    if (isBigFloat(subInfo)) {
+      final sub = subBuilder();
+      if (_consumeBigFloat(sub)) {
+        msg.setField(fi.tagNumber, sub);
+        return;
+      }
+    } else {
+      _rejectPrecision(fi);
+    }
 
     if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
       var t = DateTime.parse(current.value);
@@ -807,7 +840,10 @@ class DirectDecoder {
           list.add(sub);
         } else {
           var subInfo = sub.info_;
-          if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
+          if (isBigFloat(subInfo) && _consumeBigFloat(sub)) {
+            list.add(sub);
+          } else if (isTimestamp(subInfo) &&
+              current.kind == TokenKind.timestamp) {
             setTimestampFields(sub, DateTime.parse(current.value));
             list.add(sub);
             _advance();
@@ -976,6 +1012,10 @@ class DirectDecoder {
       }
       var keyStr = current.value;
       final keyKind = current.kind;
+      if (current.prec != null) {
+        throw PxfError(pos,
+            'map key $keyStr: a key cannot carry a precision suffix (p${current.prec})');
+      }
       _advance();
 
       if (current.kind == TokenKind.colon) {
@@ -1075,6 +1115,12 @@ class DirectDecoder {
       MapFieldInfo mfi, FieldInfo valueFi, Object key) {
     var make = mfi.valueCreator!;
     var subInfo = make().info_;
+    if (isBigFloat(subInfo)) {
+      final sub = make();
+      if (_consumeBigFloat(sub)) return sub;
+    } else {
+      _rejectPrecision(valueFi);
+    }
 
     if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
       var sub = make();
@@ -1119,6 +1165,7 @@ class DirectDecoder {
 
   Object _consumeScalar(FieldInfo fi) {
     var pos = current.pos;
+    _rejectPrecision(fi);
     var t = _packedAsRepeated[fi.type] ?? fi.type;
     if (t == PbFieldType.OS || t == PbFieldType.PS || t == PbFieldType.QS) {
       if (current.kind != TokenKind.string) {
@@ -1466,7 +1513,7 @@ PxfError _badDefault(String what, String literal, FieldInfo fi) => PxfError(
 /// exactly `true` or `false`, numbers must parse in their width, `bytes`
 /// is base64, an enum names a value (or a number), and a message default
 /// is meaningful only for the well-known types with a bare literal form
-/// (Timestamp, Duration, the wrappers, pxf.BigInt, pxf.Decimal).
+/// (Timestamp, Duration, the wrappers, pxf.BigInt, pxf.Decimal, pxf.BigFloat).
 void _applyDefault(GeneratedMessage msg, FieldInfo fi, String literal) {
   if (fi.isMapField) {
     throw PxfError(Position(1, 1),
@@ -1580,6 +1627,16 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
       throw _badDefault('decimal', literal, fi);
     }
     setDecimalFields(sub, literal);
+    return sub;
+  }
+  if (isBigFloat(info)) {
+    final split = literal.indexOf('p');
+    try {
+      setBigFloatLiteral(sub, split < 0 ? literal : literal.substring(0, split),
+          split < 0 ? null : literal.substring(split + 1));
+    } on FormatException {
+      throw _badDefault('big float', literal, fi);
+    }
     return sub;
   }
   throw PxfError(

@@ -52,6 +52,12 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`pxf.BigFloat` reads and writes as a literal** (protowire#393, #406): `marshal`
+  writes N significant digits with a precision suffix, `1.79769313486231590773e+308p64`,
+  and a literal is read at its suffix's precision, or 256 bits, round half even.
+  A precision suffix on any other field is rejected, naming the field, and an
+  exponent past `MaxBigFloatExponent` is refused on both paths. It also works
+  as a `(pxf.default)` or `@default`, a list element and a map value.
 - **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
   enforced** (protowire#299), each 64 MiB by default and lowered per call with
   `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
@@ -118,6 +124,12 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`pxf.BigFloat` reads and writes as a literal** (protowire#393, #406): `marshal`
+  writes N significant digits with a precision suffix, `1.79769313486231590773e+308p64`,
+  and a literal is read at its suffix's precision, or 256 bits, round half even.
+  A precision suffix on any other field is rejected, naming the field, and an
+  exponent past `MaxBigFloatExponent` is refused on both paths. It also works
+  as a `(pxf.default)` or `@default`, a list element and a map value.
 - **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
   enforced** (protowire#299), each 64 MiB by default and lowered per call with
   `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
@@ -227,6 +239,12 @@ directive grammar (drafts §3.4.2–§3.4.6).
 
 ### Added
 
+- **`pxf.BigFloat` reads and writes as a literal** (protowire#393, #406): `marshal`
+  writes N significant digits with a precision suffix, `1.79769313486231590773e+308p64`,
+  and a literal is read at its suffix's precision, or 256 bits, round half even.
+  A precision suffix on any other field is rejected, naming the field, and an
+  exponent past `MaxBigFloatExponent` is refused on both paths. It also works
+  as a `(pxf.default)` or `@default`, a list element and a map value.
 - **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
   enforced** (protowire#299), each 64 MiB by default and lowered per call with
   `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB
@@ -267,6 +285,12 @@ coordinated public release.
 
 ### Added
 
+- **`pxf.BigFloat` reads and writes as a literal** (protowire#393, #406): `marshal`
+  writes N significant digits with a precision suffix, `1.79769313486231590773e+308p64`,
+  and a literal is read at its suffix's precision, or 256 bits, round half even.
+  A precision suffix on any other field is rejected, naming the field, and an
+  exponent past `MaxBigFloatExponent` is refused on both paths. It also works
+  as a `(pxf.default)` or `@default`, a list element and a map value.
 - **`MaxMessageSize`, `MaxBytesLiteralLength` and `MaxRepeatedCount` are
   enforced** (protowire#299), each 64 MiB by default and lowered per call with
   `DecodeLimits`: on PXF through `UnmarshalOptions.limits` and `parse`, on PB

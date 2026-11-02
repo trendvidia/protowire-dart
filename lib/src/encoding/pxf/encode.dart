@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
+import 'bigfloat.dart';
 import 'duration.dart';
 import 'errors.dart';
 import 'format.dart';
@@ -168,7 +169,14 @@ class _Encoder {
       return;
     }
 
-    // TODO: BigInt, Decimal, BigFloat, Any
+    if (isBigFloat(subInfo)) {
+      _writeFieldPrefix(level, fi.protoName);
+      buf.write(_formatBigFloat(sub));
+      buf.write('\n');
+      return;
+    }
+
+    // TODO: Any
 
     _writeIndent(level);
     buf.write('${fi.protoName} {\n');
@@ -209,6 +217,9 @@ class _Encoder {
           var valueFi = subInfo.fieldInfo[1]!;
           _writeIndent(level + 1);
           _writeScalar(valueFi, sub.getField(1));
+        } else if (isBigFloat(subInfo)) {
+          _writeIndent(level + 1);
+          buf.write(_formatBigFloat(sub));
         } else {
           _writeIndent(level + 1);
           buf.write('{\n');
@@ -337,6 +348,18 @@ class _Encoder {
   }
 
   bool _isValidIdent(String s) => isIdentSafeEntryName(s);
+
+  String _formatBigFloat(GeneratedMessage msg) {
+    try {
+      return bigFloatLiteral(
+          msg.getField(1) as List<int>,
+          msg.getField(2) as int,
+          msg.getField(3) as int,
+          msg.getField(4) as bool);
+    } on FormatException catch (e) {
+      throw PxfError(Position(1, 1), e.message);
+    }
+  }
 
   String _formatBigInt(GeneratedMessage msg) {
     var absBytes = msg.getField(1) as List<int>;
