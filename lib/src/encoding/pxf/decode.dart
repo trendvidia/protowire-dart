@@ -779,8 +779,7 @@ class DirectDecoder {
     final urlPos = current.pos;
     _advance();
 
-    final typeName = typeUrl.substring(typeUrl.lastIndexOf('/') + 1);
-    final innerInfo = typeRegistry.lookup(typeName);
+    final innerInfo = typeRegistry.lookup(anyTypeName(typeUrl));
     if (innerInfo == null) {
       throw PxfError(urlPos, 'cannot resolve Any type "$typeUrl"');
     }

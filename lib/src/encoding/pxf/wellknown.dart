@@ -19,6 +19,10 @@ bool isAny(BuilderInfo info) {
   return info.qualifiedMessageName == 'google.protobuf.Any';
 }
 
+/// The message an Any's [typeUrl] names: what follows its last `/`.
+String anyTypeName(String typeUrl) =>
+    typeUrl.substring(typeUrl.lastIndexOf('/') + 1);
+
 void setTimestampFields(GeneratedMessage msg, DateTime t) {
   // Use tag numbers instead of names because GeneratedMessage works better with tags
   // seconds = 1, nanos = 2
