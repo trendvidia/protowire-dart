@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'ast.dart';
 import 'brace_scan.dart';
+import 'dataset.dart' show columnPathError;
 import 'lexer.dart';
 import 'schema.dart';
 import 'token.dart';
@@ -28,6 +29,10 @@ class Parser {
   Parser(String input) : lex = Lexer(input) {
     _advance();
   }
+
+  /// Continues on [lex] at the token [current], so a value parses exactly as
+  /// under [parse] and the caller resumes at the token after it.
+  Parser.resume(this.lex, this.current);
 
   void _advance() {
     _lastTokenEndLine = lex.line;
@@ -206,17 +211,14 @@ class Parser {
           '@dataset column list must contain at least one field name, got ${current.kind.name}');
     }
     final columns = <String>[];
+    final positions = <Position>[];
     while (true) {
       if (current.kind != TokenKind.ident) {
         throw PxfError(current.pos,
             'expected column field name, got ${current.kind.name}');
       }
-      final colName = current.value;
-      if (colName.contains('.')) {
-        throw PxfError(current.pos,
-            '@dataset column "$colName": dotted column paths are not supported in v1 (draft §3.4.4)');
-      }
-      columns.add(colName);
+      columns.add(current.value);
+      positions.add(current.pos);
       _advance();
       if (current.kind == TokenKind.comma) {
         _advance();
@@ -225,6 +227,10 @@ class Parser {
       if (current.kind == TokenKind.rparen) break;
       throw PxfError(current.pos,
           'expected "," or ")" in @dataset column list, got ${current.kind.name}');
+    }
+    final headerError = columnPathError(columns);
+    if (headerError != null) {
+      throw PxfError(positions[headerError.$1], headerError.$2);
     }
     int endOffset = lex.pos;
     _advance();
@@ -277,15 +283,19 @@ class Parser {
       case TokenKind.comma:
       case TokenKind.rparen:
         return null;
-      case TokenKind.lbracket:
-        throw PxfError(current.pos,
-            '@dataset cells cannot contain list values in v1 (draft §3.4.4)');
-      case TokenKind.lbrace:
-        throw PxfError(current.pos,
-            '@dataset cells cannot contain block values in v1 (draft §3.4.4)');
       default:
-        return _parseValue();
+        return parseCell();
     }
+  }
+
+  /// One cell's value. Comments before it belong to no entry of the cell, so
+  /// they are set aside: a block cell keeps only the comments inside it.
+  Value parseCell() {
+    final pending = comments;
+    comments = [];
+    final value = _parseValue();
+    comments = [...pending, ...comments];
+    return value;
   }
 
   /// Parses `@proto <body>`. `atProto` is current on entry. Distinguishes

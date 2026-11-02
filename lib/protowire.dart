@@ -8,7 +8,8 @@
 /// - **Envelope**: Standardized API response structure.
 library;
 
-export 'src/encoding/pxf/decode.dart';
+export 'src/encoding/pxf/dataset.dart' show bindDatasetRow;
+export 'src/encoding/pxf/decode.dart' hide fieldNamed;
 export 'src/encoding/pxf/encode.dart';
 export 'src/encoding/pxf/format.dart' show formatPxf;
 export 'src/encoding/pxf/options.dart';

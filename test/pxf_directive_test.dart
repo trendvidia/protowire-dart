@@ -183,28 +183,17 @@ void main() {
       );
     });
 
-    test('dotted column rejected', () {
+    test('a dotted column parses', () {
       expect(
-        () => parse('@dataset x.Row ( a.b )\n'),
-        throwsA(predicate(
-            (e) => e is PxfError && e.toString().contains('dotted column'))),
-      );
+          parse('@dataset x.Row ( a.b )\n').datasets.single.columns, ['a.b']);
     });
 
-    test('list cell rejected', () {
-      expect(
-        () => parse('@dataset x.Row ( a )\n( [1, 2] )\n'),
-        throwsA(predicate(
-            (e) => e is PxfError && e.toString().contains('list values'))),
-      );
-    });
-
-    test('block cell rejected', () {
-      expect(
-        () => parse('@dataset x.Row ( a )\n( { x = 1 } )\n'),
-        throwsA(predicate(
-            (e) => e is PxfError && e.toString().contains('block values'))),
-      );
+    test('a list cell and a block cell parse', () {
+      final ds = parse('@dataset x.Row ( a, b )\n( [1, 2], { x = 1 } )\n')
+          .datasets
+          .single;
+      expect(ds.rows.single.cells[0], isA<ListVal>());
+      expect(ds.rows.single.cells[1], isA<BlockVal>());
     });
 
     test('standalone rejects coexisting @type before', () {

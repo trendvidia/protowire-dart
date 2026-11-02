@@ -180,7 +180,7 @@ void main() {
       expect(() => unmarshalFull(doc, strings.Holder()), rejected);
     });
 
-    test('dataset rows have no binder, so a null cell only parses', () {
+    test('a null cell parses, and binding it is pxf_dataset_test.dart', () {
       for (final name in ['null-on-scalar-cell', 'null-on-optional-cell']) {
         final doc = read('test/testdata/dataset/$name.pxf');
         expect(parse(doc).datasets.single.rows, isNotEmpty);
