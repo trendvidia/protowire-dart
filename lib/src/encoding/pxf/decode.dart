@@ -7,12 +7,14 @@ import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
 import 'ast.dart';
 import 'brace_scan.dart';
+import 'dataset.dart' show columnPathError;
 import 'duration.dart';
 import 'errors.dart';
 import 'format.dart' show quotePxfString;
 import 'keyed.dart';
 import 'lexer.dart';
 import 'options.dart';
+import 'parser.dart' show Parser;
 import 'result.dart';
 import 'schema.dart';
 import 'token.dart';
@@ -235,17 +237,14 @@ class DirectDecoder {
           '@dataset column list must contain at least one field name, got ${current.kind.name}');
     }
     final columns = <String>[];
+    final positions = <Position>[];
     while (true) {
       if (current.kind != TokenKind.ident) {
         throw PxfError(current.pos,
             'expected column field name, got ${current.kind.name}');
       }
-      final colName = current.value;
-      if (colName.contains('.')) {
-        throw PxfError(current.pos,
-            '@dataset column "$colName": dotted column paths are not supported in v1 (draft §3.4.4)');
-      }
-      columns.add(colName);
+      columns.add(current.value);
+      positions.add(current.pos);
       _advance();
       if (current.kind == TokenKind.comma) {
         _advance();
@@ -254,6 +253,10 @@ class DirectDecoder {
       if (current.kind == TokenKind.rparen) break;
       throw PxfError(current.pos,
           'expected "," or ")" in @dataset column list, got ${current.kind.name}');
+    }
+    final headerError = columnPathError(columns);
+    if (headerError != null) {
+      throw PxfError(positions[headerError.$1], headerError.$2);
     }
     _advance();
 
@@ -286,68 +289,22 @@ class DirectDecoder {
     );
   }
 
-  /// Consumes one cell of a @dataset row. Returns null for an empty
-  /// cell. Rejects list and block values per v1 cell-grammar.
+  /// Consumes one cell of a @dataset row, null for an empty one. The value
+  /// goes through the AST parser on this decoder's own lexer, so a cell
+  /// parses exactly as it does under `parse`, lists and blocks included.
   Value? _consumeRowCell() {
-    switch (current.kind) {
-      case TokenKind.comma:
-      case TokenKind.rparen:
-        return null;
-      case TokenKind.lbracket:
-        throw PxfError(current.pos,
-            '@dataset cells cannot contain list values in v1 (draft §3.4.4)');
-      case TokenKind.lbrace:
-        throw PxfError(current.pos,
-            '@dataset cells cannot contain block values in v1 (draft §3.4.4)');
-      default:
-        // Match Parser._parseValue subset used by row cells. Wrap as a
-        // minimal Value; we only need pos + null detection downstream.
-        final pos = current.pos;
-        switch (current.kind) {
-          case TokenKind.string:
-            final v = StringVal(pos, current.value);
-            _advance();
-            return v;
-          case TokenKind.int:
-            final v = IntVal(pos, current.value);
-            _advance();
-            return v;
-          case TokenKind.float:
-            final v = FloatVal(pos, current.value);
-            _advance();
-            return v;
-          case TokenKind.bool:
-            final v = BoolVal(pos, current.value == 'true');
-            _advance();
-            return v;
-          case TokenKind.bytes:
-            final decoded = base64.decode(current.value);
-            final v = BytesVal(pos, decoded);
-            _advance();
-            return v;
-          case TokenKind.timestamp:
-            final t = DateTime.parse(current.value);
-            final v = TimestampVal(pos, t, current.value);
-            _advance();
-            return v;
-          case TokenKind.duration:
-            final d = parseGoDuration(current.value);
-            final v = DurationVal(pos, d, current.value);
-            _advance();
-            return v;
-          case TokenKind.null_:
-            final v = NullVal(pos);
-            _advance();
-            return v;
-          case TokenKind.ident:
-            final v = IdentVal(pos, current.value);
-            _advance();
-            return v;
-          default:
-            throw PxfError(pos,
-                'expected value, got ${current.kind.name} ("${current.value}")');
-        }
+    if (current.kind == TokenKind.comma || current.kind == TokenKind.rparen) {
+      return null;
     }
+    final parser = Parser.resume(lex, current);
+    final value = parser.parseCell();
+    current = parser.current;
+    // The parser passes over comments and newlines as this decoder does, but
+    // leaves a lexer rejection for its caller.
+    if (current.kind == TokenKind.illegal) {
+      throw PxfError(current.pos, current.value);
+    }
+    return value;
   }
 
   /// Mirrors Parser._parseProtoDirective for the streaming path.
@@ -509,7 +466,7 @@ class DirectDecoder {
           // The grammar takes a string here everywhere. In message context
           // it never names a field; keyed blocks have their own loop.
           if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
-          var fi = _fieldNamed(info, key);
+          var fi = fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipValue();
@@ -554,7 +511,7 @@ class DirectDecoder {
           }
           if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
           _advance();
-          var fi = _fieldNamed(info, key);
+          var fi = fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipBraced();
@@ -1340,7 +1297,7 @@ String _shownMapKey(Object key) => key is String ? quotePxfString(key) : '$key';
 /// writes and reads; [BuilderInfo.byName] indexes the Dart names generated
 /// code uses (`orderId`), so those are accepted too for documents written
 /// against this port. The proto-name index is built once per [BuilderInfo].
-FieldInfo? _fieldNamed(BuilderInfo info, String key) {
+FieldInfo? fieldNamed(BuilderInfo info, String key) {
   final byDart = info.byName[key];
   if (byDart != null) return byDart;
   final byProto = _byProtoNameCache[info] ??= {

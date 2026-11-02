@@ -56,6 +56,13 @@ Each of these rejects a document that used to decode.
   every bind check applies to both spellings. Two spellings of one default that
   disagree are refused. A `@default` on a `pxf.BigFloat` is refused at bind
   until the BigFloat encoder lands (#33).
+- **`@dataset` rows bind:** `bindDatasetRow` binds a row to a message, so a
+  cell means what `column = <value>` means in a body. Empty cells stay absent,
+  and with annotations they take the default or are rejected as required.
+- **`@dataset` cells may hold a list or a block** (protowire#341), and **a
+  column may be a dotted path into a sub-message** (protowire#342). The header
+  rejects a path named twice, a field beside a path inside it, and an empty
+  segment. So `(a, a)` is now an error.
 - **The Any type entry works everywhere a body is written** (protowire#354):
   list elements and map values as well as singular fields, and through `parse`
   and the formatter, which keep it as a `TypeEntry`.
