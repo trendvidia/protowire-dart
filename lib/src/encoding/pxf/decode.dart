@@ -8,7 +8,6 @@ import 'annotations.dart';
 import 'ast.dart';
 import 'brace_scan.dart';
 import 'dataset.dart' show columnPathError;
-import 'duration.dart';
 import 'errors.dart';
 import 'format.dart' show quotePxfString;
 import 'keyed.dart';
