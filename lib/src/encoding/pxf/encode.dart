@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
+import 'duration.dart';
 import 'errors.dart';
 import 'format.dart';
 import 'keyed.dart';
@@ -141,9 +142,8 @@ class _Encoder {
       return;
     }
     if (isDuration(subInfo)) {
-      var d = readDuration(sub);
       _writeFieldPrefix(level, fi.protoName);
-      buf.write(_formatDuration(d));
+      buf.write(formatGoDuration(readDurationNanos(sub)));
       buf.write('\n');
       return;
     }
@@ -204,7 +204,7 @@ class _Encoder {
           buf.write(readTimestamp(sub).toIso8601String());
         } else if (isDuration(subInfo)) {
           _writeIndent(level + 1);
-          buf.write(_formatDuration(readDuration(sub)));
+          buf.write(formatGoDuration(readDurationNanos(sub)));
         } else if (isWrapperType(subInfo)) {
           var valueFi = subInfo.fieldInfo[1]!;
           _writeIndent(level + 1);
@@ -397,29 +397,6 @@ class _Encoder {
           '$kind renders to $n digits; MaxNumericLiteralDigits=$maxNumericLiteralDigits');
     }
     return literal;
-  }
-
-  String _formatDuration(Duration d) {
-    // Ported from Go-style duration formatting if needed,
-    // but for now use a simple version.
-    if (d == Duration.zero) return '0s';
-    var s = '';
-    if (d.isNegative) {
-      s += '-';
-      d = -d;
-    }
-    var hours = d.inHours;
-    if (hours > 0) s += '${hours}h';
-    var minutes = d.inMinutes % 60;
-    if (minutes > 0) s += '${minutes}m';
-    var seconds = d.inSeconds % 60;
-    var ms = d.inMilliseconds % 1000;
-    if (ms > 0) {
-      s += '$seconds.${ms.toString().padLeft(3, '0')}s';
-    } else if (seconds > 0 || s.isEmpty) {
-      s += '${seconds}s';
-    }
-    return s;
   }
 }
 

@@ -28,6 +28,24 @@ final Expando<Map<String, FieldInfo>> _byProtoNameCache = Expando('pxfByProto');
 /// blocks. The cross-port contract is 100; raising it here would diverge.
 const int _maxNestingDepth = 100;
 
+/// A packed repeated type as the unpacked one: an element reads the same.
+const Map<int, int> _packedAsRepeated = {
+  PbFieldType.KB: PbFieldType.PB,
+  PbFieldType.KE: PbFieldType.PE,
+  PbFieldType.KF: PbFieldType.PF,
+  PbFieldType.KD: PbFieldType.PD,
+  PbFieldType.K3: PbFieldType.P3,
+  PbFieldType.KU3: PbFieldType.PU3,
+  PbFieldType.KS3: PbFieldType.PS3,
+  PbFieldType.KF3: PbFieldType.PF3,
+  PbFieldType.KSF3: PbFieldType.PSF3,
+  PbFieldType.K6: PbFieldType.P6,
+  PbFieldType.KU6: PbFieldType.PU6,
+  PbFieldType.KS6: PbFieldType.PS6,
+  PbFieldType.KF6: PbFieldType.PF6,
+  PbFieldType.KSF6: PbFieldType.PSF6,
+};
+
 class DirectDecoder {
   final Lexer lex;
   late Token current;
@@ -506,6 +524,7 @@ class DirectDecoder {
           _bind(bound, fi, pos);
 
           if (current.kind == TokenKind.null_) {
+            _checkNullable(info, fi);
             if (result != null) {
               var path = pathPrefix + fi.protoName;
               result!.markNull(path);
@@ -600,6 +619,32 @@ class DirectDecoder {
     }
   }
 
+  /// Rejects a `null` bound to [fi] unless the field has explicit presence
+  /// (draft -01 § Booleans, Null, and Identifier Values). Generated classes
+  /// write a proto3 `int32` and `optional int32` identically, so only the
+  /// descriptor set can tell a plain scalar: with no [annotations], a null on
+  /// one is accepted and recorded.
+  void _checkNullable(BuilderInfo info, FieldInfo fi) {
+    final name = fi.protoName;
+    if (fi.isMapField) {
+      throw PxfError(current.pos, 'null is not allowed on map field "$name"');
+    }
+    if (fi.isRepeated) {
+      throw PxfError(
+          current.pos, 'null is not allowed on repeated field "$name"');
+    }
+    if (fi.isRequired) {
+      throw PxfError(current.pos,
+          'null is not allowed on required field "$name": it must be set');
+    }
+    if (fi.isGroupOrMessage || info.oneofs.containsKey(fi.tagNumber)) return;
+    if (annotations?.hasImplicitPresence(info.qualifiedMessageName, name) ??
+        false) {
+      throw PxfError(current.pos,
+          'null is not allowed on scalar field "$name": declare it optional, or as a wrapper type, to make it nullable');
+    }
+  }
+
   /// Records [fi] as bound in this body, or rejects a second binding. A
   /// repeated field concatenates and a map merges, so neither counts.
   void _bind(Set<int> bound, FieldInfo fi, Position pos) {
@@ -662,9 +707,8 @@ class DirectDecoder {
       return;
     }
     if (isDuration(subInfo) && current.kind == TokenKind.duration) {
-      var dur = parseGoDuration(current.value);
       var sub = subBuilder();
-      setDurationFields(sub, dur);
+      setDurationLiteral(sub, current.value);
       msg.setField(fi.tagNumber, sub);
       _advance();
       return;
@@ -769,7 +813,7 @@ class DirectDecoder {
         throw PxfError(current.pos,
             'null is not allowed in repeated field "${fi.protoName}"');
       }
-      if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
+      if (fi.isGroupOrMessage) {
         var sub = fi.subBuilder!();
         if (current.kind == TokenKind.lbrace) {
           _advance();
@@ -789,7 +833,7 @@ class DirectDecoder {
             _advance();
           } else if (isDuration(subInfo) &&
               current.kind == TokenKind.duration) {
-            setDurationFields(sub, parseGoDuration(current.value));
+            setDurationLiteral(sub, current.value);
             list.add(sub);
             _advance();
           } else if (isWrapperType(subInfo)) {
@@ -802,7 +846,7 @@ class DirectDecoder {
                 current.pos, 'expected "{" for message element in list');
           }
         }
-      } else if (fi.type == PbFieldType.PE || fi.type == PbFieldType.OE) {
+      } else if (fi.isEnum) {
         var val = _consumeEnum(fi);
         list.add(val);
       } else {
@@ -978,10 +1022,6 @@ class DirectDecoder {
         value = _consumeScalar(valueFi);
       }
       map[key] = value;
-
-      if (current.kind == TokenKind.comma) {
-        _advance();
-      }
     }
     if (current.kind != TokenKind.rbrace) {
       throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
@@ -1062,7 +1102,7 @@ class DirectDecoder {
     }
     if (isDuration(subInfo) && current.kind == TokenKind.duration) {
       var sub = make();
-      setDurationFields(sub, parseGoDuration(current.value));
+      setDurationLiteral(sub, current.value);
       _advance();
       return sub;
     }
@@ -1097,7 +1137,7 @@ class DirectDecoder {
 
   Object _consumeScalar(FieldInfo fi) {
     var pos = current.pos;
-    var t = fi.type;
+    var t = _packedAsRepeated[fi.type] ?? fi.type;
     if (t == PbFieldType.OS || t == PbFieldType.PS || t == PbFieldType.QS) {
       if (current.kind != TokenKind.string) {
         throw PxfError(pos, 'expected string for field "${fi.protoName}"');
@@ -1506,7 +1546,7 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
   }
   if (isDuration(info)) {
     try {
-      setDurationFields(sub, parseGoDuration(literal));
+      setDurationLiteral(sub, literal);
     } on FormatException {
       throw _badDefault('duration', literal, fi);
     }

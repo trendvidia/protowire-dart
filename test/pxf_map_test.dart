@@ -91,7 +91,7 @@ void main() {
     final m = decode('''
 points = {
   origin: { x = 0 y = 0 }
-  "far away": { x = 7 y = 9 },
+  "far away": { x = 7 y = 9 }
 }
 ''');
     final points = m.getField(1) as Map<String, Point>;
@@ -102,20 +102,20 @@ points = {
 
   test('map<int32, string> and map<bool, int64> convert their keys', () {
     final m = decode('''
-names = { 1: "one", -2: "minus two" }
-flags = { true: 10, false: 20 }
+names = { 1: "one" -2: "minus two" }
+flags = { true: 10 false: 20 }
 ''');
     expect(m.getField(2), {1: 'one', -2: 'minus two'});
     expect(m.getField(3), {true: Int64(10), false: Int64(20)});
   });
 
   test('enum-valued maps take names or numbers', () {
-    final m = decode('colors = { a: COLOR_RED, b: 0 }\n');
+    final m = decode('colors = { a: COLOR_RED b: 0 }\n');
     expect(m.getField(4), {'a': Color.COLOR_RED, 'b': Color.COLOR_UNSPECIFIED});
   });
 
   test('map<uint64, double>', () {
-    final m = decode('weights = { 18446744073709551615: 0.5, 3: 2 }\n');
+    final m = decode('weights = { 18446744073709551615: 0.5 3: 2 }\n');
     final w = m.getField(5) as Map<Int64, double>;
     expect(w[Int64.parseInt('18446744073709551615')], 0.5);
     expect(w[Int64(3)], 2.0);
@@ -123,7 +123,7 @@ flags = { true: 10, false: 20 }
 
   test('a key bound twice is rejected, as in the reference', () {
     expect(
-        () => decode('names = { 1: "a", 1: "b" }\n'),
+        () => decode('names = { 1: "a" 1: "b" }\n'),
         throwsA(predicate(
             (e) => '$e'.contains('map field "names": key 1 is already set'))));
   });
