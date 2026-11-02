@@ -52,6 +52,13 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`marshal` writes a `google.protobuf.Any` field with a type entry**, as
+  protowire-go does, when `MarshalOptions.typeRegistry` holds its type:
+  `@type = "..."` and a body of that type. It writes the block of the Any's
+  own fields when the type is missing, as before, and also when a body could
+  not reproduce the value, or past the depth a reader takes. A list element or
+  map value of type Any stays its own fields, matching the reference.
+
 - **`pxf.BigFloat` reads and writes as a literal** (protowire#393, #406): `marshal`
   writes N significant digits with a precision suffix, `1.79769313486231590773e+308p64`,
   and a literal is read at its suffix's precision, or 256 bits, round half even.
