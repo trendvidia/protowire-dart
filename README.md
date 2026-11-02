@@ -261,6 +261,25 @@ final output = marshal(config, options: MarshalOptions(
 ));
 ```
 
+## Decoding untrusted input
+
+Every PXF and SBE decode call, and `mergeFromBufferChecked` for PB, enforces
+HARDENING.md's limits. Each is 64 MiB by default and can be lowered per call
+with `DecodeLimits`:
+
+```dart
+const limits = DecodeLimits(maxMessageSize: 1 << 20, maxRepeatedCount: 10000);
+
+unmarshal(text, msg, options: UnmarshalOptions(limits: limits));
+mergeFromBufferChecked(msg, bytes, ExtensionRegistry.EMPTY, limits);
+codec.unmarshal(data, msg, limits: limits);
+```
+
+**Use `mergeFromBufferChecked` for PB from an untrusted source, not
+`GeneratedMessage.mergeFromBuffer`.** The package's own merge has no size or
+element limits, and it does not count map entries toward `MaxNestingDepth`, so
+a 101-level map chain decodes through it.
+
 ## Field presence and nulls
 
 PXF distinguishes three field states:

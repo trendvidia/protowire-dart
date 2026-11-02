@@ -5,6 +5,7 @@ import 'package:protobuf/protobuf.dart';
 import 'template.dart';
 import 'marshal.dart';
 import 'unmarshal.dart';
+import '../../limits.dart';
 import 'view.dart';
 
 const int headerSize = 8;
@@ -59,17 +60,20 @@ class Codec {
   }
 
   /// Unmarshals SBE binary [data] into the provided [msg].
-  void unmarshal(Uint8List data, GeneratedMessage msg) {
+  void unmarshal(Uint8List data, GeneratedMessage msg,
+      {DecodeLimits limits = const DecodeLimits()}) {
     final name = msg.info_.qualifiedMessageName;
     final tmpl = _byName[name];
     if (tmpl == null) {
       throw Exception('sbe: no template registered for $name');
     }
-    unmarshalMessage(data, msg, tmpl);
+    unmarshalMessage(data, msg, tmpl, limits);
   }
 
   /// Creates a zero-allocation [View] over the SBE binary [data].
-  View view(Uint8List data) {
+  View view(Uint8List data, {DecodeLimits limits = const DecodeLimits()}) {
+    final tooBig = limits.checkSize(data.length);
+    if (tooBig != null) throw Exception('sbe: $tooBig');
     if (data.length < headerSize) {
       throw Exception('sbe: data too short for header');
     }
@@ -89,6 +93,7 @@ class Codec {
       block: ByteData.view(
           data.buffer, data.offsetInBytes + headerSize, blockLength),
       schema: tmpl.view,
+      limits: limits,
     );
   }
 }

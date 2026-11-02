@@ -2,6 +2,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'dart:convert';
 import 'dart:typed_data';
+import '../../limits.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
@@ -53,6 +54,9 @@ class DirectDecoder {
   final TypeRegistry typeRegistry;
   final bool discardUnknown;
 
+  /// The per-call limits.
+  final DecodeLimits limits;
+
   /// The schema's `(pxf.key)` options. Without them no field is keyed.
   final PxfAnnotations? annotations;
   Result? result;
@@ -83,7 +87,11 @@ class DirectDecoder {
     this.annotations,
     this.result,
     this.rootMsg,
-  }) : lex = Lexer(input) {
+    this.limits = const DecodeLimits(),
+  }) : lex = Lexer(input, maxBytesLiteralLength: limits.maxBytesLiteralLength) {
+    final tooBig =
+        limits.checkSize(utf8LengthUpTo(input, limits.maxMessageSize));
+    if (tooBig != null) throw PxfError(Position(1, 1), tooBig);
     if (rootMsg != null) {
       nullMaskFi = _findNullMaskField(rootMsg!.info_);
     }
@@ -295,7 +303,7 @@ class DirectDecoder {
     if (current.kind == TokenKind.comma || current.kind == TokenKind.rparen) {
       return null;
     }
-    final parser = Parser.resume(lex, current);
+    final parser = Parser.resume(lex, current, limits);
     final value = parser.parseCell();
     current = parser.current;
     // The parser passes over comments and newlines as this decoder does, but
@@ -601,6 +609,14 @@ class DirectDecoder {
     }
   }
 
+  /// Refuses another element once [count] are held, before it is allocated.
+  void _checkRepeatedCount(int count, FieldInfo fi) {
+    if (count >= limits.maxRepeatedCount) {
+      throw PxfError(current.pos,
+          'field "${fi.protoName}" exceeds MaxRepeatedCount=${limits.maxRepeatedCount}');
+    }
+  }
+
   /// Records [fi] as bound in this body, or rejects a second binding. A
   /// repeated field concatenates and a map merges, so neither counts.
   void _bind(Set<int> bound, FieldInfo fi, Position pos) {
@@ -776,6 +792,7 @@ class DirectDecoder {
         throw PxfError(current.pos,
             'null is not allowed in repeated field "${fi.protoName}"');
       }
+      _checkRepeatedCount(list.length, fi);
       if (fi.isGroupOrMessage) {
         var sub = fi.subBuilder!();
         if (current.kind == TokenKind.lbrace) {
@@ -876,6 +893,7 @@ class DirectDecoder {
         }
         _advance();
 
+        _checkRepeatedCount(list.length, fi);
         var sub = fi.subBuilder!();
         sub.setField(keyFi.tagNumber, name);
         _decodeKeyedElement(
@@ -970,6 +988,7 @@ class DirectDecoder {
             'expected ":" after map key, got ${current.kind.name}');
       }
 
+      _checkRepeatedCount(map.length, fi);
       var key = _decodeMapKey(keyFi, keyStr, keyKind, pos);
       _bindMapKey(msg, fi, key, pos);
 
@@ -1327,6 +1346,7 @@ void unmarshal(String input, GeneratedMessage msg,
     input,
     typeRegistry: options?.typeRegistry ?? const TypeRegistry.empty(),
     discardUnknown: options?.discardUnknown ?? false,
+    limits: options?.limits ?? const DecodeLimits(),
   );
   d.decodeDocument(msg);
 }
@@ -1355,6 +1375,7 @@ Result unmarshalFull(String input, GeneratedMessage msg,
     annotations: options?.annotations,
     result: result,
     rootMsg: msg,
+    limits: options?.limits ?? const DecodeLimits(),
   );
   d.decodeDocument(msg);
   final ann = options?.annotations;
