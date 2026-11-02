@@ -65,6 +65,17 @@
     ]
   },
   {
+    "dir": "testdata/map-keys/invalid",
+    "protos": [
+      "bool-keys.proto"
+    ],
+    "include": "..",
+    "message": "mapkeys.v1.Flags",
+    "named": [
+      "mapkeys.v1.Labels"
+    ]
+  },
+  {
     "dir": "testdata/nulls",
     "protos": [
       "nulls.proto",

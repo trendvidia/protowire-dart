@@ -38,6 +38,7 @@ type corpus struct {
 	Message  string            `json:"message"`
 	Messages map[string]string `json:"messages"` // by file name
 	Named    []string          `json:"named"`    // a document naming one binds it
+	Include  string            `json:"include"`  // another import root, under dir
 	Dataset  bool              `json:"dataset"`  // documents of @dataset rows
 }
 
@@ -165,7 +166,7 @@ func schema(c corpus, dir, root string) (*protoregistry.Files, *descriptorpb.Fil
 	}
 	compiler := protocompile.Compiler{
 		Resolver: protocompile.WithStandardImports(&protocompile.SourceResolver{
-			ImportPaths: []string{dir, filepath.Join(root, "proto")},
+			ImportPaths: []string{dir, filepath.Join(dir, c.Include), filepath.Join(root, "proto")},
 		}),
 	}
 	compiled, err := compiler.Compile(context.Background(), c.Protos...)
