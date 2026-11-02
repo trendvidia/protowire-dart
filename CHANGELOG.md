@@ -11,6 +11,8 @@ format changes.
 
 ## Unreleased
 
+## 1.2.0
+
 ### Changed
 
 Each of these rejects a document that used to decode.
