@@ -100,6 +100,22 @@ Each of these rejects a document that used to decode.
 
 ### Fixed
 
+- **Output now matches protowire-go on every document of the spec corpora**
+  (protowire-dart#67), found by comparing the two live:
+  - `marshal` threw on a `map<bool, ...>`, and wrote a map key containing `"`
+    unescaped, which does not parse back.
+  - `marshal` orders map keys by their written form, as the reference does:
+    `"10"` before `"9"`, and a quoted key before a bare one.
+  - A map value of a well-known type is written as a literal, not a block.
+  - A Timestamp keeps its nanoseconds on decode, where it kept milliseconds,
+    and is written with only the fraction it needs: `05Z`, not `05.000Z`. One
+    before the epoch has the right seconds and non-negative nanos.
+  - A zero inside a well-known type is unset, so `writeToBuffer` no longer adds
+    `nanos = 0`, and zero `pxf.BigInt` and `pxf.Decimal` have an empty
+    magnitude. `bigIntToBytes(BigInt.zero)` is now empty.
+  - With a descriptor set, a zero on a scalar with implicit presence is unset.
+    Without one it stays set; see the README.
+
 - **`mergeFromBufferChecked` no longer hangs on, or leaks a `RangeError` from,
   a negative length** (protowire-dart#64). Seven bytes naming an unknown
   length-delimited field with a length that rewinds onto its own tag looped for

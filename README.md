@@ -243,6 +243,11 @@ Dart code writes `int32` and `optional int32` identically, so without
 `annotations` the decoder cannot tell them apart: it accepts `n = null` and the
 field reads back as zero.
 
+A descriptor set also decides what a zero means. On a scalar with implicit
+presence, `n = 0` is the unset value, and the reference writes nothing for it.
+With a descriptor set this port matches. Without one the zero stays set, and
+both `writeToBuffer` and `marshal` write it, because it may be `optional`.
+
 ### Keyed repeated fields
 
 ```dart
