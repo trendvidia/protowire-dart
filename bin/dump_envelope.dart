@@ -8,6 +8,7 @@
 //   dump_envelope                        canonical Envelope → pb hex
 //   dump_envelope --sbe FDS MESSAGE DOC  PXF DOC decoded against MESSAGE → SBE hex
 //   dump_envelope --pb  FDS MESSAGE DOC  PXF DOC decoded against MESSAGE → pb hex
+//   dump_envelope --vector NAME          a wire vector → pb hex
 //
 // --pb is how the gate proves this port reads (pxf.required) = 1314 and
 // (pxf.default) = 1315: `PxfAnnotations.fromBytes(FDS)` indexes them and
@@ -29,9 +30,14 @@
 // names a type generated ahead of time (sbe_bench.pb.dart, from
 // protowire/testdata/sbe-bench.proto) rather than one built from FDS.
 //
+// --vector checks one wire layout against a golden rather than port-to-port
+// agreement. zero-map-entry is an Envelope whose error metadata holds one
+// entry with a zero key and a zero value: an entry carries both (protowire#295).
+//
 // Exit 0 with hex on stdout; 1 with "reject: <reason>" on stderr when the
 // document cannot be decoded against the message; 2 for anything that is
-// the harness's fault.
+// the harness's fault; 3 with "not-implemented: <name>" for a vector this
+// port does not have.
 
 import 'dart:io';
 
@@ -56,8 +62,13 @@ void main(List<String> args) {
     dumpEnvelope();
     return;
   }
+  if (args.length == 2 && args[0] == '--vector') {
+    dumpVector(args[1]);
+    return;
+  }
   if (args.length != 4 || !(args[0] == '--pb' || args[0] == '--sbe')) {
-    fatal(2, 'usage: dump_envelope [--pb|--sbe FDS MESSAGE DOC]');
+    fatal(
+        2, 'usage: dump_envelope [--pb|--sbe FDS MESSAGE DOC | --vector NAME]');
   }
   dumpFixture(args[0], args[1], args[2], args[3]);
 }
@@ -86,6 +97,15 @@ void dumpEnvelope() {
     ..status = 402
     ..data = [0xDE, 0xAD, 0xBE, 0xEF]
     ..error = ae;
+  print(hex(env.writeToBuffer()));
+}
+
+void dumpVector(String name) {
+  if (name != 'zero-map-entry') {
+    stderr.writeln('not-implemented: $name');
+    exit(3);
+  }
+  final env = envpb.Envelope()..error = (envpb.AppError()..metadata[''] = '');
   print(hex(env.writeToBuffer()));
 }
 
