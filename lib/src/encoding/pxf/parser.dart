@@ -441,6 +441,7 @@ class Parser {
 
     var key = current.value;
     final keyKind = current.kind;
+    final keyPrec = current.prec;
     var quoted = keyKind == TokenKind.string;
     _advance();
 
@@ -461,6 +462,10 @@ class Parser {
         );
 
       case TokenKind.colon:
+        if (keyPrec != null) {
+          throw PxfError(pos,
+              'map key $key: a key cannot carry a precision suffix (p$keyPrec)');
+        }
         _advance();
         var val = _parseValue();
         return MapEntry(
@@ -535,12 +540,12 @@ class Parser {
         return v;
 
       case TokenKind.int:
-        var v = IntVal(pos, current.value);
+        var v = IntVal(pos, current.text);
         _advance();
         return v;
 
       case TokenKind.float:
-        var v = FloatVal(pos, current.value);
+        var v = FloatVal(pos, current.text);
         _advance();
         return v;
 

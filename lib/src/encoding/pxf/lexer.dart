@@ -572,7 +572,19 @@ class Lexer {
       return _lexDuration(p, start);
     }
 
-    return Token(TokenKind.int, input.substring(start, pos), p);
+    final raw = input.substring(start, pos);
+    return Token(TokenKind.int, raw, p, prec: _lexPrecision());
+  }
+
+  /// A number's precision suffix, `p` and one or more digits, or null.
+  String? _lexPrecision() {
+    if (_peekCode != 112 || !_isDigit(_peekCodeAt(1))) return null; // p
+    _advance();
+    final start = pos;
+    while (pos < input.length && _isDigit(_peekCode)) {
+      _advance();
+    }
+    return input.substring(start, pos);
   }
 
   Token _lexFloat(Position p, int start) {
@@ -596,7 +608,8 @@ class Lexer {
         _advance();
       }
     }
-    return Token(TokenKind.float, input.substring(start, pos), p);
+    final raw = input.substring(start, pos);
+    return Token(TokenKind.float, raw, p, prec: _lexPrecision());
   }
 
   /// The illegal token for a mantissa `input[from:pos]` past the cap, or

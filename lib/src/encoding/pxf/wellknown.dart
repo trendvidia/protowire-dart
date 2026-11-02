@@ -146,8 +146,6 @@ void setDecimalFields(GeneratedMessage msg, String raw) {
   msg.setField(3, negative);
 }
 
-// TODO: setBigFloatFields (requires more complex parsing)
-
 Uint8List bigIntToBytes(BigInt abs) {
   if (abs == BigInt.zero) return Uint8List.fromList([0]);
   var hex = abs.toRadixString(16);

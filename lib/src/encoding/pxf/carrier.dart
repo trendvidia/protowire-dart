@@ -17,6 +17,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:protobuf/protobuf.dart';
 
 import '../../generated/proto/google/protobuf/descriptor.pb.dart' as pbd;
+import 'bigfloat.dart';
 import 'lexer.dart' show maxNumericLiteralDigits;
 
 /// The carrier's extension number.
@@ -208,10 +209,7 @@ bool _unsignedTarget(pbd.FieldDescriptorProto fd) {
       case _fnArgDecimalValue when f.bytes != null:
         return _decimalLiteral(f.bytes!);
       case _fnArgBigFloatValue when f.bytes != null:
-        return (
-          null,
-          '@default on a pxf.BigFloat is not supported by this port'
-        );
+        return _bigFloatArg(f.bytes!);
       case _fnArgLiteral when f.bytes != null:
         return _literalValue(f.bytes!);
     }
@@ -275,6 +273,29 @@ BigInt _magnitude(List<int> bytes) {
     }
   }
   return ((negative ? -abs : abs).toString(), null);
+}
+
+/// pxf.BigFloat{mantissa=1, exponent=2, prec=3, negative=4}.
+(String?, String?) _bigFloatArg(List<int> b) {
+  var mantissa = const <int>[];
+  var exponent = 0;
+  var prec = 0;
+  var negative = false;
+  for (final f in _fields(b)) {
+    if (f.number == 1 && f.bytes != null) mantissa = f.bytes!;
+    if (f.number == 2 && f.wireType == _wireVarint) {
+      exponent = f.scalar.toInt32().toInt();
+    }
+    if (f.number == 3 && f.wireType == _wireVarint) prec = f.scalar.toInt();
+    if (f.number == 4 && f.wireType == _wireVarint) {
+      negative = !f.scalar.isZero;
+    }
+  }
+  try {
+    return (bigFloatLiteral(mantissa, exponent, prec, negative), null);
+  } on FormatException catch (e) {
+    return (null, "@default's big_float_value: ${e.message}");
+  }
 }
 
 /// pxf.Decimal{unscaled=1, scale=2, negative=3}. The scale is bounded before

@@ -106,7 +106,13 @@ class Token {
   final String value;
   final Position pos;
 
-  Token(this.kind, this.value, this.pos);
+  /// The digits of a number's precision suffix, `53` of `1.5p53`.
+  final String? prec;
+
+  Token(this.kind, this.value, this.pos, {this.prec});
+
+  /// The token as written, precision suffix included.
+  String get text => prec == null ? value : '${value}p$prec';
 
   @override
   String toString() => 'Token(${kind.name}, "$value", $pos)';
