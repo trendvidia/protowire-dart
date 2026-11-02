@@ -236,6 +236,13 @@ final result = unmarshalFull(pxfText, config,
 result.isAbsent('retries');
 ```
 
+Pass a descriptor set whenever documents come from outside your code, because
+one PXF rule depends on it. The spec rejects `null` on a proto3 scalar declared
+without `optional`, or an editions scalar with implicit presence. Generated
+Dart code writes `int32` and `optional int32` identically, so without
+`annotations` the decoder cannot tell them apart: it accepts `n = null` and the
+field reads back as zero.
+
 ### Keyed repeated fields
 
 ```dart
