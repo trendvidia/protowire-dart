@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
+import '../pb/depth.dart';
 import 'annotations.dart';
 import 'bigfloat.dart';
 import 'duration.dart';
@@ -55,6 +56,10 @@ class MarshalOptions {
     return buf.toString();
   }
 }
+
+/// The deepest block an Any body is written in: a reader takes 100 levels
+/// (MaxNestingDepth), so a document written with this stays readable.
+const int _maxAnyBodyLevel = 99;
 
 class _Encoder {
   final StringBuffer buf;
@@ -176,7 +181,7 @@ class _Encoder {
       return;
     }
 
-    // TODO: Any
+    if (isAny(subInfo) && _encodeAnyBody(fi, sub, level)) return;
 
     _writeIndent(level);
     buf.write('${fi.protoName} {\n');
@@ -186,6 +191,81 @@ class _Encoder {
     pathPrefix = oldPrefix;
     _writeIndent(level);
     buf.write('}\n');
+  }
+
+  /// Writes [any] as a type entry and a body of the type it names (draft -01
+  /// "Any Blocks"), or returns false, having written nothing, for the block
+  /// of its own fields. That is the form with no type URL, an unresolvable
+  /// type or a value that does not parse, as in protowire-go. Two cases are
+  /// this port's own, because each would otherwise lose the document:
+  ///
+  ///  * a value a body cannot reproduce: one with unknown fields, which
+  ///    protowire-go's body drops, or one not in canonical order;
+  ///  * a body at [_maxAnyBodyLevel]. Each Any unpacks with a fresh recursion
+  ///    budget, so a chain of them in [any]'s value is bounded by nothing else.
+  ///
+  /// Only a singular field gets here: the reference writes a list element or
+  /// a map value of type Any as its own fields, even with a registry.
+  bool _encodeAnyBody(FieldInfo fi, GeneratedMessage any, int level) {
+    final typeUrl = any.getField(1) as String;
+    if (typeUrl.isEmpty || level >= _maxAnyBodyLevel) return false;
+    final innerInfo = typeRegistry.lookup(anyTypeName(typeUrl));
+    if (innerInfo == null) return false;
+
+    final value = any.getField(2) as List<int>;
+    final inner = innerInfo.createEmptyInstance!();
+    try {
+      mergeFromBufferChecked(inner, value);
+    } on InvalidProtocolBufferException {
+      return false;
+    } on ArgumentError {
+      // package:protobuf's reader throws this, or a RangeError (which is one),
+      // on a truncated or negative length.
+      return false;
+    }
+    if (!_sameBytes(inner.writeToBuffer(), value) || _hasUnknownFields(inner)) {
+      return false;
+    }
+
+    _writeIndent(level);
+    buf.write('${fi.protoName} {\n');
+    _writeIndent(level + 1);
+    buf.write('@type = ');
+    _writeQuotedString(typeUrl);
+    buf.write('\n');
+    var oldPrefix = pathPrefix;
+    pathPrefix = '$oldPrefix${fi.protoName}.';
+    encodeMessage(inner, level + 1);
+    pathPrefix = oldPrefix;
+    _writeIndent(level);
+    buf.write('}\n');
+    return true;
+  }
+
+  /// Whether [msg], or a message under it, holds a field a body cannot name.
+  static bool _hasUnknownFields(GeneratedMessage msg) {
+    if (msg.unknownFields.isNotEmpty) return true;
+    bool holds(Object? v) => v is GeneratedMessage && _hasUnknownFields(v);
+    for (final tag in msg.info_.fieldInfo.keys) {
+      if (!msg.hasField(tag)) continue;
+      final val = msg.getField(tag);
+      if (val is List
+          ? val.any(holds)
+          : val is Map
+              ? val.values.any(holds)
+              : holds(val)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static bool _sameBytes(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   void _encodeListField(BuilderInfo owner, FieldInfo fi, List list, int level) {
