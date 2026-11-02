@@ -100,6 +100,13 @@ Each of these rejects a document that used to decode.
 
 ### Fixed
 
+- **`mergeFromBufferChecked` no longer hangs on, or leaks a `RangeError` from,
+  a negative length** (protowire-dart#64). Seven bytes naming an unknown
+  length-delimited field with a length that rewinds onto its own tag looped for
+  ever; a length that overflows 32 bits threw `RangeError`. Both now throw
+  `InvalidProtocolBufferException`. The `1327` carrier reader takes the same
+  lengths as garbled input and keeps what came before.
+
 - **The main import compiles with `dart compile exe`** (and for the web). It
   pulled in `dart:mirrors` through the native `pb` codec. The codec stays where
   it was on the Dart VM, and elsewhere `marshalNative` and `unmarshalNative`

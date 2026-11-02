@@ -252,6 +252,12 @@ void main() {
       expect(a.field('t.M', 'f')?.required, isTrue);
     });
 
+    test('a negative length keeps what came before it', () {
+      final list = [...required_(), 0x0A, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F];
+      final a = bind([field('f', 1, tString, options: carrier(list))]);
+      expect(a.field('t.M', 'f')?.required, isTrue);
+    });
+
     test('a list or message literal is reported, not dropped', () {
       expect(() => literalOf(bytesField(15, [])),
           refused('a default is exactly one literal'));

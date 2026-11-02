@@ -218,10 +218,6 @@ class _Encoder {
       mergeFromBufferChecked(inner, value);
     } on InvalidProtocolBufferException {
       return false;
-    } on ArgumentError {
-      // package:protobuf's reader throws this, or a RangeError (which is one),
-      // on a truncated or negative length.
-      return false;
     }
     if (!_sameBytes(inner.writeToBuffer(), value) || _hasUnknownFields(inner)) {
       return false;
