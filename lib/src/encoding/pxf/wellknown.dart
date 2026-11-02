@@ -23,11 +23,62 @@ bool isAny(BuilderInfo info) {
 String anyTypeName(String typeUrl) =>
     typeUrl.substring(typeUrl.lastIndexOf('/') + 1);
 
+/// A field with implicit presence holds its zero value by being unset, and
+/// package:protobuf would otherwise write a set zero to the wire.
+bool isZeroValue(Object value) => switch (value) {
+      int v => v == 0,
+      Int64 v => v.isZero,
+      double v => v == 0 && !v.isNegative,
+      bool v => !v,
+      String v => v.isEmpty,
+      List v => v.isEmpty,
+      ProtobufEnum v => v.value == 0,
+      _ => false,
+    };
+
+/// Sets field [tag] of a well-known type, whose fields have implicit presence.
+void setImplicit(GeneratedMessage msg, int tag, Object value) {
+  if (isZeroValue(value)) {
+    msg.clearField(tag);
+  } else {
+    msg.setField(tag, value);
+  }
+}
+
 void setTimestampFields(GeneratedMessage msg, DateTime t) {
-  // Use tag numbers instead of names because GeneratedMessage works better with tags
-  // seconds = 1, nanos = 2
-  msg.setField(1, Int64(t.millisecondsSinceEpoch ~/ 1000));
-  msg.setField(2, (t.millisecondsSinceEpoch % 1000) * 1000000);
+  // seconds = 1, nanos = 2. Seconds round down and nanos are never negative,
+  // so a time before the epoch keeps its fraction.
+  final millis = t.millisecondsSinceEpoch;
+  setImplicit(msg, 1, Int64((millis - millis % 1000) ~/ 1000));
+  setImplicit(msg, 2, (millis % 1000) * 1000000);
+}
+
+/// A `google.protobuf.Timestamp` from a literal, exact to the nanosecond,
+/// where a DateTime holds microseconds.
+void setTimestampLiteral(GeneratedMessage msg, String literal) {
+  final t = DateTime.parse(literal);
+  final fraction = RegExp(r'\.(\d+)').firstMatch(literal)?.group(1) ?? '';
+  final nanos = int.parse(fraction.padRight(9, '0').substring(0, 9));
+  final micros = t.microsecondsSinceEpoch;
+  final whole = micros - micros % 1000000;
+  setImplicit(msg, 1, Int64(whole ~/ 1000000));
+  setImplicit(msg, 2, nanos);
+}
+
+/// A Timestamp as RFC 3339 with the fraction it needs, as Go's
+/// `time.RFC3339Nano` writes it.
+String formatTimestamp(GeneratedMessage msg) {
+  final seconds = msg.getField(1) as Int64;
+  final nanos = msg.getField(2) as int;
+  final t =
+      DateTime.fromMillisecondsSinceEpoch(seconds.toInt() * 1000, isUtc: true);
+  String two(int v) => v.toString().padLeft(2, '0');
+  final date = '${t.year.toString().padLeft(4, '0')}-${two(t.month)}-'
+      '${two(t.day)}T${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
+  if (nanos == 0) return '${date}Z';
+  final fraction =
+      nanos.toString().padLeft(9, '0').replaceFirst(RegExp(r'0+$'), '');
+  return '$date.${fraction}Z';
 }
 
 void setDurationFields(GeneratedMessage msg, Duration dur) {
@@ -35,8 +86,8 @@ void setDurationFields(GeneratedMessage msg, Duration dur) {
   int microseconds = dur.inMicroseconds;
   int seconds = microseconds ~/ 1000000;
   int nanos = (microseconds % 1000000) * 1000;
-  msg.setField(1, Int64(seconds));
-  msg.setField(2, nanos);
+  setImplicit(msg, 1, Int64(seconds));
+  setImplicit(msg, 2, nanos);
 }
 
 /// A `google.protobuf.Duration` from a literal, exact to the nanosecond:
@@ -44,8 +95,8 @@ void setDurationFields(GeneratedMessage msg, Duration dur) {
 void setDurationLiteral(GeneratedMessage msg, String literal) {
   final nanos = parseGoDurationNanos(literal);
   final second = BigInt.from(1000000000);
-  msg.setField(1, Int64.parseInt((nanos ~/ second).toString()));
-  msg.setField(2, nanos.remainder(second).toInt());
+  setImplicit(msg, 1, Int64.parseInt((nanos ~/ second).toString()));
+  setImplicit(msg, 2, nanos.remainder(second).toInt());
 }
 
 /// The nanoseconds of a `google.protobuf.Duration`.
@@ -118,8 +169,8 @@ void setBigIntFields(GeneratedMessage msg, String raw) {
   var val = BigInt.parse(_trimLeadingZeros(raw));
   var negative = val < BigInt.zero;
   var abs = val.abs();
-  msg.setField(1, bigIntToBytes(abs));
-  msg.setField(2, negative);
+  setImplicit(msg, 1, bigIntToBytes(abs));
+  setImplicit(msg, 2, negative);
 }
 
 void setDecimalFields(GeneratedMessage msg, String raw) {
@@ -145,13 +196,13 @@ void setDecimalFields(GeneratedMessage msg, String raw) {
         'pxf.Decimal scale $scale exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits');
   }
   var unscaled = BigInt.parse(_trimLeadingZeros(unscaledStr));
-  msg.setField(1, bigIntToBytes(unscaled));
-  msg.setField(2, scale);
-  msg.setField(3, negative);
+  setImplicit(msg, 1, bigIntToBytes(unscaled));
+  setImplicit(msg, 2, scale);
+  setImplicit(msg, 3, negative);
 }
 
 Uint8List bigIntToBytes(BigInt abs) {
-  if (abs == BigInt.zero) return Uint8List.fromList([0]);
+  if (abs == BigInt.zero) return Uint8List(0);
   var hex = abs.toRadixString(16);
   if (hex.length % 2 != 0) hex = '0$hex';
   return Uint8List.fromList(List.generate(hex.length ~/ 2,

@@ -663,7 +663,18 @@ class DirectDecoder {
       _decodeMessageValue(msg, fi);
     } else {
       var val = _consumeScalar(fi);
-      msg.setField(fi.tagNumber, val);
+      // Only a descriptor set can say this field has implicit presence, and
+      // only then can its zero go: on an `optional` one it means "set".
+      final info = msg.info_;
+      if (isZeroValue(val) &&
+          !info.oneofs.containsKey(fi.tagNumber) &&
+          (annotations?.hasImplicitPresence(
+                  info.qualifiedMessageName, fi.protoName) ??
+              false)) {
+        msg.clearField(fi.tagNumber);
+      } else {
+        msg.setField(fi.tagNumber, val);
+      }
     }
   }
 
@@ -704,9 +715,8 @@ class DirectDecoder {
     }
 
     if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
-      var t = DateTime.parse(current.value);
       var sub = subBuilder();
-      setTimestampFields(sub, t);
+      setTimestampLiteral(sub, current.value);
       msg.setField(fi.tagNumber, sub);
       _advance();
       return;
@@ -722,7 +732,7 @@ class DirectDecoder {
       var valueFi = subInfo.fieldInfo[1]!;
       var val = _consumeScalar(valueFi);
       var sub = subBuilder();
-      sub.setField(1, val);
+      setImplicit(sub, 1, val);
       msg.setField(fi.tagNumber, sub);
       return;
     }
@@ -843,7 +853,7 @@ class DirectDecoder {
             list.add(sub);
           } else if (isTimestamp(subInfo) &&
               current.kind == TokenKind.timestamp) {
-            setTimestampFields(sub, DateTime.parse(current.value));
+            setTimestampLiteral(sub, current.value);
             list.add(sub);
             _advance();
           } else if (isDuration(subInfo) &&
@@ -854,7 +864,7 @@ class DirectDecoder {
           } else if (isWrapperType(subInfo)) {
             var valueFi = subInfo.fieldInfo[1]!;
             var val = _consumeScalar(valueFi);
-            sub.setField(1, val);
+            setImplicit(sub, 1, val);
             list.add(sub);
           } else {
             throw PxfError(
@@ -1123,7 +1133,7 @@ class DirectDecoder {
 
     if (isTimestamp(subInfo) && current.kind == TokenKind.timestamp) {
       var sub = make();
-      setTimestampFields(sub, DateTime.parse(current.value));
+      setTimestampLiteral(sub, current.value);
       _advance();
       return sub;
     }
@@ -1135,7 +1145,7 @@ class DirectDecoder {
     }
     if (isWrapperType(subInfo) && current.kind != TokenKind.lbrace) {
       var sub = make();
-      sub.setField(1, _consumeScalar(subInfo.fieldInfo[1]!));
+      setImplicit(sub, 1, _consumeScalar(subInfo.fieldInfo[1]!));
       return sub;
     }
     if (isBigInt(subInfo) && current.kind == TokenKind.int) {
@@ -1596,9 +1606,10 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
   final sub = fi.subBuilder!();
   final info = sub.info_;
   if (isTimestamp(info)) {
-    final t = DateTime.tryParse(literal);
-    if (t == null) throw _badDefault('timestamp', literal, fi);
-    setTimestampFields(sub, t);
+    if (DateTime.tryParse(literal) == null) {
+      throw _badDefault('timestamp', literal, fi);
+    }
+    setTimestampLiteral(sub, literal);
     return sub;
   }
   if (isDuration(info)) {
@@ -1611,7 +1622,7 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
   }
   if (isWrapperType(info)) {
     final inner = info.fieldInfo[1]!;
-    sub.setField(1, _scalarDefault(inner.type, literal, fi));
+    setImplicit(sub, 1, _scalarDefault(inner.type, literal, fi));
     return sub;
   }
   if (isBigInt(info)) {

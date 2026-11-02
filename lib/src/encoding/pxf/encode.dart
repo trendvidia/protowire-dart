@@ -140,43 +140,9 @@ class _Encoder {
   void _encodeMessageField(FieldInfo fi, GeneratedMessage sub, int level) {
     var subInfo = sub.info_;
 
-    if (isTimestamp(subInfo)) {
-      var t = readTimestamp(sub);
+    if (_hasLiteral(subInfo)) {
       _writeFieldPrefix(level, fi.protoName);
-      buf.write(t.toIso8601String());
-      buf.write('\n');
-      return;
-    }
-    if (isDuration(subInfo)) {
-      _writeFieldPrefix(level, fi.protoName);
-      buf.write(formatGoDuration(readDurationNanos(sub)));
-      buf.write('\n');
-      return;
-    }
-    if (isWrapperType(subInfo)) {
-      var valueFi = subInfo.fieldInfo[1]!;
-      _writeFieldPrefix(level, fi.protoName);
-      _writeScalar(valueFi, sub.getField(1));
-      buf.write('\n');
-      return;
-    }
-
-    if (isBigInt(subInfo)) {
-      _writeFieldPrefix(level, fi.protoName);
-      buf.write(_formatBigInt(sub));
-      buf.write('\n');
-      return;
-    }
-    if (isDecimal(subInfo)) {
-      _writeFieldPrefix(level, fi.protoName);
-      buf.write(_formatDecimal(sub));
-      buf.write('\n');
-      return;
-    }
-
-    if (isBigFloat(subInfo)) {
-      _writeFieldPrefix(level, fi.protoName);
-      buf.write(_formatBigFloat(sub));
+      _writeLiteral(sub);
       buf.write('\n');
       return;
     }
@@ -283,19 +249,9 @@ class _Encoder {
         var sub = elem as GeneratedMessage;
         var subInfo = sub.info_;
 
-        if (isTimestamp(subInfo)) {
+        if (_hasLiteral(subInfo)) {
           _writeIndent(level + 1);
-          buf.write(readTimestamp(sub).toIso8601String());
-        } else if (isDuration(subInfo)) {
-          _writeIndent(level + 1);
-          buf.write(formatGoDuration(readDurationNanos(sub)));
-        } else if (isWrapperType(subInfo)) {
-          var valueFi = subInfo.fieldInfo[1]!;
-          _writeIndent(level + 1);
-          _writeScalar(valueFi, sub.getField(1));
-        } else if (isBigFloat(subInfo)) {
-          _writeIndent(level + 1);
-          buf.write(_formatBigFloat(sub));
+          _writeLiteral(sub);
         } else {
           _writeIndent(level + 1);
           buf.write('{\n');
@@ -350,23 +306,55 @@ class _Encoder {
     buf.write('}\n');
   }
 
+  /// Whether a message of this type is written as one literal.
+  bool _hasLiteral(BuilderInfo info) =>
+      isTimestamp(info) ||
+      isDuration(info) ||
+      isWrapperType(info) ||
+      isBigInt(info) ||
+      isDecimal(info) ||
+      isBigFloat(info);
+
+  void _writeLiteral(GeneratedMessage sub) {
+    final info = sub.info_;
+    if (isTimestamp(info)) {
+      buf.write(formatTimestamp(sub));
+    } else if (isDuration(info)) {
+      buf.write(formatGoDuration(readDurationNanos(sub)));
+    } else if (isWrapperType(info)) {
+      _writeScalar(info.fieldInfo[1]!, sub.getField(1));
+    } else if (isBigInt(info)) {
+      buf.write(_formatBigInt(sub));
+    } else if (isDecimal(info)) {
+      buf.write(_formatDecimal(sub));
+    } else {
+      buf.write(_formatBigFloat(sub));
+    }
+  }
+
   void _encodeMapField(FieldInfo fi, Map map, int level) {
     if (map.isEmpty && !emitDefaults) return;
 
     _writeFieldPrefix(level, fi.protoName);
     buf.write('{\n');
 
-    var keys = map.keys.toList()..sort();
+    // By the key as written, as the reference orders them: "10" before "9",
+    // and a quoted key before a bare one.
+    final byText = {for (final k in map.keys) _formatMapKey(k as Object): k};
+    final ordered = byText.keys.toList()..sort();
 
-    for (var k in keys) {
-      var v = map[k];
+    for (final text in ordered) {
+      var v = map[byText[text]];
       _writeIndent(level + 1);
-      buf.write(_formatMapKey(k));
+      buf.write(text);
       buf.write(': ');
 
       // In Dart GeneratedMessage, map values are usually handled via subBuilder if they are messages.
       // But FieldInfo for maps is a bit special.
-      if (v is GeneratedMessage) {
+      if (v is GeneratedMessage && _hasLiteral(v.info_)) {
+        _writeLiteral(v);
+        buf.write('\n');
+      } else if (v is GeneratedMessage) {
         buf.write('{\n');
         encodeMessage(v, level + 2);
         _writeIndent(level + 1);
@@ -418,7 +406,7 @@ class _Encoder {
   String _formatMapKey(Object key) {
     if (key is String) {
       if (_isValidIdent(key)) return key;
-      return '"$key"'; // TODO: proper quoting
+      return quotePxfString(key);
     }
     return key.toString();
   }
