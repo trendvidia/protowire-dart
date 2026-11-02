@@ -36,6 +36,13 @@ Each of these rejects a document that used to decode.
   string.
 - **A `,` between map entries is rejected** (protowire#312). A comma separates
   list elements only.
+- **`(pxf.required)` and `(pxf.default)` apply in every message body**
+  (protowire#352): list elements, map values and Any bodies, not only singular
+  fields. A missing required field in an element is now an error, reported at
+  its own path, such as `required field "kr[0].name" is absent`.
+- **More schemas are refused at bind** (draft -01 "Oneof Members", "Default
+  Placement"): a required oneof member, two defaults in one oneof, and a
+  default on a repeated, map, group or plain message field.
 - **A named keyed entry cannot undo its name** (protowire#480): `null` on the
   key field, or a binding of another member of the key field's oneof, is a key
   conflict.
@@ -45,6 +52,10 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`@required` and `@default` are read** from the 1327 annotation carrier, and
+  every bind check applies to both spellings. Two spellings of one default that
+  disagree are refused. A `@default` on a `pxf.BigFloat` is refused at bind
+  until the BigFloat encoder lands (#33).
 - **The Any type entry works everywhere a body is written** (protowire#354):
   list elements and map values as well as singular fields, and through `parse`
   and the formatter, which keep it as a `TypeEntry`.

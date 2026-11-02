@@ -4,6 +4,7 @@ import 'package:protobuf/protobuf.dart';
 
 import '../../generated/proto/google/protobuf/descriptor.pb.dart' as pbd;
 import '../../generated/proto/pxf/annotations.pb.dart' as pxf_ann;
+import 'carrier.dart';
 import 'errors.dart';
 import 'token.dart';
 
@@ -51,6 +52,24 @@ class PxfSchemaField {
   const PxfSchemaField(
       {required this.isList, required this.isMap, this.messageType});
 }
+
+/// The message types a single PXF literal can denote.
+const _defaultableMessages = {
+  'google.protobuf.Timestamp',
+  'google.protobuf.Duration',
+  'google.protobuf.BoolValue',
+  'google.protobuf.BytesValue',
+  'google.protobuf.DoubleValue',
+  'google.protobuf.FloatValue',
+  'google.protobuf.Int32Value',
+  'google.protobuf.Int64Value',
+  'google.protobuf.StringValue',
+  'google.protobuf.UInt32Value',
+  'google.protobuf.UInt64Value',
+  'pxf.BigInt',
+  'pxf.Decimal',
+  'pxf.BigFloat',
+};
 
 /// How one scope of a file resolves a field's presence: its syntax, and for
 /// editions the `field_presence` feature inherited so far, EXPLICIT being the
@@ -113,15 +132,22 @@ class PxfAnnotations {
   final List<String> _violations = [];
   final Map<String, Set<String>> _implicitPresence = {};
 
+  /// The spelling of each default, for the placement diagnostic.
+  final Map<String, Map<String, String>> _defaultSpelling = {};
+
   PxfAnnotations._();
 
   /// Indexes every message of [fds], nested ones included. [fds] must
   /// have been parsed with [pxfExtensionRegistry] (or built in memory
   /// with the extensions set); see [PxfAnnotations.fromBytes].
   ///
-  /// This is the bind: `(pxf.required)` with `(pxf.default)` on one field
-  /// (draft -01 "Required and Default") or a misplaced `(pxf.key)`, anywhere
-  /// in [fds], is a [PxfError] naming every violation, so [fds] must hold the
+  /// This is the bind: `(pxf.required)` with `(pxf.default)` on one field,
+  /// `(pxf.required)` on a oneof member, two defaults in one oneof, a default
+  /// no literal can populate (draft -01 "Required and Default", "Oneof
+  /// Members", "Default Placement") or a misplaced `(pxf.key)`, anywhere in
+  /// [fds], in either spelling, is a [PxfError] naming every violation. The
+  /// annotation spelling lowers to the 1327 carrier, read from the options'
+  /// unknown fields. [fds] must hold the
   /// bound file's import closure (`protoc --include_imports`), which is the
   /// scope the draft fixes for bind-time checks.
   factory PxfAnnotations.fromDescriptorSet(pbd.FileDescriptorSet fds) {
@@ -150,22 +176,53 @@ class PxfAnnotations {
     _descriptors[fullName] = m;
     _declaringFile[fullName] = fileName;
     final fields = <String, PxfFieldAnnotations>{};
+    final oneofDefaults = <String, List<(String, String, String)>>{};
+    final defaultNames = _defaultSpelling[fullName] = {};
     for (final fd in m.field) {
       final o = fd.options;
-      final required = o.hasExtension(pxf_ann.Annotations.required) &&
+      final bracketRequired = o.hasExtension(pxf_ann.Annotations.required) &&
           o.getExtension(pxf_ann.Annotations.required) as bool;
-      final def = o.hasExtension(pxf_ann.Annotations.default_1315)
+      final bracketDefault = o.hasExtension(pxf_ann.Annotations.default_1315)
           ? o.getExtension(pxf_ann.Annotations.default_1315) as String
           : null;
+      final carrier = parseAnnotationList(carrierBytes(o), fd);
+      // Both spellings are honoured and neither is synthesized from the
+      // other. `required` has one answer; two defaults can disagree, and
+      // picking one would be the reconciliation RFC-001 §8.5 forbids.
+      final required = bracketRequired || carrier.required;
+      final def = bracketDefault ?? carrier.defaultLiteral;
+      final requiredName = bracketRequired ? '(pxf.required)' : '@required';
+      final defaultName = bracketDefault != null ? '(pxf.default)' : '@default';
+      final element = '$fileName: field "$fullName.${fd.name}"';
+      if (carrier.defaultProblem != null) {
+        _violations.add('$element: ${carrier.defaultProblem}');
+      } else if (bracketDefault != null &&
+          carrier.defaultLiteral != null &&
+          bracketDefault != carrier.defaultLiteral) {
+        _violations.add('$element: (pxf.default) = "$bracketDefault" and '
+            '@default = "${carrier.defaultLiteral}" carry different values, '
+            'and the two surfaces must not be reconciled (RFC-001 §8.5)');
+      }
       final key = o.hasExtension(pxf_ann.Annotations.key)
           ? o.getExtension(pxf_ann.Annotations.key) as String
           : null;
       if (required && def != null) {
-        _violations.add('$fileName: field "$fullName.${fd.name}": '
-            '(pxf.required) and (pxf.default) are exclusive on one field: '
-            'the first rejects a document where the field is absent, and '
-            'the second treats it as supplied');
+        _violations.add('$element: $requiredName and $defaultName are '
+            'exclusive on one field: the first rejects a document where the '
+            'field is absent, and the second treats it as supplied');
       }
+      if (fd.hasOneofIndex() && !fd.proto3Optional) {
+        final oneof = m.oneofDecl[fd.oneofIndex].name;
+        if (required) {
+          _violations.add('$element: $requiredName is not valid on a member '
+              'of oneof "$oneof": read per field it demands that one arm '
+              'always be chosen, which makes every other arm undecodable');
+        }
+        if (def != null) {
+          (oneofDefaults[oneof] ??= []).add((fd.name, element, defaultName));
+        }
+      }
+      if (def != null) defaultNames[fd.name] = defaultName;
       if (required || def != null || key != null) {
         fields[fd.name] = PxfFieldAnnotations(
             required: required, defaultLiteral: def, key: key);
@@ -174,6 +231,16 @@ class PxfAnnotations {
         (_implicitPresence[fullName] ??= {}).add(fd.name);
       }
     }
+    // At most one member of a oneof carries a default: with two, some default
+    // must win, and declaration order must not mean anything.
+    oneofDefaults.forEach((oneof, members) {
+      if (members.length < 2) return;
+      final names = members.map((e) => e.$1).join(', ');
+      for (final (_, element, _) in members) {
+        _violations.add('$element: at most one member of oneof "$oneof" may '
+            'carry a default; ${members.length} do ($names)');
+      }
+    });
     _byMessage[fullName] = fields;
     for (final n in m.nestedType) {
       _index(n, '$fullName.', fileName, presence);
@@ -201,6 +268,14 @@ class PxfAnnotations {
           messageType:
               isMap ? _mapValueMessage(elem) : (isMessage ? typeName : null),
         );
+        final spelling = _defaultSpelling[fullName]?[fd.name];
+        if (spelling != null) {
+          final problem = _defaultPlacementProblem(fd, isMap, isList, spelling);
+          if (problem != null) {
+            _violations.add('${_declaringFile[fullName]}: field '
+                '"$fullName.${fd.name}": $problem');
+          }
+        }
         final key = _byMessage[fullName]?[fd.name]?.key;
         if (key == null) continue;
         final detail =
@@ -215,6 +290,29 @@ class PxfAnnotations {
     if (_violations.isNotEmpty) {
       throw PxfError(Position(1, 1), _violations.join('; '));
     }
+  }
+
+  /// Why one literal cannot populate this field, or null if it can (draft
+  /// -01 "Default Placement").
+  String? _defaultPlacementProblem(
+      pbd.FieldDescriptorProto fd, bool isMap, bool isList, String spelling) {
+    if (isMap) {
+      return '$spelling is not valid on map fields: one literal cannot denote a map';
+    }
+    if (isList) {
+      return '$spelling is not valid on repeated fields: one literal cannot denote a list';
+    }
+    if (fd.type == pbd.FieldDescriptorProto_Type.TYPE_GROUP) {
+      return '$spelling is not valid on group fields';
+    }
+    if (fd.type == pbd.FieldDescriptorProto_Type.TYPE_MESSAGE) {
+      final name =
+          fd.typeName.startsWith('.') ? fd.typeName.substring(1) : fd.typeName;
+      if (!_defaultableMessages.contains(name)) {
+        return '$spelling is not valid on message type $name: no PXF literal denotes it';
+      }
+    }
+    return null;
   }
 
   String? _mapValueMessage(pbd.DescriptorProto entry) {

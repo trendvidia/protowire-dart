@@ -789,6 +789,13 @@ class DirectDecoder {
       _depth++;
     }
 
+    // The body is about to be packed to bytes, out of reach of the pass over
+    // the root, so it takes the pass here, under the Any's own path.
+    final ann = annotations;
+    if (ann != null && result != null) {
+      _postDecode(innerMsg, result!, ann, null, pathPrefix);
+    }
+
     anyMsg.setField(1, typeUrl);
     anyMsg.setField(2, innerMsg.writeToBuffer());
   }
@@ -1378,9 +1385,10 @@ void unmarshal(String input, GeneratedMessage msg,
 /// `postDecode` does: for every field of the message's descriptor that is
 /// absent (a field set to `null` counts as present), `required` is a
 /// [PxfError] `required field "path" is absent`, otherwise `default` is
-/// applied by the field's type; present, non-null singular message fields
-/// are descended into (list elements and map values are not); a defaulted
-/// field stays absent in the [Result], since it was not in the input.
+/// applied by the field's type. Every message body the document wrote gets
+/// this: singular message fields, list elements (`items[0].`), map values
+/// (`by_key["k"].`) and Any bodies. A defaulted field stays absent in the
+/// [Result], since it was not in the input.
 Result unmarshalFull(String input, GeneratedMessage msg,
     {UnmarshalOptions? options}) {
   final result = Result();
@@ -1420,12 +1428,38 @@ void _postDecode(GeneratedMessage msg, Result result, PxfAnnotations ann,
           !_oneofAlreadyChosen(info, fi, result, prefix)) {
         _applyDefault(msg, fi, a.defaultLiteral!);
       }
-    } else if (fi.type == PbFieldType.OM &&
-        !result.isNull(path) &&
-        msg.hasField(tag)) {
-      _postDecode(
-          msg.getField(tag) as GeneratedMessage, result, ann, null, '$path.');
+    } else if (!result.isNull(path)) {
+      _postDecodeBodies(msg, fi, result, ann, path);
     }
+  }
+}
+
+/// Runs the pass on the message bodies [fi], a present field of [msg] at
+/// [path], holds. Map values go in key order, so the first error is the same
+/// on every run.
+void _postDecodeBodies(GeneratedMessage msg, FieldInfo fi, Result result,
+    PxfAnnotations ann, String path) {
+  if (fi.isMapField) {
+    if (!PbFieldType.isGroupOrMessage((fi as MapFieldInfo).valueFieldType)) {
+      return;
+    }
+    final entries = [
+      for (final e in (msg.getField(fi.tagNumber) as Map).entries)
+        ('$path[${_shownMapKey(e.key as Object)}]', e.value as GeneratedMessage)
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+    for (final (entryPath, body) in entries) {
+      _postDecode(body, result, ann, null, '$entryPath.');
+    }
+  } else if (!fi.isGroupOrMessage) {
+    return;
+  } else if (fi.isRepeated) {
+    final list = msg.getField(fi.tagNumber) as List;
+    for (var i = 0; i < list.length; i++) {
+      _postDecode(list[i] as GeneratedMessage, result, ann, null, '$path[$i].');
+    }
+  } else if (msg.hasField(fi.tagNumber)) {
+    _postDecode(msg.getField(fi.tagNumber) as GeneratedMessage, result, ann,
+        null, '$path.');
   }
 }
 
