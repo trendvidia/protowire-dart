@@ -56,8 +56,10 @@ void main() {
     });
 
     test('siblings at the bound do not add up', () {
-      final deep = blocks(limit);
-      decode('$deep\n$deep');
+      // The list and its element take two levels; a singular field can be
+      // bound only once, so siblings need a list.
+      final deep = blocks(limit - 2);
+      decode('children = [{$deep}, {$deep}]');
     });
 
     test('a deep rejected document does not overflow the stack', () {

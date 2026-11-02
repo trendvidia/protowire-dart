@@ -9,6 +9,7 @@ import 'ast.dart';
 import 'brace_scan.dart';
 import 'duration.dart';
 import 'errors.dart';
+import 'format.dart' show quotePxfString;
 import 'keyed.dart';
 import 'lexer.dart';
 import 'options.dart';
@@ -45,9 +46,16 @@ class DirectDecoder {
   /// one element of a keyed repeated field.
   KeyedElemState? _keyedElem;
 
-  /// How many keyed elements enclose the current entry. A `_null` mask path
-  /// names fields, not list elements, so a null in here stays out of it.
-  int _keyedElemDepth = 0;
+  /// How many list elements or map values enclose the current entry. A
+  /// `_null` mask path names fields, not those, so a null in here stays out
+  /// of it.
+  int _elemDepth = 0;
+
+  /// The keys each map field has bound in this decode, by message. It records
+  /// what the document bound rather than asking the map, which may hold
+  /// entries the caller set before decoding into it. Keyed by identity: a
+  /// message's own hash follows its contents.
+  final Map<GeneratedMessage, Map<int, Set<Object>>> _mapKeys = Map.identity();
 
   DirectDecoder(
     String input, {
@@ -433,8 +441,18 @@ class DirectDecoder {
   void _decodeFieldsInner(GeneratedMessage msg, bool inBlock) {
     var info = msg.info_;
     var setOneofs = <int, String>{}; // oneofIndex -> fieldName
+    // A singular field is bound at most once in one body (draft -01 § Entries
+    // and Keys, protowire#347); each body has a set of its own.
+    final bound = <int>{};
     final keyedElem = _keyedElem;
     _keyedElem = null; // nested bodies must not inherit the key checks
+
+    // A block bound to Any may open with a type entry, wherever a body is
+    // written: a singular field, a list element, a map value.
+    if (inBlock && current.kind == TokenKind.atType && isAny(info)) {
+      _decodeAnyBody(msg);
+      return;
+    }
 
     while (true) {
       if (inBlock && current.kind == TokenKind.rbrace) {
@@ -449,18 +467,26 @@ class DirectDecoder {
       }
 
       var pos = current.pos;
+      if (current.kind == TokenKind.atType) {
+        throw PxfError(pos, typeEntryMisplaced);
+      }
       if (current.kind != TokenKind.ident &&
           current.kind != TokenKind.string &&
-          current.kind != TokenKind.int) {
+          current.kind != TokenKind.int &&
+          current.kind != TokenKind.bool) {
         throw PxfError(pos,
-            'expected identifier, string, or integer, got ${current.kind.name} ("${current.value}")');
+            'expected identifier, string, integer, or bool, got ${current.kind.name} ("${current.value}")');
       }
       var key = current.value;
-      final keyQuoted = current.kind == TokenKind.string;
+      final keyKind = current.kind;
+      final keyQuoted = keyKind == TokenKind.string;
       _advance();
 
       switch (current.kind) {
         case TokenKind.equals:
+          if (keyKind == TokenKind.int || keyKind == TokenKind.bool) {
+            throw nonNameAssignError(pos, keyKind, key);
+          }
           _advance();
           // The grammar takes a string here everywhere. In message context
           // it never names a field; keyed blocks have their own loop.
@@ -474,13 +500,16 @@ class DirectDecoder {
             throw PxfError(
                 pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
           }
+          keyedElem?.checkBinding(info, fi,
+              isNull: current.kind == TokenKind.null_, pos: pos);
           _checkOneof(info, fi, setOneofs, pos);
+          _bind(bound, fi, pos);
 
           if (current.kind == TokenKind.null_) {
             if (result != null) {
               var path = pathPrefix + fi.protoName;
               result!.markNull(path);
-              if (nullMaskFi != null && _keyedElemDepth == 0) {
+              if (nullMaskFi != null && _elemDepth == 0) {
                 _addToNullMask(rootMsg!, nullMaskFi!, path);
               }
             }
@@ -501,6 +530,9 @@ class DirectDecoder {
           break;
 
         case TokenKind.lbrace:
+          if (keyKind == TokenKind.int || keyKind == TokenKind.bool) {
+            throw nonNameBlockError(pos, keyKind, key);
+          }
           if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
           _advance();
           var fi = _fieldNamed(info, key);
@@ -513,8 +545,26 @@ class DirectDecoder {
                 pos, 'unknown field "$key" in ${info.qualifiedMessageName}');
           }
 
-          final keyFi = keyFieldOf(annotations, info, fi);
-          if (keyFi != null) {
+          if (fi.isMapField) {
+            throw PxfError(pos,
+                'map field "$key" must use assignment syntax: $key = { ... }');
+          }
+          if (!PbFieldType.isGroupOrMessage(fi.type)) {
+            throw PxfError(pos,
+                'field "$key" is not a message type, cannot use block syntax');
+          }
+
+          if (fi.isRepeated) {
+            final keyFi = keyFieldOf(annotations, info, fi);
+            if (keyFi == null) {
+              // The block spells the keyed form on a field with no key: the
+              // quoted name is the more specific violation.
+              if (current.kind == TokenKind.string) {
+                throw quotedNameUnkeyedError(current.pos, current.value);
+              }
+              throw PxfError(pos,
+                  'repeated field "$key" must use list syntax: $key = [...]');
+            }
             if (result != null) {
               result!.markPresent(pathPrefix + fi.protoName);
             }
@@ -522,54 +572,40 @@ class DirectDecoder {
             continue;
           }
 
-          // Any sugar handling: name { @type = "..." ... }
-          if (isAny(fi.subBuilder!().info_) &&
-              current.kind == TokenKind.atType) {
-            _checkOneof(info, fi, setOneofs, pos);
-            if (result != null) {
-              result!.markPresent(pathPrefix + fi.protoName);
-            }
-            _decodeAnyInner(msg, fi);
-            continue;
-          }
-
-          if (fi.type != PbFieldType.OM && fi.type != PbFieldType.PM) {
-            throw PxfError(pos,
-                'field "$key" is not a message type, cannot use block syntax');
-          }
+          keyedElem?.checkBinding(info, fi, isNull: false, pos: pos);
           _checkOneof(info, fi, setOneofs, pos);
+          _bind(bound, fi, pos);
 
           if (result != null) {
             result!.markPresent(pathPrefix + fi.protoName);
           }
 
-          if (fi.isRepeated) {
-            var list = msg.getField(fi.tagNumber) as List;
-            var sub = fi.subBuilder!();
-            var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.protoName}.';
-            _decodeFields(sub, true);
-            pathPrefix = oldPrefix;
-            list.add(sub);
+          GeneratedMessage sub;
+          if (!msg.hasField(fi.tagNumber)) {
+            sub = fi.subBuilder!();
+            msg.setField(fi.tagNumber, sub);
           } else {
-            GeneratedMessage sub;
-            if (!msg.hasField(fi.tagNumber)) {
-              sub = fi.subBuilder!();
-              msg.setField(fi.tagNumber, sub);
-            } else {
-              sub = msg.getField(fi.tagNumber) as GeneratedMessage;
-            }
-            var oldPrefix = pathPrefix;
-            pathPrefix = '$oldPrefix${fi.protoName}.';
-            _decodeFields(sub, true);
-            pathPrefix = oldPrefix;
+            sub = msg.getField(fi.tagNumber) as GeneratedMessage;
           }
+          var oldPrefix = pathPrefix;
+          pathPrefix = '$oldPrefix${fi.protoName}.';
+          _decodeFields(sub, true);
+          pathPrefix = oldPrefix;
           break;
 
         default:
           throw PxfError(current.pos,
               'expected "=" or "{" after "$key", got ${current.kind.name}');
       }
+    }
+  }
+
+  /// Records [fi] as bound in this body, or rejects a second binding. A
+  /// repeated field concatenates and a map merges, so neither counts.
+  void _bind(Set<int> bound, FieldInfo fi, Position pos) {
+    if (fi.isRepeated || fi.isMapField) return;
+    if (!bound.add(fi.tagNumber)) {
+      throw PxfError(pos, 'field "${fi.protoName}" is already set');
     }
   }
 
@@ -658,26 +694,6 @@ class DirectDecoder {
       return;
     }
 
-    // Any sugar: name = { @type = "..." ... }
-    if (isAny(subInfo) && current.kind == TokenKind.lbrace) {
-      var saved = lex.pos;
-      var savedLine = lex.line;
-      var savedCol = lex.col;
-      var savedTok = current;
-
-      _advance(); // consume {
-      if (current.kind == TokenKind.atType) {
-        _decodeAnyInner(msg, fi);
-        return;
-      }
-
-      // Rollback if not Any sugar
-      lex.pos = saved;
-      lex.line = savedLine;
-      lex.col = savedCol;
-      current = savedTok;
-    }
-
     if (current.kind != TokenKind.lbrace) {
       throw PxfError(
           current.pos, 'expected "{" for message field "${fi.protoName}"');
@@ -696,43 +712,41 @@ class DirectDecoder {
     pathPrefix = oldPrefix;
   }
 
-  void _decodeAnyInner(GeneratedMessage msg, FieldInfo fi) {
-    if (current.kind != TokenKind.atType) {
-      _advance(); // consume {
-    }
+  /// A `google.protobuf.Any` block opening with a type entry, its `{`
+  /// consumed: the rest of the block is a body of the type the URL names,
+  /// packed into [anyMsg], and the URL is stored as written (draft -01 "Any
+  /// Blocks"). The body's fields are recorded under the Any's own path.
+  void _decodeAnyBody(GeneratedMessage anyMsg) {
     _advance(); // consume @type
-
     if (current.kind != TokenKind.equals) {
       throw PxfError(current.pos, 'expected "=" after @type');
     }
     _advance();
-
-    if (current.kind != TokenKind.string && current.kind != TokenKind.ident) {
-      throw PxfError(
-          current.pos, 'expected type URL string or identifier after @type');
+    if (current.kind != TokenKind.string) {
+      throw PxfError(current.pos,
+          'expected a string type URL after @type =, got ${current.kind.name}');
     }
-    var typeUrl = current.value;
+    final typeUrl = current.value;
+    final urlPos = current.pos;
     _advance();
 
-    var typeName = typeUrl;
-    if (typeName.contains('/')) {
-      typeName = typeName.substring(typeName.lastIndexOf('/') + 1);
-    }
-    var innerInfo = typeRegistry.lookup(typeName);
+    final typeName = typeUrl.substring(typeUrl.lastIndexOf('/') + 1);
+    final innerInfo = typeRegistry.lookup(typeName);
     if (innerInfo == null) {
-      throw PxfError(current.pos, 'unknown type "$typeUrl" in TypeRegistry');
+      throw PxfError(urlPos, 'cannot resolve Any type "$typeUrl"');
     }
 
-    var innerMsg = innerInfo.createEmptyInstance!();
-    var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.protoName}.';
-    _decodeFields(innerMsg, true);
-    pathPrefix = oldPrefix;
+    final innerMsg = innerInfo.createEmptyInstance!();
+    // The body shares the Any's braces, already counted as one descent.
+    _depth--;
+    try {
+      _decodeFields(innerMsg, true);
+    } finally {
+      _depth++;
+    }
 
-    var anyMsg = fi.subBuilder!();
     anyMsg.setField(1, typeUrl);
     anyMsg.setField(2, innerMsg.writeToBuffer());
-    msg.setField(fi.tagNumber, anyMsg);
   }
 
   /// [keyFi] is the key field when [fi] is keyed; this is then the anonymous
@@ -763,7 +777,8 @@ class DirectDecoder {
             _decodeKeyedElement(sub, fi, list.length,
                 KeyedElemState(field: fi.protoName, keyName: keyFi.protoName));
           } else {
-            _decodeFields(sub, true);
+            _decodeElementFields(
+                sub, '$pathPrefix${fi.protoName}[${list.length}].');
           }
           list.add(sub);
         } else {
@@ -875,19 +890,26 @@ class DirectDecoder {
   /// reference's element path `name[i].`.
   void _decodeKeyedElement(
       GeneratedMessage sub, FieldInfo fi, int index, KeyedElemState state) {
-    var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.protoName}[$index].';
+    final prefix = '$pathPrefix${fi.protoName}[$index].';
     // An entry name supplies the key field, so whatever reads presence must
     // not take it as absent (protowire-go#214).
     if (state.entryName != null) {
-      result?.markPresent('$pathPrefix${state.keyName}');
+      result?.markPresent('$prefix${state.keyName}');
     }
     _keyedElem = state;
-    _keyedElemDepth++;
+    _decodeElementFields(sub, prefix);
+  }
+
+  /// Decodes the body of a list element or a map value, whose fields are
+  /// recorded under [prefix], not under the parent's path.
+  void _decodeElementFields(GeneratedMessage sub, String prefix) {
+    final oldPrefix = pathPrefix;
+    pathPrefix = prefix;
+    _elemDepth++;
     try {
       _decodeFields(sub, true);
     } finally {
-      _keyedElemDepth--;
+      _elemDepth--;
       pathPrefix = oldPrefix;
     }
   }
@@ -896,8 +918,9 @@ class DirectDecoder {
   /// the entry's key field type and values decoded by its value field —
   /// scalar, enum by name or number, or a message as a `{ ... }` block
   /// with the well-known-type shorthands a singular message value takes.
-  /// Mirrors the Go reference's `decodeMapInline` / `decodeMapKey`;
-  /// duplicate keys are last-wins there and here (#17).
+  /// Mirrors the Go reference's `decodeMapInline` / `decodeMapKey`. A key is
+  /// bound once in one message body, across every binding of the field
+  /// (protowire#396).
   void _decodeMap(GeneratedMessage msg, FieldInfo fi) {
     // A map's `{` is a descent like any other, whatever its values are
     // (HARDENING.md § Recursion; protowire#449).
@@ -927,6 +950,7 @@ class DirectDecoder {
         throw PxfError(pos, 'expected map key, got ${current.kind.name}');
       }
       var keyStr = current.value;
+      final keyKind = current.kind;
       _advance();
 
       if (current.kind == TokenKind.colon) {
@@ -939,7 +963,8 @@ class DirectDecoder {
             'expected ":" after map key, got ${current.kind.name}');
       }
 
-      var key = _decodeMapKey(keyFi, keyStr, pos);
+      var key = _decodeMapKey(keyFi, keyStr, keyKind, pos);
+      _bindMapKey(msg, fi, key, pos);
 
       if (current.kind == TokenKind.null_) {
         throw PxfError(current.pos,
@@ -948,7 +973,7 @@ class DirectDecoder {
 
       Object value;
       if (PbFieldType.isGroupOrMessage(valueFi.type)) {
-        value = _decodeMapMessageValue(mfi, valueFi);
+        value = _decodeMapMessageValue(mfi, valueFi, key);
       } else {
         value = _consumeScalar(valueFi);
       }
@@ -964,16 +989,32 @@ class DirectDecoder {
     _advance();
   }
 
+  /// Records that this decode bound [key] of [msg]'s map field [fi], and
+  /// rejects a second binding of it. Keys compare as values of the key type,
+  /// so `1` and `"1"` are one key of an integer-keyed map.
+  void _bindMapKey(
+      GeneratedMessage msg, FieldInfo fi, Object key, Position pos) {
+    final keys = (_mapKeys[msg] ??= {})[fi.tagNumber] ??= <Object>{};
+    if (!keys.add(key)) {
+      throw PxfError(pos,
+          'map field "${fi.protoName}": key ${_shownMapKey(key)} is already set');
+    }
+  }
+
   /// A map key as its Dart representation for the entry's key type (the
   /// token has already been read as text): string as written, integers
-  /// parsed in their width, bool from `true` / `false`. The reference's
-  /// `decodeMapKey`.
-  Object _decodeMapKey(FieldInfo keyFi, String key, Position pos) {
+  /// parsed in their width. A bool key is `true` / `false`, bare or quoted,
+  /// or a bare `1` / `0` (draft -01 § Entries and Keys); a quoted `"1"` is
+  /// not a bool literal. The reference's `decodeMapKey`.
+  Object _decodeMapKey(
+      FieldInfo keyFi, String key, TokenKind kind, Position pos) {
     var t = keyFi.type;
     if (t == PbFieldType.OS) return key;
     if (t == PbFieldType.OB) {
       if (key == 'true') return true;
       if (key == 'false') return false;
+      if (kind == TokenKind.int && key == '1') return true;
+      if (kind == TokenKind.int && key == '0') return false;
       throw PxfError(pos, 'invalid bool map key: $key');
     }
     if (t == PbFieldType.O3 || t == PbFieldType.OS3 || t == PbFieldType.OSF3) {
@@ -1008,7 +1049,8 @@ class DirectDecoder {
   /// A message-typed map value: the same forms a singular message field
   /// accepts (`{ ... }` block, or the Timestamp / Duration / wrapper /
   /// big-number shorthands), decoded into a fresh value message.
-  GeneratedMessage _decodeMapMessageValue(MapFieldInfo mfi, FieldInfo valueFi) {
+  GeneratedMessage _decodeMapMessageValue(
+      MapFieldInfo mfi, FieldInfo valueFi, Object key) {
     var make = mfi.valueCreator!;
     var subInfo = make().info_;
 
@@ -1048,7 +1090,8 @@ class DirectDecoder {
     }
     _advance();
     var sub = make();
-    _decodeFields(sub, true);
+    _decodeElementFields(
+        sub, '$pathPrefix${mfi.protoName}[${_shownMapKey(key)}].');
     return sub;
   }
 
@@ -1240,6 +1283,10 @@ class DirectDecoder {
     paths.add(path);
   }
 }
+
+/// A map key as an error and a presence path show it: a string quoted, as in
+/// `by_host["a"]`, anything else bare.
+String _shownMapKey(Object key) => key is String ? quotePxfString(key) : '$key';
 
 /// Resolves a PXF entry name to a field. Entry names are the proto field
 /// names (draft -01 §3.2; `order_id`), which is what every other port

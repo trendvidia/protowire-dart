@@ -11,7 +11,42 @@ format changes.
 
 ## Unreleased
 
+### Changed
+
+Each of these rejects a document that used to decode.
+
+- **A singular field bound twice in one body is rejected** (protowire#347,
+  option a). That covers two values, the same value twice, `null` then a
+  value, and two blocks for one message field, which no longer merge. Each
+  body is its own scope.
+- **A map key bound twice in one body is rejected** (protowire#396, option b),
+  inside one literal or across two bindings of the field. Keys compare as
+  values of the key type, so `1:` and `"1":` are one key of an integer-keyed
+  map. Distinct keys across two bindings still merge.
+- **A repeated field written as blocks is rejected** (protowire#337). Use a
+  list. Only a keyed repeated field has a block form.
+- **A named keyed entry cannot undo its name** (protowire#480): `null` on the
+  key field, or a binding of another member of the key field's oneof, is a key
+  conflict.
+- **`@type` after a block's first entry, or with an unquoted URL, is
+  rejected.** An integer or bool key before `=` or `{` is rejected too, by the
+  parser and the decoder.
+
+### Added
+
+- **The Any type entry works everywhere a body is written** (protowire#354):
+  list elements and map values as well as singular fields, and through `parse`
+  and the formatter, which keep it as a `TypeEntry`.
+- **`parse` accepts bool map keys,** and a `map<bool, V>` takes a bare `1` or
+  `0` as well as `true`, `false`, `"true"` and `"false"`.
+
 ### Fixed
+
+- **A block on a scalar or map field is a `PxfError`,** not a null-check crash.
+- **List elements and map values record presence on their own paths,**
+  `items[0].a` and `inners["k"].a`. Their fields were recorded at the parent's
+  path, so an element could mark a root field as present and hide a required
+  or default field. A `null` inside one stays out of the `_null` mask.
 
 - **`Result` reports a keyed entry's name as setting the key field**
   (protowire-go#214). After `kd { alpha {} }`, `isSet('kd[0].name')` is true

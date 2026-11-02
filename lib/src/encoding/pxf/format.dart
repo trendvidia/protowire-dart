@@ -124,6 +124,11 @@ class _Formatter {
         buf.write(': ');
         value(e.value, level);
         trailing(e.trailingComment);
+      } else if (e is TypeEntry) {
+        comments(e.leadingComments, level);
+        indent(level);
+        buf.write('@type = ${quotePxfString(e.url)}');
+        trailing(e.trailingComment);
       } else if (e is Block) {
         comments(e.leadingComments, level);
         indent(level);

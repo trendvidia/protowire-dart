@@ -76,8 +76,10 @@ void main() {
       });
 
       test('sibling maps at the bound do not add up', () {
-        final at = scalarMap(deepest);
-        read('$at\n$at');
+        // A singular field can be bound only once, so siblings need a list,
+        // whose `[` and element `{` take two levels.
+        final at = scalarMap(deepest - 2);
+        read('children = [{$at}, {$at}]');
       });
 
       test('a deep rejected document does not overflow the stack', () {
