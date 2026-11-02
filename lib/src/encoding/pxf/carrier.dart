@@ -101,6 +101,9 @@ List<_Field> _fields(List<int> b) {
     }
   } on InvalidProtocolBufferException {
     return out;
+  } on ArgumentError {
+    // The reader's answer to a negative length, or a RangeError, which is one.
+    return out;
   }
   return out;
 }

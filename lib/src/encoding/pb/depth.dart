@@ -23,6 +23,9 @@ const _maxNestingDepth = 100;
 /// [InvalidProtocolBufferException], the package's own for the depth. Use it
 /// in place of `mergeFromBuffer` on untrusted input.
 ///
+/// Malformed [data] throws [InvalidProtocolBufferException] and nothing else,
+/// and leaves [msg] unmerged when the walk is what rejects it.
+///
 /// ```dart
 /// final tree = Tree();
 /// mergeFromBufferChecked(tree, bytes);
@@ -31,14 +34,26 @@ void mergeFromBufferChecked(GeneratedMessage msg, List<int> data,
     [ExtensionRegistry registry = ExtensionRegistry.EMPTY,
     DecodeLimits limits = const DecodeLimits()]) {
   final tooBig = limits.checkSize(data.length);
-  if (tooBig != null) throw _LimitExceeded(tooBig);
-  _checkDepth(CodedBufferReader(data), msg.info_, 0, limits);
-  msg.mergeFromBuffer(data, registry);
+  if (tooBig != null) throw _Rejected(tooBig);
+  try {
+    _checkDepth(CodedBufferReader(data), msg.info_, 0, limits);
+    msg.mergeFromBuffer(data, registry);
+  } on ArgumentError catch (e) {
+    // package:protobuf reads a length as a signed 32-bit varint and does not
+    // reject a negative one with its own exception: it surfaces as this, or
+    // as a RangeError, which is one.
+    throw _Rejected('malformed length: ${e.message}');
+  }
 }
 
 /// Walks one message or group whose field numbers [info] names. A field on
 /// the wrong wire type is skipped, as the merge skips it, and a wire error
 /// surfaces as the merge's would.
+///
+/// A length-delimited field is never passed to `skipField`: that adds its
+/// length to the read position unchecked, so a negative one moves the position
+/// back, onto the field's own tag if it is chosen to, and this loop never ends.
+/// `readBytesAsView` throws on the same length.
 void _checkDepth(
     CodedBufferReader input, BuilderInfo info, int depth, DecodeLimits limits) {
   // Elements of each repeated field or map of this message, by field number:
@@ -47,7 +62,7 @@ void _checkDepth(
   void count(int number, int n) {
     final total = (counts[number] ?? 0) + n;
     if (total > limits.maxRepeatedCount) {
-      throw _LimitExceeded('field $number exceeds '
+      throw _Rejected('field $number exceeds '
           'MaxRepeatedCount=${limits.maxRepeatedCount}');
     }
     counts[number] = total;
@@ -76,7 +91,11 @@ void _checkDepth(
         continue;
       }
       if (repeated) count(fi.tagNumber, 1);
-      input.skipField(tag);
+      if (wireType == WIRETYPE_LENGTH_DELIMITED) {
+        input.readBytesAsView();
+      } else {
+        input.skipField(tag);
+      }
       continue;
     }
     if (repeated) count(fi.tagNumber, 1);
@@ -109,11 +128,12 @@ int _packedCount(int fieldType, Uint8List payload) {
   }
 }
 
-/// A limit broken on the PB path, as the package reports a malformed message.
-class _LimitExceeded implements InvalidProtocolBufferException {
+/// A limit broken or a length refused on the PB path, as the package reports
+/// a malformed message.
+class _Rejected implements InvalidProtocolBufferException {
   @override
   final String message;
-  _LimitExceeded(this.message);
+  _Rejected(this.message);
 
   @override
   String toString() => 'InvalidProtocolBufferException: $message';
