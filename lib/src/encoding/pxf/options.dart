@@ -11,7 +11,10 @@ class UnmarshalOptions {
   /// Schema annotations: an absent `(pxf.required)` field is an error, an
   /// absent `(pxf.default)` field takes its literal, and a `(pxf.key)` field
   /// decodes from its keyed block form. Generated messages carry no field
-  /// options, so null means no field has any of these.
+  /// options, so null means no field has any of these. Null also leaves one
+  /// rule unenforced: generated classes write `int32` and `optional int32`
+  /// identically, so a `null` on a plain proto3 scalar is rejected only with
+  /// a descriptor set here.
   final PxfAnnotations? annotations;
 
   UnmarshalOptions({

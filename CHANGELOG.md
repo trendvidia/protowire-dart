@@ -25,6 +25,17 @@ Each of these rejects a document that used to decode.
   map. Distinct keys across two bindings still merge.
 - **A repeated field written as blocks is rejected** (protowire#337). Use a
   list. Only a keyed repeated field has a block form.
+- **`null` binds only to a field with explicit presence** (protowire#339).
+  On a repeated or map field and on a proto2 `required` field it is always
+  rejected. On a proto3 scalar without `optional`, or an editions scalar with
+  implicit presence, it is rejected when `UnmarshalOptions.annotations` is
+  set. Generated classes write `int32` and `optional int32` identically, so
+  with no descriptor set a null on a plain scalar is still accepted.
+- **A raw line feed in a simple string is rejected** (protowire#350), by the
+  decoder, `parse` and `@dataset` cells. Write `\n` or use a triple-quoted
+  string.
+- **A `,` between map entries is rejected** (protowire#312). A comma separates
+  list elements only.
 - **A named keyed entry cannot undo its name** (protowire#480): `null` on the
   key field, or a binding of another member of the key field's oneof, is a key
   conflict.
@@ -40,8 +51,18 @@ Each of these rejects a document that used to decode.
 - **`parse` accepts bool map keys,** and a `map<bool, V>` takes a bare `1` or
   `0` as well as `true`, `false`, `"true"` and `"false"`.
 
+- **`marshal` writes a Duration as `time.Duration.String()` does:** `1h` is
+  now `1h0m0s`, as every other port writes it.
+
 ### Fixed
 
+- **Fractional and `µs` durations read** (`1.5ms`, `312.5µs`, `1h30m0.5s`),
+  the forms the other ports write for any measured latency.
+- **A Duration keeps its nanoseconds and its sign,** both ways. Parsing went
+  through Dart's microsecond `Duration`, so `100ns` was lost, and `-1.5s` got
+  positive nanos. `marshal` dropped everything below a millisecond.
+- **A packed repeated scalar decodes from a list.** Any non-empty list failed
+  with `unsupported type 2054`.
 - **A block on a scalar or map field is a `PxfError`,** not a null-check crash.
 - **List elements and map values record presence on their own paths,**
   `items[0].a` and `inners["k"].a`. Their fields were recorded at the parent's

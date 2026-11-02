@@ -52,6 +52,44 @@ class PxfSchemaField {
       {required this.isList, required this.isMap, this.messageType});
 }
 
+/// How one scope of a file resolves a field's presence: its syntax, and for
+/// editions the `field_presence` feature inherited so far, EXPLICIT being the
+/// 2023 default.
+class _Presence {
+  final String syntax;
+  final pbd.FeatureSet_FieldPresence feature;
+
+  _Presence(this.syntax, this.feature);
+
+  factory _Presence.ofFile(pbd.FileDescriptorProto file) {
+    final f = file.options.features;
+    return _Presence(
+        file.syntax,
+        f.hasFieldPresence()
+            ? f.fieldPresence
+            : pbd.FeatureSet_FieldPresence.EXPLICIT);
+  }
+
+  _Presence withMessage(pbd.DescriptorProto m) {
+    final f = m.options.features;
+    return f.hasFieldPresence() ? _Presence(syntax, f.fieldPresence) : this;
+  }
+
+  bool isImplicit(pbd.FieldDescriptorProto fd) {
+    if (fd.label == pbd.FieldDescriptorProto_Label.LABEL_REPEATED ||
+        fd.type == pbd.FieldDescriptorProto_Type.TYPE_MESSAGE ||
+        fd.type == pbd.FieldDescriptorProto_Type.TYPE_GROUP ||
+        fd.hasOneofIndex()) {
+      return false;
+    }
+    if (syntax == 'proto3') return !fd.proto3Optional;
+    if (syntax != 'editions') return false; // proto2 is explicit.
+    final own = fd.options.features;
+    final resolved = own.hasFieldPresence() ? own.fieldPresence : feature;
+    return resolved == pbd.FeatureSet_FieldPresence.IMPLICIT;
+  }
+}
+
 /// The schema-side half of `(pxf.required)` / `(pxf.default)` / `(pxf.key)`
 /// (protowire `proto/pxf/annotations.proto`), indexed from a descriptor set
 /// for the decoder, the encoder and `formatPxf` to consult (#14, #10).
@@ -73,6 +111,7 @@ class PxfAnnotations {
   final Map<String, String> _declaringFile = {};
   final Map<String, Map<String, PxfSchemaField>> _shapes = {};
   final List<String> _violations = [];
+  final Map<String, Set<String>> _implicitPresence = {};
 
   PxfAnnotations._();
 
@@ -89,8 +128,9 @@ class PxfAnnotations {
     final a = PxfAnnotations._();
     for (final file in fds.file) {
       final prefix = file.package.isEmpty ? '' : '${file.package}.';
+      final presence = _Presence.ofFile(file);
       for (final m in file.messageType) {
-        a._index(m, prefix, file.name);
+        a._index(m, prefix, file.name, presence);
       }
     }
     a._bindShapes();
@@ -103,7 +143,9 @@ class PxfAnnotations {
       PxfAnnotations.fromDescriptorSet(
           pbd.FileDescriptorSet.fromBuffer(bytes, pxfExtensionRegistry()));
 
-  void _index(pbd.DescriptorProto m, String prefix, String fileName) {
+  void _index(pbd.DescriptorProto m, String prefix, String fileName,
+      _Presence inherited) {
+    final presence = inherited.withMessage(m);
     final fullName = '$prefix${m.name}';
     _descriptors[fullName] = m;
     _declaringFile[fullName] = fileName;
@@ -128,10 +170,13 @@ class PxfAnnotations {
         fields[fd.name] = PxfFieldAnnotations(
             required: required, defaultLiteral: def, key: key);
       }
+      if (presence.isImplicit(fd)) {
+        (_implicitPresence[fullName] ??= {}).add(fd.name);
+      }
     }
     _byMessage[fullName] = fields;
     for (final n in m.nestedType) {
-      _index(n, '$fullName.', fileName);
+      _index(n, '$fullName.', fileName, presence);
     }
   }
 
@@ -219,6 +264,13 @@ class PxfAnnotations {
   /// descriptor set does not declare it.
   PxfSchemaField? schemaField(String messageFullName, String protoFieldName) =>
       _shapes[messageFullName]?[protoFieldName];
+
+  /// True when the descriptor set declares [protoFieldName] of
+  /// [messageFullName] as a singular field with no unset state: a proto3
+  /// scalar without `optional`, or an editions field with implicit presence.
+  /// Generated classes cannot tell these from `optional` ones.
+  bool hasImplicitPresence(String messageFullName, String protoFieldName) =>
+      _implicitPresence[messageFullName]?.contains(protoFieldName) ?? false;
 
   /// Indexed message names, sorted.
   List<String> get messageNames => _byMessage.keys.toList()..sort();

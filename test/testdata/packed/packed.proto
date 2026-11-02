@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
+// This port's own schema, not the spec repo's: every packed repeated scalar
+// type, for test/pxf_values_test.dart.
+
+syntax = "proto3";
+
+package packed.v1;
+
+enum Color {
+  COLOR_UNSPECIFIED = 0;
+  COLOR_RED = 1;
+}
+
+message Lists {
+  repeated int32 i32 = 1;
+  repeated int64 i64 = 2;
+  repeated uint32 u32 = 3;
+  repeated uint64 u64 = 4;
+  repeated sint32 s32 = 5;
+  repeated sint64 s64 = 6;
+  repeated fixed32 f32 = 7;
+  repeated fixed64 f64 = 8;
+  repeated sfixed32 sf32 = 9;
+  repeated sfixed64 sf64 = 10;
+  repeated float fl = 11;
+  repeated double db = 12;
+  repeated bool bo = 13;
+  repeated Color en = 14;
+}
