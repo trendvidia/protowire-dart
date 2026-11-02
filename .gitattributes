@@ -1,0 +1,4 @@
+# Wire fixtures are bytes. A protobuf tag is often 0x0A, and a file with no NUL
+# reads as text, so a Windows checkout would turn each into CR LF.
+*.binpb binary
+*.sbe binary
