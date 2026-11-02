@@ -24,7 +24,9 @@ export 'src/encoding/sbe/view.dart';
 export 'src/encoding/sbe/xmltoproto.dart';
 export 'src/encoding/sbe/prototoxml.dart';
 export 'src/encoding/pb/depth.dart';
-export 'src/encoding/pb/native.dart';
+export 'src/encoding/pb/proto_tag.dart';
+export 'src/encoding/pb/native_stub.dart'
+    if (dart.library.mirrors) 'src/encoding/pb/native.dart';
 export 'src/envelope/envelope.dart';
 
 // Note: the protoc-generated bindings under src/generated/proto/ are
