@@ -93,6 +93,10 @@ Each of these rejects a document that used to decode.
 
 ### Fixed
 
+- **The main import compiles with `dart compile exe`** (and for the web). It
+  pulled in `dart:mirrors` through the native `pb` codec. The codec stays where
+  it was on the Dart VM, and elsewhere `marshalNative` and `unmarshalNative`
+  throw `UnsupportedError`.
 - **Fractional and `µs` durations read** (`1.5ms`, `312.5µs`, `1h30m0.5s`),
   the forms the other ports write for any measured latency.
 - **A Duration keeps its nanoseconds and its sign,** both ways. Parsing went

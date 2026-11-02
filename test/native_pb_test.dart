@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:protowire/src/encoding/pb/native.dart';
+import 'package:protowire/src/encoding/pb/proto_tag.dart';
 import 'package:protowire/src/generated/proto/envelope/v1/envelope.pb.dart'
     as envpb;
 import 'package:test/test.dart';

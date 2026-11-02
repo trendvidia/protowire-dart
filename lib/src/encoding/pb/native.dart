@@ -8,12 +8,7 @@ import 'package:fixnum/fixnum.dart';
 
 import '../../limits.dart';
 import 'depth.dart';
-
-class ProtoTag {
-  final int tag;
-  final bool zigzag;
-  const ProtoTag(this.tag, {this.zigzag = false});
-}
+import 'proto_tag.dart';
 
 /// Encodes [obj], whose fields carry [ProtoTag]s, as protobuf binary. A
 /// `Map<K, V>` field is a proto3 map: `repeated MapEntry { key = 1; value = 2; }`,
