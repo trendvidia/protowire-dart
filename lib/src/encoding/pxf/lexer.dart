@@ -10,7 +10,7 @@ import 'token.dart';
 /// segments of a float, and the integer head of a duration. The lexer is the
 /// natural choke-point — every downstream `int.parse` / `Int64.parseInt` /
 /// `BigInt.parse` would otherwise have to re-derive the cap.
-const int _maxNumericLiteralDigits = 4096;
+const int maxNumericLiteralDigits = 4096;
 
 /// What MaxNumericLiteralDigits counts in `s[start:end]`: the significant
 /// digits of a literal's mantissa, either side of the point, leading zeros
@@ -523,10 +523,10 @@ class Lexer {
         end++;
       }
       if (end < input.length && _isDurationUnit(input.codeUnitAt(end))) {
-        if (end - digitStart > _maxNumericLiteralDigits) {
+        if (end - digitStart > maxNumericLiteralDigits) {
           return Token(
               TokenKind.illegal,
-              'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+              'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
               '(${end - digitStart} digits)',
               p);
         }
@@ -543,10 +543,10 @@ class Lexer {
     if (pos < input.length && _isDurationUnit(_peekCode)) {
       // Not a numeric literal, so its digits are not the cap's to count, but
       // the duration pattern must not see input of unbounded length.
-      if (digitCount > _maxNumericLiteralDigits) {
+      if (digitCount > maxNumericLiteralDigits) {
         return Token(
             TokenKind.illegal,
-            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+            'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
             '($digitCount digits)',
             p);
       }
@@ -584,12 +584,12 @@ class Lexer {
   /// null. A mantissa no longer than the cap needs no counting, and that is
   /// every literal a real document carries.
   Token? _checkDigitCap(Position p, int from) {
-    if (pos - from <= _maxNumericLiteralDigits) return null;
+    if (pos - from <= maxNumericLiteralDigits) return null;
     final n = countSignificantDigits(input, from, pos);
-    if (n <= _maxNumericLiteralDigits) return null;
+    if (n <= maxNumericLiteralDigits) return null;
     return Token(
         TokenKind.illegal,
-        'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+        'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
         '($n digits)',
         p);
   }

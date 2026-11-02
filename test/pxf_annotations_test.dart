@@ -297,9 +297,11 @@ void main() {
       full('name = "svc"\nlimits = null\n');
     });
 
-    test('list elements are not validated (as in the reference)', () {
-      final s = full('name = "svc"\nhistory = [ { min = 2 } ]\n');
-      expect((s.getField(6) as List).length, 1);
+    test('list elements are validated, on their own paths', () {
+      expect(
+          () => full('name = "svc"\nhistory = [ { min = 2 } ]\n'),
+          throwsA(isA<PxfError>().having((e) => '$e', 'message',
+              contains('required field "history[0].max" is absent'))));
     });
   });
 
@@ -335,11 +337,11 @@ void main() {
       expect(s.hasField(2), isFalse);
     });
 
-    test('applies inside present singular messages, not list elements', () {
+    test('applies inside singular messages and list elements', () {
       final s =
           full('name = "svc"\nlimits { max = 9 }\nhistory = [ { max = 9 } ]\n');
       expect((s.getField(5) as Limits).getField(2), 1);
-      expect(((s.getField(6) as List).first as Limits).hasField(2), isFalse);
+      expect(((s.getField(6) as List).first as Limits).getField(2), 1);
     });
 
     test('is skipped for a oneof member when another member is set', () {

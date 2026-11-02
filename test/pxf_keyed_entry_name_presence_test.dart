@@ -6,9 +6,9 @@
 // (protowire-go#214). The Result has to say so: anything reading presence,
 // the required/default pass included, would otherwise take the key as absent.
 //
-// This port's required/default pass does not yet walk list elements, so a
-// default on the key cannot replace the name today, and these tests pin the
-// values as well as the presence. Mirrors protowire-go's
+// The required/default pass walks list elements, so a default on the key would
+// replace the name without this: these tests pin the values as well as the
+// presence. Mirrors protowire-go's
 // keyed_entry_name_presence_test.go. The messages are written by hand, as in
 // pxf_annotations_test.dart: the schema is:
 //
@@ -262,6 +262,16 @@ void main() {
       final r = unmarshalFull(doc, P.create(), options: opts);
       expect(r.isAbsent(mark), isTrue, reason: doc);
     }
+  });
+
+  test('an element without its key takes the default or is refused', () {
+    final m = P.create();
+    unmarshalFull('kd = [{}]', m, options: opts);
+    expect(element(m, 1, 0).getField(1), 'dflt');
+    expect(
+        () => unmarshalFull('kr = [{}]', P.create(), options: opts),
+        throwsA(isA<PxfError>().having((e) => '$e', 'message',
+            contains('required field "kr[0].name" is absent'))));
   });
 
   test('a oneof sibling of the key stays unset', () {
