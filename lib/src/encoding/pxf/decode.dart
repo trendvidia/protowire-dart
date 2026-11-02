@@ -7,12 +7,13 @@ import 'package:fixnum/fixnum.dart';
 import 'annotations.dart';
 import 'ast.dart';
 import 'brace_scan.dart';
-import 'duration.dart';
+import 'dataset.dart' show columnPathError;
 import 'errors.dart';
 import 'format.dart' show quotePxfString;
 import 'keyed.dart';
 import 'lexer.dart';
 import 'options.dart';
+import 'parser.dart' show Parser;
 import 'result.dart';
 import 'schema.dart';
 import 'token.dart';
@@ -27,6 +28,24 @@ final Expando<Map<String, FieldInfo>> _byProtoNameCache = Expando('pxfByProto');
 /// HARDENING.md § Recursion. Decoder rejects past this many nested message
 /// blocks. The cross-port contract is 100; raising it here would diverge.
 const int _maxNestingDepth = 100;
+
+/// A packed repeated type as the unpacked one: an element reads the same.
+const Map<int, int> _packedAsRepeated = {
+  PbFieldType.KB: PbFieldType.PB,
+  PbFieldType.KE: PbFieldType.PE,
+  PbFieldType.KF: PbFieldType.PF,
+  PbFieldType.KD: PbFieldType.PD,
+  PbFieldType.K3: PbFieldType.P3,
+  PbFieldType.KU3: PbFieldType.PU3,
+  PbFieldType.KS3: PbFieldType.PS3,
+  PbFieldType.KF3: PbFieldType.PF3,
+  PbFieldType.KSF3: PbFieldType.PSF3,
+  PbFieldType.K6: PbFieldType.P6,
+  PbFieldType.KU6: PbFieldType.PU6,
+  PbFieldType.KS6: PbFieldType.PS6,
+  PbFieldType.KF6: PbFieldType.PF6,
+  PbFieldType.KSF6: PbFieldType.PSF6,
+};
 
 class DirectDecoder {
   final Lexer lex;
@@ -217,17 +236,14 @@ class DirectDecoder {
           '@dataset column list must contain at least one field name, got ${current.kind.name}');
     }
     final columns = <String>[];
+    final positions = <Position>[];
     while (true) {
       if (current.kind != TokenKind.ident) {
         throw PxfError(current.pos,
             'expected column field name, got ${current.kind.name}');
       }
-      final colName = current.value;
-      if (colName.contains('.')) {
-        throw PxfError(current.pos,
-            '@dataset column "$colName": dotted column paths are not supported in v1 (draft §3.4.4)');
-      }
-      columns.add(colName);
+      columns.add(current.value);
+      positions.add(current.pos);
       _advance();
       if (current.kind == TokenKind.comma) {
         _advance();
@@ -236,6 +252,10 @@ class DirectDecoder {
       if (current.kind == TokenKind.rparen) break;
       throw PxfError(current.pos,
           'expected "," or ")" in @dataset column list, got ${current.kind.name}');
+    }
+    final headerError = columnPathError(columns);
+    if (headerError != null) {
+      throw PxfError(positions[headerError.$1], headerError.$2);
     }
     _advance();
 
@@ -268,68 +288,22 @@ class DirectDecoder {
     );
   }
 
-  /// Consumes one cell of a @dataset row. Returns null for an empty
-  /// cell. Rejects list and block values per v1 cell-grammar.
+  /// Consumes one cell of a @dataset row, null for an empty one. The value
+  /// goes through the AST parser on this decoder's own lexer, so a cell
+  /// parses exactly as it does under `parse`, lists and blocks included.
   Value? _consumeRowCell() {
-    switch (current.kind) {
-      case TokenKind.comma:
-      case TokenKind.rparen:
-        return null;
-      case TokenKind.lbracket:
-        throw PxfError(current.pos,
-            '@dataset cells cannot contain list values in v1 (draft §3.4.4)');
-      case TokenKind.lbrace:
-        throw PxfError(current.pos,
-            '@dataset cells cannot contain block values in v1 (draft §3.4.4)');
-      default:
-        // Match Parser._parseValue subset used by row cells. Wrap as a
-        // minimal Value; we only need pos + null detection downstream.
-        final pos = current.pos;
-        switch (current.kind) {
-          case TokenKind.string:
-            final v = StringVal(pos, current.value);
-            _advance();
-            return v;
-          case TokenKind.int:
-            final v = IntVal(pos, current.value);
-            _advance();
-            return v;
-          case TokenKind.float:
-            final v = FloatVal(pos, current.value);
-            _advance();
-            return v;
-          case TokenKind.bool:
-            final v = BoolVal(pos, current.value == 'true');
-            _advance();
-            return v;
-          case TokenKind.bytes:
-            final decoded = base64.decode(current.value);
-            final v = BytesVal(pos, decoded);
-            _advance();
-            return v;
-          case TokenKind.timestamp:
-            final t = DateTime.parse(current.value);
-            final v = TimestampVal(pos, t, current.value);
-            _advance();
-            return v;
-          case TokenKind.duration:
-            final d = parseGoDuration(current.value);
-            final v = DurationVal(pos, d, current.value);
-            _advance();
-            return v;
-          case TokenKind.null_:
-            final v = NullVal(pos);
-            _advance();
-            return v;
-          case TokenKind.ident:
-            final v = IdentVal(pos, current.value);
-            _advance();
-            return v;
-          default:
-            throw PxfError(pos,
-                'expected value, got ${current.kind.name} ("${current.value}")');
-        }
+    if (current.kind == TokenKind.comma || current.kind == TokenKind.rparen) {
+      return null;
     }
+    final parser = Parser.resume(lex, current);
+    final value = parser.parseCell();
+    current = parser.current;
+    // The parser passes over comments and newlines as this decoder does, but
+    // leaves a lexer rejection for its caller.
+    if (current.kind == TokenKind.illegal) {
+      throw PxfError(current.pos, current.value);
+    }
+    return value;
   }
 
   /// Mirrors Parser._parseProtoDirective for the streaming path.
@@ -491,7 +465,7 @@ class DirectDecoder {
           // The grammar takes a string here everywhere. In message context
           // it never names a field; keyed blocks have their own loop.
           if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
-          var fi = _fieldNamed(info, key);
+          var fi = fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipValue();
@@ -506,6 +480,7 @@ class DirectDecoder {
           _bind(bound, fi, pos);
 
           if (current.kind == TokenKind.null_) {
+            _checkNullable(info, fi);
             if (result != null) {
               var path = pathPrefix + fi.protoName;
               result!.markNull(path);
@@ -535,7 +510,7 @@ class DirectDecoder {
           }
           if (keyQuoted) throw quotedNameUnkeyedError(pos, key);
           _advance();
-          var fi = _fieldNamed(info, key);
+          var fi = fieldNamed(info, key);
           if (fi == null) {
             if (discardUnknown) {
               _skipBraced();
@@ -597,6 +572,32 @@ class DirectDecoder {
           throw PxfError(current.pos,
               'expected "=" or "{" after "$key", got ${current.kind.name}');
       }
+    }
+  }
+
+  /// Rejects a `null` bound to [fi] unless the field has explicit presence
+  /// (draft -01 § Booleans, Null, and Identifier Values). Generated classes
+  /// write a proto3 `int32` and `optional int32` identically, so only the
+  /// descriptor set can tell a plain scalar: with no [annotations], a null on
+  /// one is accepted and recorded.
+  void _checkNullable(BuilderInfo info, FieldInfo fi) {
+    final name = fi.protoName;
+    if (fi.isMapField) {
+      throw PxfError(current.pos, 'null is not allowed on map field "$name"');
+    }
+    if (fi.isRepeated) {
+      throw PxfError(
+          current.pos, 'null is not allowed on repeated field "$name"');
+    }
+    if (fi.isRequired) {
+      throw PxfError(current.pos,
+          'null is not allowed on required field "$name": it must be set');
+    }
+    if (fi.isGroupOrMessage || info.oneofs.containsKey(fi.tagNumber)) return;
+    if (annotations?.hasImplicitPresence(info.qualifiedMessageName, name) ??
+        false) {
+      throw PxfError(current.pos,
+          'null is not allowed on scalar field "$name": declare it optional, or as a wrapper type, to make it nullable');
     }
   }
 
@@ -662,9 +663,8 @@ class DirectDecoder {
       return;
     }
     if (isDuration(subInfo) && current.kind == TokenKind.duration) {
-      var dur = parseGoDuration(current.value);
       var sub = subBuilder();
-      setDurationFields(sub, dur);
+      setDurationLiteral(sub, current.value);
       msg.setField(fi.tagNumber, sub);
       _advance();
       return;
@@ -745,6 +745,13 @@ class DirectDecoder {
       _depth++;
     }
 
+    // The body is about to be packed to bytes, out of reach of the pass over
+    // the root, so it takes the pass here, under the Any's own path.
+    final ann = annotations;
+    if (ann != null && result != null) {
+      _postDecode(innerMsg, result!, ann, null, pathPrefix);
+    }
+
     anyMsg.setField(1, typeUrl);
     anyMsg.setField(2, innerMsg.writeToBuffer());
   }
@@ -769,7 +776,7 @@ class DirectDecoder {
         throw PxfError(current.pos,
             'null is not allowed in repeated field "${fi.protoName}"');
       }
-      if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
+      if (fi.isGroupOrMessage) {
         var sub = fi.subBuilder!();
         if (current.kind == TokenKind.lbrace) {
           _advance();
@@ -789,7 +796,7 @@ class DirectDecoder {
             _advance();
           } else if (isDuration(subInfo) &&
               current.kind == TokenKind.duration) {
-            setDurationFields(sub, parseGoDuration(current.value));
+            setDurationLiteral(sub, current.value);
             list.add(sub);
             _advance();
           } else if (isWrapperType(subInfo)) {
@@ -802,7 +809,7 @@ class DirectDecoder {
                 current.pos, 'expected "{" for message element in list');
           }
         }
-      } else if (fi.type == PbFieldType.PE || fi.type == PbFieldType.OE) {
+      } else if (fi.isEnum) {
         var val = _consumeEnum(fi);
         list.add(val);
       } else {
@@ -978,10 +985,6 @@ class DirectDecoder {
         value = _consumeScalar(valueFi);
       }
       map[key] = value;
-
-      if (current.kind == TokenKind.comma) {
-        _advance();
-      }
     }
     if (current.kind != TokenKind.rbrace) {
       throw PxfError(current.pos, 'expected "}", got ${current.kind.name}');
@@ -1062,7 +1065,7 @@ class DirectDecoder {
     }
     if (isDuration(subInfo) && current.kind == TokenKind.duration) {
       var sub = make();
-      setDurationFields(sub, parseGoDuration(current.value));
+      setDurationLiteral(sub, current.value);
       _advance();
       return sub;
     }
@@ -1097,7 +1100,7 @@ class DirectDecoder {
 
   Object _consumeScalar(FieldInfo fi) {
     var pos = current.pos;
-    var t = fi.type;
+    var t = _packedAsRepeated[fi.type] ?? fi.type;
     if (t == PbFieldType.OS || t == PbFieldType.PS || t == PbFieldType.QS) {
       if (current.kind != TokenKind.string) {
         throw PxfError(pos, 'expected string for field "${fi.protoName}"');
@@ -1293,7 +1296,7 @@ String _shownMapKey(Object key) => key is String ? quotePxfString(key) : '$key';
 /// writes and reads; [BuilderInfo.byName] indexes the Dart names generated
 /// code uses (`orderId`), so those are accepted too for documents written
 /// against this port. The proto-name index is built once per [BuilderInfo].
-FieldInfo? _fieldNamed(BuilderInfo info, String key) {
+FieldInfo? fieldNamed(BuilderInfo info, String key) {
   final byDart = info.byName[key];
   if (byDart != null) return byDart;
   final byProto = _byProtoNameCache[info] ??= {
@@ -1338,9 +1341,10 @@ void unmarshal(String input, GeneratedMessage msg,
 /// `postDecode` does: for every field of the message's descriptor that is
 /// absent (a field set to `null` counts as present), `required` is a
 /// [PxfError] `required field "path" is absent`, otherwise `default` is
-/// applied by the field's type; present, non-null singular message fields
-/// are descended into (list elements and map values are not); a defaulted
-/// field stays absent in the [Result], since it was not in the input.
+/// applied by the field's type. Every message body the document wrote gets
+/// this: singular message fields, list elements (`items[0].`), map values
+/// (`by_key["k"].`) and Any bodies. A defaulted field stays absent in the
+/// [Result], since it was not in the input.
 Result unmarshalFull(String input, GeneratedMessage msg,
     {UnmarshalOptions? options}) {
   final result = Result();
@@ -1380,12 +1384,38 @@ void _postDecode(GeneratedMessage msg, Result result, PxfAnnotations ann,
           !_oneofAlreadyChosen(info, fi, result, prefix)) {
         _applyDefault(msg, fi, a.defaultLiteral!);
       }
-    } else if (fi.type == PbFieldType.OM &&
-        !result.isNull(path) &&
-        msg.hasField(tag)) {
-      _postDecode(
-          msg.getField(tag) as GeneratedMessage, result, ann, null, '$path.');
+    } else if (!result.isNull(path)) {
+      _postDecodeBodies(msg, fi, result, ann, path);
     }
+  }
+}
+
+/// Runs the pass on the message bodies [fi], a present field of [msg] at
+/// [path], holds. Map values go in key order, so the first error is the same
+/// on every run.
+void _postDecodeBodies(GeneratedMessage msg, FieldInfo fi, Result result,
+    PxfAnnotations ann, String path) {
+  if (fi.isMapField) {
+    if (!PbFieldType.isGroupOrMessage((fi as MapFieldInfo).valueFieldType)) {
+      return;
+    }
+    final entries = [
+      for (final e in (msg.getField(fi.tagNumber) as Map).entries)
+        ('$path[${_shownMapKey(e.key as Object)}]', e.value as GeneratedMessage)
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+    for (final (entryPath, body) in entries) {
+      _postDecode(body, result, ann, null, '$entryPath.');
+    }
+  } else if (!fi.isGroupOrMessage) {
+    return;
+  } else if (fi.isRepeated) {
+    final list = msg.getField(fi.tagNumber) as List;
+    for (var i = 0; i < list.length; i++) {
+      _postDecode(list[i] as GeneratedMessage, result, ann, null, '$path[$i].');
+    }
+  } else if (msg.hasField(fi.tagNumber)) {
+    _postDecode(msg.getField(fi.tagNumber) as GeneratedMessage, result, ann,
+        null, '$path.');
   }
 }
 
@@ -1506,7 +1536,7 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
   }
   if (isDuration(info)) {
     try {
-      setDurationFields(sub, parseGoDuration(literal));
+      setDurationLiteral(sub, literal);
     } on FormatException {
       throw _badDefault('duration', literal, fi);
     }

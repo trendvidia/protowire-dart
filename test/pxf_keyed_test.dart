@@ -297,13 +297,17 @@ void main() {
     });
 
     test('presence: the field, and elements at their own paths', () {
-      final doc = 'children { a { type = "x" } b { type = null } }\n';
+      final doc = 'children { a { type = "x" } b { type = "y" } }\n';
       final r = unmarshalFull(doc, Node(),
           options: UnmarshalOptions(annotations: ann));
       expect(r.isSet('children'), isTrue);
       expect(r.isSet('children[0].type'), isTrue);
-      expect(r.isNull('children[1].type'), isTrue);
+      expect(r.isSet('children[1].type'), isTrue);
       expect(r.isAbsent('type'), isTrue, reason: 'not the root field');
+      // Only an optional field can hold a null, here the anonymous form's key.
+      final nulled = unmarshalFull('tags = [{ name = null }]', Catalog(),
+          options: UnmarshalOptions(annotations: ann));
+      expect(nulled.isNull('tags[0].name'), isTrue);
     });
 
     test('the anonymous form reports the same paths', () {

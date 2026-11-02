@@ -63,6 +63,13 @@ String formatDocument(Document doc) {
   return f.buf.toString();
 }
 
+/// [v] as PXF text at the top level.
+String formatValue(Value v) {
+  final f = _Formatter();
+  f.value(v, 0);
+  return f.buf.toString();
+}
+
 /// [s] as a PXF string literal.
 String quotePxfString(String s) {
   final buf = StringBuffer('"');

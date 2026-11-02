@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 
+import 'duration.dart';
 import 'lexer.dart' show countSignificantDigits;
 
 bool isTimestamp(BuilderInfo info) {
@@ -32,6 +33,23 @@ void setDurationFields(GeneratedMessage msg, Duration dur) {
   int nanos = (microseconds % 1000000) * 1000;
   msg.setField(1, Int64(seconds));
   msg.setField(2, nanos);
+}
+
+/// A `google.protobuf.Duration` from a literal, exact to the nanosecond:
+/// seconds and nanos carry the same sign, so `-1.5s` is -1 and -500000000.
+void setDurationLiteral(GeneratedMessage msg, String literal) {
+  final nanos = parseGoDurationNanos(literal);
+  final second = BigInt.from(1000000000);
+  msg.setField(1, Int64.parseInt((nanos ~/ second).toString()));
+  msg.setField(2, nanos.remainder(second).toInt());
+}
+
+/// The nanoseconds of a `google.protobuf.Duration`.
+BigInt readDurationNanos(GeneratedMessage msg) {
+  final seconds = msg.getField(1) as Int64;
+  final nanos = msg.getField(2) as int;
+  return BigInt.parse(seconds.toString()) * BigInt.from(1000000000) +
+      BigInt.from(nanos);
 }
 
 DateTime readTimestamp(GeneratedMessage msg) {

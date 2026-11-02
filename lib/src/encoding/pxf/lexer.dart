@@ -2,6 +2,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'dart:convert';
 import 'dart:typed_data';
+import 'duration.dart';
 import 'token.dart';
 
 /// HARDENING.md § Numeric-literal cap. Applies to any contiguous digit run
@@ -9,7 +10,7 @@ import 'token.dart';
 /// segments of a float, and the integer head of a duration. The lexer is the
 /// natural choke-point — every downstream `int.parse` / `Int64.parseInt` /
 /// `BigInt.parse` would otherwise have to re-derive the cap.
-const int _maxNumericLiteralDigits = 4096;
+const int maxNumericLiteralDigits = 4096;
 
 /// What MaxNumericLiteralDigits counts in `s[start:end]`: the significant
 /// digits of a literal's mantissa, either side of the point, leading zeros
@@ -208,6 +209,12 @@ class Lexer {
     // legitimate codepoints U+00FF / U+00FE.
     final bytes = BytesBuilder(copy: false);
     while (pos < input.length) {
+      if (_peekCode == 0x0A) {
+        return Token(
+            TokenKind.illegal,
+            r'newline in string literal: write it as \n, or use a """triple-quoted""" string',
+            p);
+      }
       final ch = _advance();
       if (ch == 0x22) {
         // closing "
@@ -508,6 +515,24 @@ class Lexer {
     if (!neg && digitCount == 4 && pos < input.length && _peekCode == 45) {
       return _lexTimestamp(p, start);
     }
+    // A fraction followed by a unit is a duration segment (draft -01 §3.3).
+    // A digit must follow the '.', and an exponent is not a unit.
+    if (pos + 1 < input.length && _peekCode == 46 && _isDigit(_peekCodeAt(1))) {
+      var end = pos + 1;
+      while (end < input.length && _isDigit(input.codeUnitAt(end))) {
+        end++;
+      }
+      if (end < input.length && _isDurationUnit(input.codeUnitAt(end))) {
+        if (end - digitStart > maxNumericLiteralDigits) {
+          return Token(
+              TokenKind.illegal,
+              'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
+              '(${end - digitStart} digits)',
+              p);
+        }
+        return _lexDuration(p, start);
+      }
+    }
     // Float: '.' or 'e'/'E'
     if (pos < input.length &&
         (_peekCode == 46 || _peekCode == 101 || _peekCode == 69)) {
@@ -518,10 +543,10 @@ class Lexer {
     if (pos < input.length && _isDurationUnit(_peekCode)) {
       // Not a numeric literal, so its digits are not the cap's to count, but
       // the duration pattern must not see input of unbounded length.
-      if (digitCount > _maxNumericLiteralDigits) {
+      if (digitCount > maxNumericLiteralDigits) {
         return Token(
             TokenKind.illegal,
-            'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+            'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
             '($digitCount digits)',
             p);
       }
@@ -559,12 +584,12 @@ class Lexer {
   /// null. A mantissa no longer than the cap needs no counting, and that is
   /// every literal a real document carries.
   Token? _checkDigitCap(Position p, int from) {
-    if (pos - from <= _maxNumericLiteralDigits) return null;
+    if (pos - from <= maxNumericLiteralDigits) return null;
     final n = countSignificantDigits(input, from, pos);
-    if (n <= _maxNumericLiteralDigits) return null;
+    if (n <= maxNumericLiteralDigits) return null;
     return Token(
         TokenKind.illegal,
-        'numeric literal exceeds MaxNumericLiteralDigits=$_maxNumericLiteralDigits '
+        'numeric literal exceeds MaxNumericLiteralDigits=$maxNumericLiteralDigits '
         '($n digits)',
         p);
   }
@@ -601,11 +626,19 @@ class Lexer {
 
   Token _lexDuration(Position p, int start) {
     while (pos < input.length &&
-        (_isDigit(_peekCode) || _isLowerAlpha(_peekCode))) {
+        (_isDigit(_peekCode) ||
+            _isLowerAlpha(_peekCode) ||
+            _peekCode == _microSign ||
+            (_peekCode == 46 && _isDigit(_peekCodeAt(1))))) {
       _advance();
     }
     String raw = input.substring(start, pos);
     if (!_isValidDuration(raw)) {
+      return Token(TokenKind.illegal, 'invalid duration: $raw', p);
+    }
+    try {
+      parseGoDurationNanos(raw);
+    } on FormatException {
       return Token(TokenKind.illegal, 'invalid duration: $raw', p);
     }
     return Token(TokenKind.duration, raw, p);
@@ -647,7 +680,12 @@ class Lexer {
       ch == 109 ||
       ch == 115 ||
       ch == 110 ||
-      ch == 117; // h, m, s, n, u
+      ch == 117 ||
+      ch == _microSign; // h, m, s, n, u, µ
+
+  /// U+00B5 MICRO SIGN, the only micro the grammar has: U+03BC GREEK SMALL
+  /// LETTER MU is not a unit.
+  static const _microSign = 0xB5;
   bool _isLowerAlpha(int ch) => ch >= 97 && ch <= 122;
 }
 

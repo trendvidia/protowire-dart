@@ -25,6 +25,24 @@ Each of these rejects a document that used to decode.
   map. Distinct keys across two bindings still merge.
 - **A repeated field written as blocks is rejected** (protowire#337). Use a
   list. Only a keyed repeated field has a block form.
+- **`null` binds only to a field with explicit presence** (protowire#339).
+  On a repeated or map field and on a proto2 `required` field it is always
+  rejected. On a proto3 scalar without `optional`, or an editions scalar with
+  implicit presence, it is rejected when `UnmarshalOptions.annotations` is
+  set. Generated classes write `int32` and `optional int32` identically, so
+  with no descriptor set a null on a plain scalar is still accepted.
+- **A raw line feed in a simple string is rejected** (protowire#350), by the
+  decoder, `parse` and `@dataset` cells. Write `\n` or use a triple-quoted
+  string.
+- **A `,` between map entries is rejected** (protowire#312). A comma separates
+  list elements only.
+- **`(pxf.required)` and `(pxf.default)` apply in every message body**
+  (protowire#352): list elements, map values and Any bodies, not only singular
+  fields. A missing required field in an element is now an error, reported at
+  its own path, such as `required field "kr[0].name" is absent`.
+- **More schemas are refused at bind** (draft -01 "Oneof Members", "Default
+  Placement"): a required oneof member, two defaults in one oneof, and a
+  default on a repeated, map, group or plain message field.
 - **A named keyed entry cannot undo its name** (protowire#480): `null` on the
   key field, or a binding of another member of the key field's oneof, is a key
   conflict.
@@ -34,6 +52,17 @@ Each of these rejects a document that used to decode.
 
 ### Added
 
+- **`@required` and `@default` are read** from the 1327 annotation carrier, and
+  every bind check applies to both spellings. Two spellings of one default that
+  disagree are refused. A `@default` on a `pxf.BigFloat` is refused at bind
+  until the BigFloat encoder lands (#33).
+- **`@dataset` rows bind:** `bindDatasetRow` binds a row to a message, so a
+  cell means what `column = <value>` means in a body. Empty cells stay absent,
+  and with annotations they take the default or are rejected as required.
+- **`@dataset` cells may hold a list or a block** (protowire#341), and **a
+  column may be a dotted path into a sub-message** (protowire#342). The header
+  rejects a path named twice, a field beside a path inside it, and an empty
+  segment. So `(a, a)` is now an error.
 - **The Any type entry works everywhere a body is written** (protowire#354):
   list elements and map values as well as singular fields, and through `parse`
   and the formatter, which keep it as a `TypeEntry`.
@@ -47,8 +76,18 @@ Each of these rejects a document that used to decode.
 - **`dump_envelope --vector zero-map-entry`** prints the map-entry vector of
   protowire#295. An unknown vector exits 3 with `not-implemented: <name>`.
 
+- **`marshal` writes a Duration as `time.Duration.String()` does:** `1h` is
+  now `1h0m0s`, as every other port writes it.
+
 ### Fixed
 
+- **Fractional and `µs` durations read** (`1.5ms`, `312.5µs`, `1h30m0.5s`),
+  the forms the other ports write for any measured latency.
+- **A Duration keeps its nanoseconds and its sign,** both ways. Parsing went
+  through Dart's microsecond `Duration`, so `100ns` was lost, and `-1.5s` got
+  positive nanos. `marshal` dropped everything below a millisecond.
+- **A packed repeated scalar decodes from a list.** Any non-empty list failed
+  with `unsupported type 2054`.
 - **A block on a scalar or map field is a `PxfError`,** not a null-check crash.
 - **List elements and map values record presence on their own paths,**
   `items[0].a` and `inners["k"].a`. Their fields were recorded at the parent's
