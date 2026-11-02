@@ -8,6 +8,8 @@ import 'lexer.dart';
 import 'schema.dart';
 import 'token.dart';
 import 'errors.dart';
+import 'keyed.dart'
+    show nonNameAssignError, nonNameBlockError, typeEntryMisplaced;
 import 'duration.dart';
 
 /// HARDENING.md § Recursion — see decode.dart for the cross-port rationale.
@@ -413,17 +415,22 @@ class Parser {
 
     if (current.kind != TokenKind.ident &&
         current.kind != TokenKind.string &&
-        current.kind != TokenKind.int) {
+        current.kind != TokenKind.int &&
+        current.kind != TokenKind.bool) {
       throw PxfError(pos,
-          'expected identifier, string, or integer, got ${current.kind.name} ("${current.value}")');
+          'expected identifier, string, integer, or bool, got ${current.kind.name} ("${current.value}")');
     }
 
     var key = current.value;
-    var quoted = current.kind == TokenKind.string;
+    final keyKind = current.kind;
+    var quoted = keyKind == TokenKind.string;
     _advance();
 
     switch (current.kind) {
       case TokenKind.equals:
+        if (keyKind == TokenKind.int || keyKind == TokenKind.bool) {
+          throw nonNameAssignError(pos, keyKind, key);
+        }
         _advance();
         var val = _parseValue();
         return Assignment(
@@ -448,6 +455,9 @@ class Parser {
         );
 
       case TokenKind.lbrace:
+        if (keyKind == TokenKind.int || keyKind == TokenKind.bool) {
+          throw nonNameBlockError(pos, keyKind, key);
+        }
         _advance();
         var entries = _parseBody();
         return Block(
@@ -462,6 +472,30 @@ class Parser {
         throw PxfError(current.pos,
             'expected "=", ":", or "{" after "$key", got ${current.kind.name}');
     }
+  }
+
+  /// `@type = "<type-url>"`, which [_parseBody] admits as a block's first
+  /// entry (draft -01 "Any Blocks").
+  TypeEntry _parseTypeEntry() {
+    final leading = _flushComments();
+    final pos = current.pos;
+    _advance(); // consume @type
+    if (current.kind != TokenKind.equals) {
+      throw PxfError(current.pos, 'expected "=" after @type');
+    }
+    _advance();
+    if (current.kind != TokenKind.string) {
+      throw PxfError(current.pos,
+          'expected a string type URL after @type =, got ${current.kind.name}');
+    }
+    final url = current.value;
+    _advance();
+    return TypeEntry(
+      pos: pos,
+      url: url,
+      leadingComments: leading,
+      trailingComment: _takeTrailingComment(),
+    );
   }
 
   /// The comment written after a value on its line, if any. Without this
@@ -592,7 +626,14 @@ class Parser {
       var entries = <Entry>[];
       while (
           current.kind != TokenKind.rbrace && current.kind != TokenKind.eof) {
-        entries.add(_parseEntry());
+        if (current.kind == TokenKind.atType) {
+          if (entries.isNotEmpty) {
+            throw PxfError(current.pos, typeEntryMisplaced);
+          }
+          entries.add(_parseTypeEntry());
+        } else {
+          entries.add(_parseEntry());
+        }
       }
 
       if (current.kind != TokenKind.rbrace) {

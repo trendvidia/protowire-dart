@@ -32,6 +32,12 @@ const fixtureDir = 'test/testdata/keyed';
 const roundtrips = ['roundtrip-keyed.pxf', 'roundtrip-quoted.pxf'];
 const fmtPairs = ['fmt-unquote', 'fmt-anonymous-to-keyed'];
 const rejects = {
+  'err-key-null.pxf':
+      'null on key field "name" conflicts with entry name "alpha" in keyed field "tags"',
+  'err-key-oneof-sibling.pxf':
+      'field "other" shares a oneof with key field "name", which entry name "alpha" already set in keyed field "choices"',
+  'err-key-oneof-sibling-null.pxf':
+      'field "other" shares a oneof with key field "name", which entry name "alpha" already set in keyed field "choices"',
   'err-duplicate-key.pxf': 'duplicate key "greeting" in keyed field "children"',
   'err-duplicate-key-spelling.pxf':
       'duplicate key "greeting" in keyed field "children"',
@@ -76,6 +82,8 @@ GeneratedMessage newOf(String doc) {
       return Deployment();
     case 'keyed.v1.Doc':
       return Doc();
+    case 'keyed.v1.Catalog':
+      return Catalog();
   }
   throw StateError('fixture names no known @type: $type');
 }
@@ -141,6 +149,19 @@ void main() {
       ran.add('anonymous-equivalence.pxf');
     });
 
+    test('key-oneof-ok.pxf', () {
+      final c = decode(read('key-oneof-ok.pxf')) as Catalog;
+      expect(c.choices.map((e) => e.name), ['alpha', 'beta', '']);
+      expect(c.choices.last.other, 'x');
+      ran.add('key-oneof-ok.pxf');
+    });
+
+    test('key-null-anonymous-ok.pxf', () {
+      final c = decode(read('key-null-anonymous-ok.pxf')) as Catalog;
+      expect(c.tags.single.hasName(), isFalse);
+      ran.add('key-null-anonymous-ok.pxf');
+    });
+
     test('redundant-key-ok.pxf', () {
       final data = read('redundant-key-ok.pxf');
       final n = decode(data) as Node;
@@ -196,7 +217,7 @@ void main() {
         .map((e) => e.uri.pathSegments.last)
         .where((n) => n.endsWith('.pxf'))
         .toSet();
-    expect(onDisk, hasLength(15));
+    expect(onDisk, hasLength(20));
     expect(ran, onDisk);
     // ignore: avoid_print
     print('keyed fixtures run: ${ran.length} of ${onDisk.length}');
@@ -295,7 +316,7 @@ void main() {
     test('with no annotations nothing is keyed, and quoted names still fail',
         () {
       expect(() => unmarshal('children { greeting { } }', Node()),
-          pxfError('unknown field "greeting"'));
+          pxfError('repeated field "children" must use list syntax'));
       expect(() => unmarshal('"id" = "x"', Node()),
           pxfError('quoted entry name "id"'));
       expect(() => unmarshal('"children" { }', Node()),
@@ -309,11 +330,11 @@ void main() {
           pxfError('quoted entry name "nope"'));
     });
 
-    test('an unkeyed block keeps working', () {
-      final d = Doc();
-      unmarshal('items { id = "a" label = "b" }', d,
-          options: UnmarshalOptions(annotations: ann));
-      expect(d.items.single.label, 'b');
+    test('an unkeyed block is rejected', () {
+      expect(
+          () => unmarshal('items { id = "a" label = "b" }', Doc(),
+              options: UnmarshalOptions(annotations: ann)),
+          pxfError('repeated field "items" must use list syntax'));
     });
   });
 

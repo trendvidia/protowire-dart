@@ -121,8 +121,11 @@ flags = { true: 10, false: 20 }
     expect(w[Int64(3)], 2.0);
   });
 
-  test('duplicate keys are last-wins, as in the reference', () {
-    expect(decode('names = { 1: "a", 1: "b" }\n').getField(2), {1: 'b'});
+  test('a key bound twice is rejected, as in the reference', () {
+    expect(
+        () => decode('names = { 1: "a", 1: "b" }\n'),
+        throwsA(predicate(
+            (e) => '$e'.contains('map field "names": key 1 is already set'))));
   });
 
   test('bad keys and null values are rejected with the reference messages', () {

@@ -336,6 +336,193 @@ class Doc extends $pb.GeneratedMessage {
   $pb.PbList<Plain> get items => $_getList(0);
 }
 
+enum Choice_Pick { name, other, notSet }
+
+class Choice extends $pb.GeneratedMessage {
+  factory Choice({
+    $core.String? name,
+    $core.String? other,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (other != null) result.other = other;
+    return result;
+  }
+
+  Choice._();
+
+  factory Choice.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Choice.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, Choice_Pick> _Choice_PickByTag = {
+    1: Choice_Pick.name,
+    2: Choice_Pick.other,
+    0: Choice_Pick.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Choice',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'keyed.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'other')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Choice clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Choice copyWith(void Function(Choice) updates) =>
+      super.copyWith((message) => updates(message as Choice)) as Choice;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Choice create() => Choice._();
+  @$core.override
+  Choice createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Choice getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Choice>(create);
+  static Choice? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  Choice_Pick whichPick() => _Choice_PickByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearPick() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get other => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set other($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasOther() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOther() => $_clearField(2);
+}
+
+class Tag extends $pb.GeneratedMessage {
+  factory Tag({
+    $core.String? name,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    return result;
+  }
+
+  Tag._();
+
+  factory Tag.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Tag.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Tag',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'keyed.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Tag clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Tag copyWith(void Function(Tag) updates) =>
+      super.copyWith((message) => updates(message as Tag)) as Tag;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Tag create() => Tag._();
+  @$core.override
+  Tag createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Tag getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Tag>(create);
+  static Tag? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+}
+
+class Catalog extends $pb.GeneratedMessage {
+  factory Catalog({
+    $core.Iterable<Choice>? choices,
+    $core.Iterable<Tag>? tags,
+  }) {
+    final result = create();
+    if (choices != null) result.choices.addAll(choices);
+    if (tags != null) result.tags.addAll(tags);
+    return result;
+  }
+
+  Catalog._();
+
+  factory Catalog.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Catalog.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Catalog',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'keyed.v1'),
+      createEmptyInstance: create)
+    ..pPM<Choice>(1, _omitFieldNames ? '' : 'choices',
+        subBuilder: Choice.create)
+    ..pPM<Tag>(2, _omitFieldNames ? '' : 'tags', subBuilder: Tag.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Catalog clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Catalog copyWith(void Function(Catalog) updates) =>
+      super.copyWith((message) => updates(message as Catalog)) as Catalog;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Catalog create() => Catalog._();
+  @$core.override
+  Catalog createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Catalog getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Catalog>(create);
+  static Catalog? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<Choice> get choices => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<Tag> get tags => $_getList(1);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

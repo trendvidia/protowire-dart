@@ -51,6 +51,22 @@ PxfError keyedEmptyNameError(Position pos, String field) => PxfError(pos,
 PxfError keyedDuplicateKeyError(Position pos, String field, String key) =>
     PxfError(pos, 'duplicate key "$key" in keyed field "$field"');
 
+/// The error for a type entry anywhere but the start of a block bound to
+/// `google.protobuf.Any`.
+const typeEntryMisplaced =
+    '@type is allowed only as the first entry of a block bound to google.protobuf.Any (draft -01 "Any Blocks")';
+
+/// An integer or bool key before `=`. Reported by the parser and the decoder
+/// alike, so it is a grammar error on every path, not an unknown field.
+PxfError nonNameAssignError(Position pos, TokenKind kind, String key) => PxfError(
+    pos,
+    'field assignment with "=" requires an identifier or string key, got ${kind.name} ("$key"); use ":" for map entries');
+
+/// An integer or bool key before `{`.
+PxfError nonNameBlockError(Position pos, TokenKind kind, String key) => PxfError(
+    pos,
+    'submessage block requires an identifier or string key, got ${kind.name} ("$key")');
+
 PxfError quotedNameUnkeyedError(Position pos, String name) => PxfError(pos,
     'quoted entry name "$name" is only valid inside a keyed repeated field\'s block (draft -01 §3.13)');
 
@@ -66,6 +82,30 @@ class KeyedElemState {
 
   const KeyedElemState(
       {required this.field, required this.keyName, this.entryName});
+
+  /// Refuses a binding in a named entry's body that would undo the entry
+  /// name, which binds the key field (draft -01 "Keyed Repeated Fields"):
+  /// null on the key field, or another member of the key field's oneof, by
+  /// value or null. [info] is the element message's.
+  void checkBinding(BuilderInfo info, FieldInfo fi,
+      {required bool isNull, required Position pos}) {
+    final name = entryName;
+    if (name == null) return;
+    if (fi.protoName == keyName) {
+      if (!isNull) return;
+      throw PxfError(pos,
+          'null on key field "$keyName" conflicts with entry name "$name" in keyed field "$field"');
+    }
+    final oneof = info.oneofs[fi.tagNumber];
+    if (oneof == null) return;
+    final keyTag = info.fieldInfo.values
+        .firstWhere((candidate) => candidate.protoName == keyName)
+        .tagNumber;
+    if (info.oneofs[keyTag] == oneof) {
+      throw PxfError(pos,
+          'field "${fi.protoName}" shares a oneof with key field "$keyName", which entry name "$name" already set in keyed field "$field"');
+    }
+  }
 
   void checkExplicitKey(String value, Position pos) {
     if (value.isEmpty) {
@@ -121,8 +161,8 @@ class _Canonicalizer {
     if (keyName != null) {
       return _withEntries(b, keyedEntries(b.entries, sf, keyName));
     }
-    // This port reads an unkeyed `items { ... }` as one list element, so the
-    // body is a message either way.
+    // An unkeyed `items { ... }` is rejected at decode, but its body is a
+    // message either way.
     final inner = sf.messageType;
     if (inner == null || sf.isMap) return b;
     return _withEntries(b, entries(b.entries, inner));
@@ -312,6 +352,14 @@ Entry _prependComments(Entry e, List<Comment> comments) {
       nameQuoted: e.nameQuoted,
       entries: e.entries,
       leadingComments: [...comments, ...e.leadingComments],
+    );
+  }
+  if (e is TypeEntry) {
+    return TypeEntry(
+      pos: e.pos,
+      url: e.url,
+      leadingComments: [...comments, ...e.leadingComments],
+      trailingComment: e.trailingComment,
     );
   }
   final m = e as MapEntry;

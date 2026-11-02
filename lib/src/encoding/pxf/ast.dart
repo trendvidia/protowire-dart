@@ -221,6 +221,27 @@ class Block implements Entry {
   });
 }
 
+/// The type entry `@type = "<type-url>"` that may open a block bound to
+/// `google.protobuf.Any` (draft -01 "Any Blocks"). A parser cannot tell which
+/// blocks the schema binds to Any, so it accepts one as the first entry of
+/// any block, and only there; binding checks the rest.
+class TypeEntry implements Entry {
+  @override
+  final Position pos;
+
+  /// The type URL as written, unquoted.
+  final String url;
+  final List<Comment> leadingComments;
+  final String? trailingComment;
+
+  TypeEntry({
+    required this.pos,
+    required this.url,
+    required this.leadingComments,
+    this.trailingComment,
+  });
+}
+
 abstract class Value {
   Position get pos;
 }
