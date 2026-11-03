@@ -19,6 +19,11 @@ format changes.
   came out wrong. An overlong string is now cut at the last whole UTF-8
   character at or before `(sbe.length)` and NUL-padded. A `bytes` field is
   still cut at the limit.
+- **A `@default` BigFloat's `prec` keeps its low 32 bits**, as a protobuf
+  reader of a `uint32` does (#72). A prec of 2^63 or more used to read as a
+  negative number and run the VM out of memory. Prec 0 is now reported as
+  "@default's big_float_value declares no precision", as protowire-go does,
+  instead of binding the literal `0`.
 
 ## 1.2.0
 
