@@ -81,11 +81,15 @@ class XMLType {
   final int? length;
   final String? description;
 
+  /// The `characterEncoding` of a char type, or null when it names none.
+  final String? characterEncoding;
+
   XMLType({
     required this.name,
     required this.primitiveType,
     this.length,
     this.description,
+    this.characterEncoding,
   });
 
   factory XMLType.fromXml(XmlElement element) {
@@ -94,6 +98,7 @@ class XMLType {
       primitiveType: element.getAttribute('primitiveType') ?? '',
       length: int.tryParse(element.getAttribute('length') ?? ''),
       description: element.getAttribute('description'),
+      characterEncoding: element.getAttribute('characterEncoding'),
     );
   }
 }
