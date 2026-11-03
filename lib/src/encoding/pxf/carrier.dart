@@ -289,10 +289,19 @@ BigInt _magnitude(List<int> bytes) {
     if (f.number == 2 && f.wireType == _wireVarint) {
       exponent = f.scalar.toInt32().toInt();
     }
-    if (f.number == 3 && f.wireType == _wireVarint) prec = f.scalar.toInt();
+    // prec is a uint32: a reader keeps the low 32 bits, as protobuf does.
+    // Int64.toInt alone would turn 2^63 + 53 negative and past every bound.
+    if (f.number == 3 && f.wireType == _wireVarint) {
+      prec = f.scalar.toUnsigned(32).toInt();
+    }
     if (f.number == 4 && f.wireType == _wireVarint) {
       negative = !f.scalar.isZero;
     }
+  }
+  // A BigFloat with no precision has no value to give a default, whatever
+  // the mantissa says. protowire-go reports the same.
+  if (prec == 0) {
+    return (null, "@default's big_float_value declares no precision");
   }
   try {
     return (bigFloatLiteral(mantissa, exponent, prec, negative), null);
