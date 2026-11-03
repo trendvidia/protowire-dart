@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import '../pb/depth.dart';
@@ -444,7 +445,10 @@ class _Encoder {
 
     // By the key as written, as the reference orders them: "10" before "9",
     // and a quoted key before a bare one.
-    final byText = {for (final k in map.keys) _formatMapKey(k as Object): k};
+    final mfi = fi as MapFieldInfo;
+    final byText = {
+      for (final k in map.keys) _formatMapKey(k as Object, mfi.keyFieldType): k
+    };
     final ordered = byText.keys.toList()..sort();
 
     for (final text in ordered) {
@@ -465,9 +469,7 @@ class _Encoder {
         _writeIndent(level + 1);
         buf.write('}\n');
       } else {
-        // Need to know value type. For simplicity, assume it's a scalar if not GeneratedMessage.
-        // This is a bit of a hack without MapFieldInfo.
-        _writeScalarValue(v);
+        _writeScalarValue(v as Object, mfi.valueFieldType);
         buf.write('\n');
       }
     }
@@ -477,15 +479,21 @@ class _Encoder {
   }
 
   void _writeScalar(FieldInfo fi, Object val) {
-    _writeScalarValue(val);
+    _writeScalarValue(val, fi.type);
   }
 
-  void _writeScalarValue(Object val) {
+  /// [val] as a literal of a field of [fieldType]: a uint64 or fixed64 is
+  /// unsigned (package:protobuf holds it in a signed Int64), and a float is
+  /// written as the shortest float32 that reads back as it.
+  void _writeScalarValue(Object val, int fieldType) {
     if (val is String) {
       _writeQuotedString(val);
     } else if (val is bool) {
       buf.write(val ? 'true' : 'false');
-    } else if (val is int || val is Int64) {
+    } else if (val is Int64) {
+      buf.write(
+          _isUnsigned64(fieldType) ? val.toStringUnsigned() : val.toString());
+    } else if (val is int) {
       buf.write(val.toString());
     } else if (val is double) {
       if (val.isInfinite) {
@@ -493,7 +501,8 @@ class _Encoder {
       } else if (val.isNaN) {
         buf.write('nan');
       } else {
-        buf.write(val.toString());
+        buf.write(_formatGoFloat(val,
+            float32: PbFieldType.baseType(fieldType) == PbFieldType.FLOAT_BIT));
       }
     } else if (val is List<int>) {
       buf.write('b"');
@@ -508,12 +517,20 @@ class _Encoder {
 
   void _writeQuotedString(String s) => buf.write(quotePxfString(s));
 
-  String _formatMapKey(Object key) {
+  String _formatMapKey(Object key, int keyFieldType) {
     if (key is String) {
       if (_isValidIdent(key)) return key;
       return quotePxfString(key);
     }
+    if (key is Int64 && _isUnsigned64(keyFieldType)) {
+      return key.toStringUnsigned();
+    }
     return key.toString();
+  }
+
+  static bool _isUnsigned64(int fieldType) {
+    final base = PbFieldType.baseType(fieldType);
+    return base == PbFieldType.UINT64_BIT || base == PbFieldType.FIXED64_BIT;
   }
 
   bool _isValidIdent(String s) => isIdentSafeEntryName(s);
@@ -604,4 +621,43 @@ class _Encoder {
 /// ```
 String marshal(GeneratedMessage msg, {MarshalOptions? options}) {
   return (options ?? MarshalOptions()).marshal(msg);
+}
+
+/// [v] as protowire-go writes a float: strconv.FormatFloat(v, 'g', -1, 64),
+/// or 32 bits when [float32]. That is the fewest digits that read back as
+/// [v] (as a float32 when [float32]), in exponent form when the decimal
+/// exponent is below -4 or at least 6 (`1e+10`, `1e-07`), and positional
+/// otherwise (`100`, `0.1`, `-0`). Finite [v] only.
+String _formatGoFloat(double v, {bool float32 = false}) {
+  if (v == 0) return v.isNegative ? '-0' : '0';
+  var exp = v.toStringAsExponential();
+  if (float32) {
+    for (var p = 0; p < 9; p++) {
+      final s = v.toStringAsExponential(p);
+      final back = Float32List(1)..[0] = double.parse(s);
+      if (back[0] == v) {
+        exp = s;
+        break;
+      }
+    }
+  }
+  final neg = exp.startsWith('-');
+  final body = neg ? exp.substring(1) : exp;
+  final e = body.indexOf('e');
+  var digits = body.substring(0, e).replaceAll('.', '');
+  digits = digits.replaceFirst(RegExp(r'0+$'), '');
+  if (digits.isEmpty) digits = '0';
+  final x = int.parse(body.substring(e + 1));
+  final sign = neg ? '-' : '';
+  if (x < -4 || x >= 6) {
+    final mant =
+        digits.length == 1 ? digits : '${digits[0]}.${digits.substring(1)}';
+    final ex = x.abs().toString().padLeft(2, '0');
+    return '$sign${mant}e${x < 0 ? '-' : '+'}$ex';
+  }
+  if (x < 0) return '${sign}0.${'0' * (-x - 1)}$digits';
+  if (digits.length <= x + 1) {
+    return '$sign$digits${'0' * (x + 1 - digits.length)}';
+  }
+  return '$sign${digits.substring(0, x + 1)}.${digits.substring(x + 1)}';
 }
