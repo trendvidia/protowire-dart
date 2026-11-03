@@ -183,7 +183,7 @@ class _Encoder {
   void _encodeMessageField(FieldInfo fi, GeneratedMessage sub, int level) {
     var subInfo = sub.info_;
 
-    if (_hasLiteral(subInfo)) {
+    if (_writesLiteral(sub)) {
       _writeFieldPrefix(level, fi.protoName);
       _writeLiteral(sub);
       buf.write('\n');
@@ -349,9 +349,8 @@ class _Encoder {
       var elem = list[i];
       if (fi.type == PbFieldType.PM || fi.type == PbFieldType.OM) {
         var sub = elem as GeneratedMessage;
-        var subInfo = sub.info_;
 
-        if (_hasLiteral(subInfo)) {
+        if (_writesLiteral(sub)) {
           _writeIndent(level + 1);
           _writeLiteral(sub);
         } else {
@@ -410,14 +409,28 @@ class _Encoder {
     buf.write('}\n');
   }
 
-  /// Whether a message of this type is written as one literal.
-  bool _hasLiteral(BuilderInfo info) =>
-      isTimestamp(info) ||
-      isDuration(info) ||
-      isWrapperType(info) ||
-      isBigInt(info) ||
-      isDecimal(info) ||
-      isBigFloat(info);
+  /// Whether [sub] is written as one literal. A Duration whose nanoseconds
+  /// do not fit a signed 64-bit count, about 292 years, is written as a
+  /// block: draft -01 § Durations says an encoder MUST, since a duration
+  /// literal holds no more (protowire-dart#85).
+  bool _writesLiteral(GeneratedMessage sub) {
+    final info = sub.info_;
+    if (isDuration(info)) {
+      final nanos = readDurationNanos(sub);
+      return nanos >= _minInt64 && nanos <= _maxInt64;
+    }
+    // A Secret is its string literal only without a hint or fingerprint,
+    // which the literal would drop (protowire-dart#85).
+    if (isSecret(info)) return !sub.hasField(2) && !sub.hasField(3);
+    return isTimestamp(info) ||
+        isWrapperType(info) ||
+        isBigInt(info) ||
+        isDecimal(info) ||
+        isBigFloat(info);
+  }
+
+  static final _minInt64 = -(BigInt.one << 63);
+  static final _maxInt64 = (BigInt.one << 63) - BigInt.one;
 
   void _writeLiteral(GeneratedMessage sub) {
     final info = sub.info_;
@@ -425,7 +438,7 @@ class _Encoder {
       buf.write(formatTimestamp(sub));
     } else if (isDuration(info)) {
       buf.write(formatGoDuration(readDurationNanos(sub)));
-    } else if (isWrapperType(info)) {
+    } else if (isWrapperType(info) || isSecret(info)) {
       _writeScalar(info.fieldInfo[1]!, sub.getField(1));
     } else if (isBigInt(info)) {
       buf.write(_formatBigInt(sub));
@@ -459,7 +472,7 @@ class _Encoder {
 
       // In Dart GeneratedMessage, map values are usually handled via subBuilder if they are messages.
       // But FieldInfo for maps is a bit special.
-      if (v is GeneratedMessage && _hasLiteral(v.info_)) {
+      if (v is GeneratedMessage && _writesLiteral(v)) {
         _writeLiteral(v);
         buf.write('\n');
       } else if (v is GeneratedMessage) {
