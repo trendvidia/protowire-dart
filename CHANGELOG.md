@@ -13,6 +13,18 @@ format changes.
 
 ### Changed
 
+- **`marshal` writes text as protowire-go writes it** (#85, found by the
+  spec's text gate, protowire#503):
+  - A `uint64` or `fixed64` is written unsigned. `2^64-1` used to come out as
+    `-1`.
+  - A float is written in Go's shortest `%g` form: `100`, `-0`, `1e-07`,
+    `1e+10`, and a `float` field as the shortest float32, `0.1` rather than
+    `0.10000000149011612`.
+  - A Duration past a signed 64-bit count of nanoseconds (about 292 years)
+    is written as a block, as draft -01 § Durations requires.
+  - A `pxf.Secret` carrying only its value is written as its string literal,
+    `secret = "pw"`. One with a hint or fingerprint keeps the block.
+
 - **An enum number the enum does not declare is kept on a singular field**
   (#82, decided 2026-11-03). `f_enum = 99` used to be refused. It is now held
   in the message's unknown fields, as package:protobuf holds one it reads from
@@ -112,6 +124,10 @@ format changes.
   `strN` char array and a `bytes` field a `bytesN` uint8 array, which imports
   back as `bytes`. `protoToXml(BuilderInfo, ...)` is unchanged: a
   `BuilderInfo` carries no field options, so it cannot write a length.
+- `check_decode --format pb-text`, the harness for the spec's text gate
+  (`scripts/cross_text_check.sh`, protowire#503). It reads a message's PB
+  bytes with the stock runtime and writes its PXF with the schema's
+  annotations. All 56 cases match protowire-go.
 
 - `check_decode --format pxf-pb`, the harness for the spec's write gate
   (`scripts/cross_write_check.sh`, protowire#509), which found the three

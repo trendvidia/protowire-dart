@@ -8,7 +8,7 @@
 //
 // Contract:
 //
-//   check_decode --format <pxf|pxf-pb|pb|pb-render|sbe|envelope> \
+//   check_decode --format <pxf|pxf-pb|pb|pb-render|pb-text|sbe|envelope> \
 //                --schema <fully.qualified.MessageType> \
 //                --proto  <path-to-adversarial.proto> \
 //                --input  <path> \
@@ -17,6 +17,11 @@
 // --limit lowers a HARDENING.md limit for the call, so the corpus can prove a
 // 64 MiB cap with a small fixture: MaxMessageSize, MaxBytesLiteralLength,
 // MaxRepeatedCount.
+//
+// pb-text reads a text.v1 message's PB bytes with the stock runtime and
+// writes its PXF on stdout, for the text gate
+// (protowire/scripts/cross_text_check.sh), so the comparison is of the
+// marshaller alone.
 //
 // pxf-pb reads a PXF document of a text.v1 message and writes its PB bytes
 // on stdout, map entries in key order, for the write gate
@@ -138,6 +143,10 @@ Future<void> _run(String format, String schema, String? protoPath, String input,
     case 'pb-render':
       final bytes = await File(input).readAsBytes();
       _pbRender(bytes, schema);
+    case 'pb-text':
+      final bytes = await File(input).readAsBytes();
+      stdout.write(_pbText(bytes, schema, protoPath));
+      await stdout.flush();
     case 'envelope':
       throw _Reject('envelope decode not yet implemented in this reference');
     case 'sbe':
@@ -167,6 +176,18 @@ List<int> _pxfPb(
       options: pw.UnmarshalOptions(annotations: annotations, limits: limits));
   _sortMaps(msg);
   return msg.writeToBuffer();
+}
+
+/// The PXF protowire-go's check-decode writes for a message's PB bytes: read
+/// with the stock runtime, written with the schema's annotations, which
+/// carry the keyed-list form.
+String _pbText(Uint8List bytes, String schema, String? protoPath) {
+  if (protoPath == null) throw _Reject('pb-text needs --proto');
+  final annotations = pw.PxfAnnotations.fromBytes(
+      File(protoPath.replaceFirst(RegExp(r'\.proto$'), '.binpb'))
+          .readAsBytesSync());
+  return pw.marshal(_newMessage(schema)..mergeFromBuffer(bytes),
+      options: pw.MarshalOptions(annotations: annotations));
 }
 
 /// Puts every map of [msg], and of the messages under it, in key order.
