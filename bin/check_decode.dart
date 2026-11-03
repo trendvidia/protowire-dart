@@ -161,12 +161,20 @@ void _sbeDecode(
 }
 
 /// The producer's side of the bounds (HARDENING.md § Arbitrary-precision
-/// magnitudes): plain `mergeFromBuffer` stores the fields and bounds nothing,
-/// and they are then written as PXF (protowire#448).
+/// magnitudes, § Recursion): plain `mergeFromBuffer` stores the fields and
+/// bounds nothing, and they are then written as PXF (protowire#448). The
+/// reader takes nesting well past MaxNestingDepth, so a message the producer
+/// must refuse reaches it rather than stopping at the stock limit of 100
+/// (protowire#502).
 void _pbRender(Uint8List bytes, String schema) {
-  final msg = _newMessage(schema)..mergeFromBuffer(bytes);
+  final msg = _newMessage(schema)
+    ..mergeFromCodedBufferReader(pb.CodedBufferReader(bytes,
+        recursionLimit: _renderReadDepth, sizeLimit: bytes.length));
   pw.marshal(msg);
 }
+
+/// Deeper than any pb-render row, and far below the native stack.
+const _renderReadDepth = 1000;
 
 void _pbDecode(Uint8List bytes, String schema, pw.DecodeLimits limits) {
   final msg = _newMessage(schema);

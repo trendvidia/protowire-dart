@@ -14,7 +14,14 @@ import 'proto_tag.dart';
 /// `Map<K, V>` field is a proto3 map: `repeated MapEntry { key = 1; value = 2; }`,
 /// each entry carrying both, zero-valued or not. Another annotated class is a
 /// message field or a map's message value.
-Uint8List marshalNative(Object obj) => _toMessage(obj).writeToBuffer();
+///
+/// An object nested more deeply than [maxNestingDepth] throws an
+/// [ArgumentError], counted as a decoder reading the bytes counts: each
+/// submessage, and each map entry whatever its value (HARDENING.md
+/// § Recursion, protowire#502). An object that holds itself meets the same
+/// limit. Raise it only where every reader takes the deeper message.
+Uint8List marshalNative(Object obj, {int maxNestingDepth = 100}) =>
+    _toMessage(obj, 0, maxNestingDepth).writeToBuffer();
 
 void unmarshalNative(Uint8List data, Object obj,
     {DecodeLimits limits = const DecodeLimits()}) {
@@ -142,14 +149,22 @@ dynamic _getDefault(Type type) {
 
 bool _isScalar(Type type) => _getDefault(type) != null || type == Uint8List;
 
-GeneratedMessage _toMessage(Object obj) {
+/// [obj] as a message at [depth] descents from the root.
+GeneratedMessage _toMessage(Object obj, int depth, int maxDepth) {
   final msg = _DynamicMessage(_builderFor(obj.runtimeType));
-  _populateGeneratedMessage(msg, obj, _getStructInfo(obj.runtimeType));
+  _populateGeneratedMessage(
+      msg, obj, _getStructInfo(obj.runtimeType), depth, maxDepth);
   return msg;
 }
 
-void _populateGeneratedMessage(
-    GeneratedMessage msg, Object obj, _StructInfo info) {
+void _descend(int depth, int maxDepth) {
+  if (depth > maxDepth) {
+    throw ArgumentError('nesting depth exceeds MaxNestingDepth=$maxDepth');
+  }
+}
+
+void _populateGeneratedMessage(GeneratedMessage msg, Object obj,
+    _StructInfo info, int depth, int maxDepth) {
   final instanceMirror = reflect(obj);
   for (final fi in info.bySymbol.values) {
     final value = instanceMirror.getField(fi.symbol).reflectee;
@@ -157,11 +172,18 @@ void _populateGeneratedMessage(
     if (fi.isMap) {
       final target = msg.getField(fi.tag) as Map;
       final scalar = _isScalar(fi.valueMirror.reflectedType);
-      (value as Map).forEach((k, v) {
-        target[k] = scalar ? v : _toMessage(v as Object);
+      // An entry is a descent, and a message value one more inside it.
+      if ((value as Map).isNotEmpty) {
+        _descend(depth + (scalar ? 1 : 2), maxDepth);
+      }
+      value.forEach((k, v) {
+        target[k] = scalar ? v : _toMessage(v as Object, depth + 2, maxDepth);
       });
+    } else if (_isScalar(fi.type)) {
+      msg.setField(fi.tag, value);
     } else {
-      msg.setField(fi.tag, _isScalar(fi.type) ? value : _toMessage(value));
+      _descend(depth + 1, maxDepth);
+      msg.setField(fi.tag, _toMessage(value, depth + 1, maxDepth));
     }
   }
 }

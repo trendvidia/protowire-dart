@@ -11,6 +11,18 @@ format changes.
 
 ## Unreleased
 
+### Changed
+
+- **The PXF and PB producers refuse a message nested past MaxNestingDepth**
+  (#73, HARDENING.md § Recursion, protowire#502). `marshal` throws a
+  `PxfError` and `marshalNative` an `ArgumentError`, "nesting depth exceeds
+  MaxNestingDepth=100", rather than write what a reader at the same limit
+  refuses. Depth is counted as a decoder counts it: every `{` and `[` in PXF,
+  and in PB each submessage plus each map entry. A message that holds itself
+  meets the limit instead of overflowing the stack. The limit is per call:
+  `MarshalOptions(maxNestingDepth: ...)` and
+  `marshalNative(obj, maxNestingDepth: ...)`.
+
 ## 1.2.0
 
 ### Changed
