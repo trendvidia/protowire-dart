@@ -7,3 +7,6 @@
 # LF on every platform.
 test/testdata/sbe_xml/*.proto text eol=lf
 test/testdata/sbe_xml/*.xml text eol=lf
+test/testdata/text/**/*.pxf text eol=lf
+test/testdata/text/**/*.textpb text eol=lf
+test/testdata/text/*.proto text eol=lf
