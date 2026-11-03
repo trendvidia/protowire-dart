@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:protowire/src/encoding/sbe/sbe.dart';
@@ -54,6 +56,22 @@ class Fill extends GeneratedMessage {
   @override
   Fill clone() => Fill()..mergeFromMessage(this);
   static Fill create() => Fill();
+}
+
+class Text extends GeneratedMessage {
+  static final BuilderInfo _i =
+      BuilderInfo('Text', package: const PackageName('test'))
+        ..aOS(1, 'text')
+        ..a<List<int>>(2, 'raw', PbFieldType.OY)
+        ..hasRequiredFields = false;
+
+  @override
+  BuilderInfo get info_ => _i;
+  @override
+  Text createEmptyInstance() => Text();
+  @override
+  Text clone() => Text()..mergeFromMessage(this);
+  static Text create() => Text();
 }
 
 void main() {
@@ -118,6 +136,36 @@ void main() {
       final decoded = Order();
       codec.unmarshal(data, decoded);
       expect(decoded.getField(2), 'LONGERTH');
+    });
+
+    // draft -01 § SBE Annotations (protowire#495): a string is cut at the
+    // last whole UTF-8 character at or before the limit and NUL-padded; a
+    // bytes field is cut at the limit.
+    test('overlong string is cut on a character boundary', () {
+      final c = Codec()
+        ..registerMessage(Text._i, 2, 1, 0, lengths: {1: 8, 2: 8});
+      final msg = Text()
+        ..setField(1, 'ABCDEFG\u00e9')
+        ..setField(2, utf8.encode('ABCDEFG\u00e9'));
+      final data = c.marshal(msg);
+      expect(data.sublist(headerSize, headerSize + 8),
+          [0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x00]);
+      expect(data.sublist(headerSize + 8, headerSize + 16),
+          [0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0xC3]);
+      final back = Text();
+      c.unmarshal(data, back);
+      expect(back.getField(1), 'ABCDEFG');
+    });
+
+    test('a string that fits is written as UTF-8', () {
+      final c = Codec()
+        ..registerMessage(Text._i, 2, 1, 0, lengths: {1: 8, 2: 8});
+      final data = c.marshal(Text()..setField(1, 'h\u00e9\u20ac'));
+      expect(data.sublist(headerSize, headerSize + 8),
+          [0x68, 0xC3, 0xA9, 0xE2, 0x82, 0xAC, 0x00, 0x00]);
+      final back = Text();
+      c.unmarshal(data, back);
+      expect(back.getField(1), 'h\u00e9\u20ac');
     });
 
     test('empty group', () {
