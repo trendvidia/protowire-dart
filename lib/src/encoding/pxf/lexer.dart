@@ -167,8 +167,8 @@ class Lexer {
         return _lexDirective(p);
     }
 
-    if (ch == 45 || _isDigit(ch)) {
-      // - or digit
+    if (ch == 45 || ch == 43 || _isDigit(ch)) {
+      // -, + or digit
       return _lexNumber(p);
     }
 
@@ -513,13 +513,22 @@ class Lexer {
   Token _lexNumber(Position p) {
     int start = pos;
     bool neg = false;
-    if (_peekCode == 45) {
-      // -
-      neg = true;
+    if (_peekCode == 45 || _peekCode == 43) {
+      // - or +. "+inf" and "-inf" are the only signed identifier literals
+      // (draft -01 § Numeric Literals), and a float token, as in the
+      // reference; "+" is valid for nothing else.
+      final plus = _peekCode == 43;
       _advance();
-      if (pos >= input.length || !_isDigit(_peekCode)) {
-        return Token(TokenKind.illegal, '-', p);
+      if (_atWord('inf')) {
+        _advance();
+        _advance();
+        _advance();
+        return Token(TokenKind.float, input.substring(start, pos), p);
       }
+      if (plus || pos >= input.length || !_isDigit(_peekCode)) {
+        return Token(TokenKind.illegal, plus ? '+' : '-', p);
+      }
+      neg = true;
     }
 
     int digitStart = pos;
@@ -701,6 +710,15 @@ class Lexer {
   }
 
   bool _isDigit(int ch) => ch >= 48 && ch <= 57;
+
+  /// Whether [word] starts at the read position and is not the front of a
+  /// longer identifier.
+  bool _atWord(String word) {
+    final end = pos + word.length;
+    if (end > input.length || !input.startsWith(word, pos)) return false;
+    return end == input.length || !_isIdentPart(input.codeUnitAt(end));
+  }
+
   bool _isIdentStart(int ch) =>
       (ch >= 97 && ch <= 122) ||
       (ch >= 65 && ch <= 90) ||

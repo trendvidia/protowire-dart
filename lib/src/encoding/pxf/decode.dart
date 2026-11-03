@@ -1251,19 +1251,23 @@ class DirectDecoder {
       return v;
     }
 
-    if (t == PbFieldType.OF || t == PbFieldType.PF || t == PbFieldType.QF) {
-      if (current.kind != TokenKind.float && current.kind != TokenKind.int) {
+    final isFloat =
+        t == PbFieldType.OF || t == PbFieldType.PF || t == PbFieldType.QF;
+    if (isFloat ||
+        t == PbFieldType.OD ||
+        t == PbFieldType.PD ||
+        t == PbFieldType.QD) {
+      if (current.kind != TokenKind.float &&
+          current.kind != TokenKind.int &&
+          !(current.kind == TokenKind.ident &&
+              (current.value == 'inf' || current.value == 'nan'))) {
         throw PxfError(pos, 'expected number for field "${fi.protoName}"');
       }
-      var v = double.parse(current.value);
-      _advance();
-      return v;
-    }
-    if (t == PbFieldType.OD || t == PbFieldType.PD || t == PbFieldType.QD) {
-      if (current.kind != TokenKind.float && current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected number for field "${fi.protoName}"');
+      final v = parseFloatLiteral(current.value, float32: isFloat);
+      if (v == null) {
+        throw PxfError(
+            pos, 'invalid ${isFloat ? 'float' : 'double'}: ${current.value}');
       }
-      var v = double.parse(current.value);
       _advance();
       return v;
     }
@@ -1406,6 +1410,35 @@ void unmarshal(String input, GeneratedMessage msg,
   );
   d.decodeDocument(msg);
 }
+
+/// The value of a float or double literal (draft -01 § Numeric Literals),
+/// or null when it has none: a malformed literal, or a finite one past the
+/// type's range. `inf`, `+inf` and `-inf` are infinities; `nan` is the
+/// canonical quiet NaN. A float is rounded to float32 here, so a value that
+/// underflows is zero, as it will be on the wire.
+double? parseFloatLiteral(String literal, {required bool float32}) {
+  final double d;
+  switch (literal) {
+    case 'inf' || '+inf':
+      d = double.infinity;
+    case '-inf':
+      d = double.negativeInfinity;
+    case 'nan':
+      d = double.nan;
+    default:
+      final parsed = double.tryParse(literal);
+      if (parsed == null || !_plainNumber.hasMatch(literal)) return null;
+      if (parsed.isInfinite) return null; // past the double range
+      if (!float32) return parsed;
+      final rounded = (Float32List(1)..[0] = parsed)[0];
+      return rounded.isInfinite ? null : rounded;
+  }
+  return float32 ? (Float32List(1)..[0] = d)[0] : d;
+}
+
+/// A decimal literal: double.tryParse alone also takes "Infinity", "NaN" and
+/// hex, which the grammar does not.
+final _plainNumber = RegExp(r'^-?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$');
 
 /// Unmarshals [input] into [msg] and reports which fields the document
 /// set, set to null, or left absent — the same `unmarshalFull` every
@@ -1573,12 +1606,12 @@ Object _scalarDefault(int t, String literal, FieldInfo fi) {
     return n;
   }
   if (t == PbFieldType.OF) {
-    final d = double.tryParse(literal);
+    final d = parseFloatLiteral(literal, float32: true);
     if (d == null) throw _badDefault('float', literal, fi);
     return d;
   }
   if (t == PbFieldType.OD) {
-    final d = double.tryParse(literal);
+    final d = parseFloatLiteral(literal, float32: false);
     if (d == null) throw _badDefault('double', literal, fi);
     return d;
   }
