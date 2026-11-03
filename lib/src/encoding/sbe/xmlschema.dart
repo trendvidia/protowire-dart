@@ -54,8 +54,12 @@ class XMLSchema {
       }
     }
 
-    final messages =
-        root.findElements('message').map((e) => XMLMessage.fromXml(e)).toList();
+    // Messages are `<sbe:message>` in a standard schema and `<message>` in
+    // some hand-written ones, so they are matched by local name.
+    final messages = root.childElements
+        .where((e) => e.name.local == 'message')
+        .map((e) => XMLMessage.fromXml(e))
+        .toList();
 
     return XMLSchema(
       package: root.getAttribute('package'),
