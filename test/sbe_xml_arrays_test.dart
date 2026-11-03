@@ -65,11 +65,10 @@ void main() {
     final data = codec.marshal(arr.Record()
       ..uuid = uuid
       ..tail = 0xA1B2C3D4);
-    // Header(8) + name(4) + uuid(16) + signed(3) + key(6+4) + tail(4) is
-    // protowire-go's 45. Dart's descriptor registration gives key.raw
-    // name's length, 4, so it writes 43 (protowire-dart#87). Pinned so the
-    // fix has to change it.
-    expect(data.length, 8 + 4 + 16 + 3 + (4 + 4) + 4);
+    // Header(8) + name(4) + uuid(16) + signed(3) + key(6+4) + tail(4), as
+    // protowire-go writes it. key.raw is 6 bytes, Key's own length, not
+    // the 4 of Record's field 1 (protowire-dart#87).
+    expect(data.length, 8 + 4 + 16 + 3 + 10 + 4);
     expect(data.sublist(12, 28), uuid);
     expect(data.sublist(data.length - 4), [0xD4, 0xC3, 0xB2, 0xA1]);
 
@@ -77,6 +76,27 @@ void main() {
     codec.unmarshal(data, got);
     expect(got.uuid, uuid);
     expect(got.tail, 0xA1B2C3D4);
+  });
+
+  test("a composite's fixed-length field keeps its own length", () {
+    final codec = Codec()
+      ..registerFromDescriptorSet(_fixedArraysSet(), arr.Record());
+    final record = arr.Record()
+      ..name = [0x63, 0x61, 0x66, 0xE9]
+      ..key = (arr.Key()
+        ..raw = 'abcdef'.codeUnits
+        ..seq = 7)
+      ..tail = 9;
+    final data = codec.marshal(record);
+    // key.raw starts after header, name, uuid and signed: 8+4+16+3 = 31.
+    expect(String.fromCharCodes(data.sublist(31, 37)), 'abcdef');
+    expect(data.sublist(37, 41), [7, 0, 0, 0]);
+    expect(data.sublist(41), [9, 0, 0, 0]);
+    final got = arr.Record();
+    codec.unmarshal(data, got);
+    expect(got.key.raw, 'abcdef'.codeUnits);
+    expect(got.key.seq, 7);
+    expect(got.name, [0x63, 0x61, 0x66, 0xE9]);
   });
 
   test('an array of a wider primitive is refused, named', () {

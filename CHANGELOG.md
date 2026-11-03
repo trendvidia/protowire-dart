@@ -69,6 +69,14 @@ format changes.
 
 ### Fixed
 
+- **`registerFromDescriptorSet` gives each composite field its own
+  `(sbe.length)` and `(sbe.encoding)`** (#87). Overrides were one map keyed by
+  field number for the whole template, and a top-level composite's options
+  were never read, so `Key.raw` (`bytes`, length 6, field 1) took the length
+  of `Record.name` (length 4, also field 1) and every later field moved.
+  protowire-go's 45-byte `Record` came out as 43 bytes. `registerMessage`'s
+  `lengths` and `encodings` keep their meaning.
+
 - **SBE writes a `string` field as UTF-8, and cuts an overlong one on a
   character boundary** (#71, protowire#495). The emitter used to write the
   string's UTF-16 code units, one byte each, so any character past U+007F
