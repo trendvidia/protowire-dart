@@ -686,6 +686,12 @@ class DirectDecoder {
         'precision suffix p${current.prec} on field "${fi.protoName}": only a pxf.BigFloat takes one');
   }
 
+  /// Whether the token is a number a pxf.Decimal can hold: `+inf` and `-inf`
+  /// are float tokens too, and a decimal has no infinity.
+  bool get _atDecimalNumber =>
+      (current.kind == TokenKind.float || current.kind == TokenKind.int) &&
+      _isPlainNumber(current.value);
+
   /// Reads a number into the pxf.BigFloat [sub]. False when the token is not
   /// one, so the caller goes on to the block form.
   bool _consumeBigFloat(GeneratedMessage sub) {
@@ -736,6 +742,11 @@ class DirectDecoder {
       msg.setField(fi.tagNumber, sub);
       return;
     }
+    if (isSecret(subInfo) && current.kind == TokenKind.string) {
+      msg.setField(fi.tagNumber, subBuilder()..setField(1, current.value));
+      _advance();
+      return;
+    }
 
     if (isBigInt(subInfo) && current.kind == TokenKind.int) {
       var sub = subBuilder();
@@ -744,8 +755,7 @@ class DirectDecoder {
       _advance();
       return;
     }
-    if (isDecimal(subInfo) &&
-        (current.kind == TokenKind.float || current.kind == TokenKind.int)) {
+    if (isDecimal(subInfo) && _atDecimalNumber) {
       var sub = subBuilder();
       setDecimalFields(sub, current.value);
       msg.setField(fi.tagNumber, sub);
@@ -866,6 +876,9 @@ class DirectDecoder {
             var val = _consumeScalar(valueFi);
             setImplicit(sub, 1, val);
             list.add(sub);
+          } else if (isSecret(subInfo) && current.kind == TokenKind.string) {
+            list.add(sub..setField(1, current.value));
+            _advance();
           } else {
             throw PxfError(
                 current.pos, 'expected "{" for message element in list');
@@ -1148,14 +1161,18 @@ class DirectDecoder {
       setImplicit(sub, 1, _consumeScalar(subInfo.fieldInfo[1]!));
       return sub;
     }
+    if (isSecret(subInfo) && current.kind == TokenKind.string) {
+      final sub = make()..setField(1, current.value);
+      _advance();
+      return sub;
+    }
     if (isBigInt(subInfo) && current.kind == TokenKind.int) {
       var sub = make();
       setBigIntFields(sub, current.value);
       _advance();
       return sub;
     }
-    if (isDecimal(subInfo) &&
-        (current.kind == TokenKind.float || current.kind == TokenKind.int)) {
+    if (isDecimal(subInfo) && _atDecimalNumber) {
       var sub = make();
       setDecimalFields(sub, current.value);
       _advance();
@@ -1251,19 +1268,23 @@ class DirectDecoder {
       return v;
     }
 
-    if (t == PbFieldType.OF || t == PbFieldType.PF || t == PbFieldType.QF) {
-      if (current.kind != TokenKind.float && current.kind != TokenKind.int) {
+    final isFloat =
+        t == PbFieldType.OF || t == PbFieldType.PF || t == PbFieldType.QF;
+    if (isFloat ||
+        t == PbFieldType.OD ||
+        t == PbFieldType.PD ||
+        t == PbFieldType.QD) {
+      if (current.kind != TokenKind.float &&
+          current.kind != TokenKind.int &&
+          !(current.kind == TokenKind.ident &&
+              (current.value == 'inf' || current.value == 'nan'))) {
         throw PxfError(pos, 'expected number for field "${fi.protoName}"');
       }
-      var v = double.parse(current.value);
-      _advance();
-      return v;
-    }
-    if (t == PbFieldType.OD || t == PbFieldType.PD || t == PbFieldType.QD) {
-      if (current.kind != TokenKind.float && current.kind != TokenKind.int) {
-        throw PxfError(pos, 'expected number for field "${fi.protoName}"');
+      final v = parseFloatLiteral(current.value, float32: isFloat);
+      if (v == null) {
+        throw PxfError(
+            pos, 'invalid ${isFloat ? 'float' : 'double'}: ${current.value}');
       }
-      var v = double.parse(current.value);
       _advance();
       return v;
     }
@@ -1405,6 +1426,60 @@ void unmarshal(String input, GeneratedMessage msg,
     limits: options?.limits ?? const DecodeLimits(),
   );
   d.decodeDocument(msg);
+}
+
+/// The value of a float or double literal (draft -01 § Numeric Literals),
+/// or null when it has none: a malformed literal, or a finite one past the
+/// type's range. `inf`, `+inf` and `-inf` are infinities; `nan` is the
+/// canonical quiet NaN. A float is rounded to float32 here, so a value that
+/// underflows is zero, as it will be on the wire.
+double? parseFloatLiteral(String literal, {required bool float32}) {
+  final double d;
+  switch (literal) {
+    case 'inf' || '+inf':
+      d = double.infinity;
+    case '-inf':
+      d = double.negativeInfinity;
+    case 'nan':
+      d = double.nan;
+    default:
+      final parsed = double.tryParse(literal);
+      if (parsed == null || !_isPlainNumber(literal)) return null;
+      if (parsed.isInfinite) return null; // past the double range
+      if (!float32) return parsed;
+      final rounded = (Float32List(1)..[0] = parsed)[0];
+      return rounded.isInfinite ? null : rounded;
+  }
+  return float32 ? (Float32List(1)..[0] = d)[0] : d;
+}
+
+/// Whether [s] is a decimal number, `-?digits(.digits)?([eE][+-]?digits)?`:
+/// double.tryParse alone also takes "Infinity", "NaN" and hex, which the
+/// grammar does not. A loop, not a RegExp, because the lexer passes ten
+/// million leading zeros and a RegExp overflows the stack on them.
+bool _isPlainNumber(String s) {
+  var i = 0;
+  final n = s.length;
+  bool digits() {
+    final start = i;
+    while (i < n && s.codeUnitAt(i) >= 0x30 && s.codeUnitAt(i) <= 0x39) {
+      i++;
+    }
+    return i > start;
+  }
+
+  if (i < n && s.codeUnitAt(i) == 0x2D) i++; // -
+  if (!digits()) return false;
+  if (i < n && s.codeUnitAt(i) == 0x2E) {
+    i++; // .
+    if (!digits()) return false;
+  }
+  if (i < n && (s.codeUnitAt(i) | 0x20) == 0x65) {
+    i++; // e or E
+    if (i < n && (s.codeUnitAt(i) == 0x2B || s.codeUnitAt(i) == 0x2D)) i++;
+    if (!digits()) return false;
+  }
+  return i == n;
 }
 
 /// Unmarshals [input] into [msg] and reports which fields the document
@@ -1573,12 +1648,12 @@ Object _scalarDefault(int t, String literal, FieldInfo fi) {
     return n;
   }
   if (t == PbFieldType.OF) {
-    final d = double.tryParse(literal);
+    final d = parseFloatLiteral(literal, float32: true);
     if (d == null) throw _badDefault('float', literal, fi);
     return d;
   }
   if (t == PbFieldType.OD) {
-    final d = double.tryParse(literal);
+    final d = parseFloatLiteral(literal, float32: false);
     if (d == null) throw _badDefault('double', literal, fi);
     return d;
   }
@@ -1633,7 +1708,7 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
     return sub;
   }
   if (isDecimal(info)) {
-    if (double.tryParse(literal) == null) {
+    if (!_isPlainNumber(literal)) {
       throw _badDefault('decimal', literal, fi);
     }
     setDecimalFields(sub, literal);

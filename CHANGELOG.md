@@ -42,7 +42,15 @@ format changes.
   bytes. A generated Dart class does not say whether its file is proto2 or
   proto3, so a proto2 `string` field is checked too, where protowire-go
   checks proto3 and editions only.
-  
+- **`marshalNative` no longer writes a singular scalar set to its zero**
+  (`0`, `""`, `false`, `0.0`, empty bytes), as protowire-go's struct API
+  does not (the spec's struct-binding table, protowire#509). A map entry
+  keeps its zeros.
+- **A double literal past the double range is refused** (`1e400`: "invalid
+  double"), as draft -01 § Numeric Literals says, instead of reading as
+  infinity. A float field rounds to float32 as it reads, so `3.4028235e38` is
+  float32's largest value and `1e-46` is zero.
+
 ### Fixed
 
 - **SBE writes a `string` field as UTF-8, and cuts an overlong one on a
@@ -56,6 +64,18 @@ format changes.
   negative number and run the VM out of memory. Prec 0 is now reported as
   "@default's big_float_value declares no precision", as protowire-go does,
   instead of binding the literal `0`.
+- **`inf`, `+inf`, `-inf` and `nan` read into float and double fields**
+  (draft -01 § Numeric Literals). `marshal` wrote them, but `unmarshal`
+  refused them. `nan` is the canonical quiet NaN.
+- **A string literal reads into a `pxf.Secret` field**, list element or map
+  value: `pw = "x"` is `pw { value = "x" }`.
+
+### Added
+
+- `check_decode --format pxf-pb`, the harness for the spec's write gate
+  (`scripts/cross_write_check.sh`, protowire#509), which found the three
+  entries above. One gate case, an unknown number on an open enum, waits on
+  #82.
 
 ## 1.2.0
 

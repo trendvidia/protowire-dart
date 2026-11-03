@@ -137,6 +137,10 @@ bool isBigFloat(BuilderInfo info) {
   return info.qualifiedMessageName == 'pxf.BigFloat';
 }
 
+/// pxf.Secret, which a string literal stands for when it carries only its
+/// value: `pw = "x"` is `pw { value = "x" }`.
+bool isSecret(BuilderInfo info) => info.qualifiedMessageName == 'pxf.Secret';
+
 /// HARDENING.md § Numeric-literal cap. `BigInt.parse` is O(n²) in the digit
 /// count, so a multi-thousand-digit literal is a CPU-DoS vector. The
 /// cross-port spec mandates ≤ 4096 significant digits per numeric literal.

@@ -147,6 +147,16 @@ dynamic _getDefault(Type type) {
   return null;
 }
 
+bool _isZero(Object value) => switch (value) {
+      int v => v == 0,
+      Int64 v => v.isZero,
+      String v => v.isEmpty,
+      bool v => !v,
+      double v => v == 0, // -0.0 too, as in protowire-go
+      Uint8List v => v.isEmpty,
+      _ => false,
+    };
+
 bool _isScalar(Type type) => _getDefault(type) != null || type == Uint8List;
 
 /// [obj] as a message at [depth] descents from the root.
@@ -180,7 +190,10 @@ void _populateGeneratedMessage(GeneratedMessage msg, Object obj,
         target[k] = scalar ? v : _toMessage(v as Object, depth + 2, maxDepth);
       });
     } else if (_isScalar(fi.type)) {
-      msg.setField(fi.tag, value);
+      // A singular scalar at its zero is not written, as protowire-go's
+      // struct API does not write one (the struct-binding table's Zeros row,
+      // protowire#509). A map entry keeps its zeros.
+      if (!_isZero(value)) msg.setField(fi.tag, value);
     } else {
       _descend(depth + 1, maxDepth);
       msg.setField(fi.tag, _toMessage(value, depth + 1, maxDepth));
