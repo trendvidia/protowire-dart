@@ -8,7 +8,7 @@
 //
 // Contract:
 //
-//   check_decode --format <pxf|pb|sbe|envelope> \
+//   check_decode --format <pxf|pxf-pb|pb|pb-render|sbe|envelope> \
 //                --schema <fully.qualified.MessageType> \
 //                --proto  <path-to-adversarial.proto> \
 //                --input  <path> \
@@ -17,6 +17,11 @@
 // --limit lowers a HARDENING.md limit for the call, so the corpus can prove a
 // 64 MiB cap with a small fixture: MaxMessageSize, MaxBytesLiteralLength,
 // MaxRepeatedCount.
+//
+// pxf-pb reads a PXF document of a text.v1 message and writes its PB bytes
+// on stdout, map entries in key order, for the write gate
+// (protowire/scripts/cross_write_check.sh). The schema's annotations come
+// from the `.binpb` beside --proto, as for sbe.
 //
 //   Exit 0 → input was accepted (decode succeeded)
 //   Exit 1 → input was rejected (clean error; "reject: <msg>" on stderr)
@@ -29,6 +34,7 @@
 // and the generated file is caught by the conformance run itself: a wrong
 // field number flips the manifest's accept/reject expectations.
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -39,6 +45,7 @@ import 'package:protowire/src/generated/proto/google/protobuf/descriptor.pb.dart
     as pbd;
 
 import 'adversarial.pb.dart' as adv;
+import 'text.pb.dart' as text;
 
 void main(List<String> args) async {
   String? format;
@@ -121,6 +128,10 @@ Future<void> _run(String format, String schema, String? protoPath, String input,
     case 'pxf':
       final text = await File(input).readAsString();
       _pxfDecode(text, schema, limits);
+    case 'pxf-pb':
+      final doc = await File(input).readAsString();
+      stdout.add(_pxfPb(doc, schema, protoPath, limits));
+      await stdout.flush();
     case 'pb':
       final bytes = await File(input).readAsBytes();
       _pbDecode(bytes, schema, limits);
@@ -140,6 +151,62 @@ Future<void> _run(String format, String schema, String? protoPath, String input,
 void _pxfDecode(String text, String schema, pw.DecodeLimits limits) {
   final msg = _newMessage(schema);
   pw.unmarshal(text, msg, options: pw.UnmarshalOptions(limits: limits));
+}
+
+/// The PB bytes of a PXF document, as protowire-go's check-decode writes
+/// them: decoded with the schema's annotations (`@default`, `@required`), and
+/// written with map entries in key order.
+List<int> _pxfPb(
+    String doc, String schema, String? protoPath, pw.DecodeLimits limits) {
+  if (protoPath == null) throw _Reject('pxf-pb needs --proto');
+  final msg = _newMessage(schema);
+  final annotations = pw.PxfAnnotations.fromBytes(
+      File(protoPath.replaceFirst(RegExp(r'\.proto$'), '.binpb'))
+          .readAsBytesSync());
+  pw.unmarshalFull(doc, msg,
+      options: pw.UnmarshalOptions(annotations: annotations, limits: limits));
+  _sortMaps(msg);
+  return msg.writeToBuffer();
+}
+
+/// Puts every map of [msg], and of the messages under it, in key order.
+/// package:protobuf writes a map in insertion order.
+void _sortMaps(pb.GeneratedMessage msg) {
+  for (final fi in msg.info_.fieldInfo.values) {
+    if (!msg.hasField(fi.tagNumber)) continue;
+    final val = msg.getField(fi.tagNumber);
+    if (val is Map) {
+      final keys = val.keys.toList()..sort(_compareKeys);
+      final entries = [for (final k in keys) MapEntry(k, val[k])];
+      val.clear();
+      for (final e in entries) {
+        val[e.key] = e.value;
+      }
+      for (final v in val.values) {
+        if (v is pb.GeneratedMessage) _sortMaps(v);
+      }
+    } else if (val is List) {
+      for (final v in val) {
+        if (v is pb.GeneratedMessage) _sortMaps(v);
+      }
+    } else if (val is pb.GeneratedMessage) {
+      _sortMaps(val);
+    }
+  }
+}
+
+/// Go's deterministic order: false before true, numbers by value, strings by
+/// their UTF-8 bytes.
+int _compareKeys(Object? a, Object? b) {
+  if (a is bool && b is bool) return a == b ? 0 : (a ? 1 : -1);
+  if (a is String && b is String) {
+    final x = utf8.encode(a), y = utf8.encode(b);
+    for (var i = 0; i < x.length && i < y.length; i++) {
+      if (x[i] != y[i]) return x[i] - y[i];
+    }
+    return x.length - y.length;
+  }
+  return (a as Comparable).compareTo(b);
 }
 
 /// A `.binpb` beside the `--proto` file holds its compiled descriptor set, as
@@ -210,6 +277,16 @@ pb.GeneratedMessage _newMessage(String schema) {
       return adv.SbeWithGroup();
     case 'adversarial.v1.SbeText':
       return adv.SbeText();
+    case 'text.v1.Scalars':
+      return text.Scalars();
+    case 'text.v1.Shapes':
+      return text.Shapes();
+    case 'text.v1.WellKnown':
+      return text.WellKnown();
+    case 'text.v1.Keyed':
+      return text.Keyed();
+    case 'text.v1.Item':
+      return text.Item();
     default:
       throw _Reject('unknown schema: $schema');
   }
