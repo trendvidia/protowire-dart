@@ -200,6 +200,8 @@ pb.GeneratedMessage _newMessage(String schema) {
       return adv.ListHolder();
     case 'adversarial.v1.SbeWithGroup':
       return adv.SbeWithGroup();
+    case 'adversarial.v1.SbeText':
+      return adv.SbeText();
     default:
       throw _Reject('unknown schema: $schema');
   }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:protobuf/protobuf.dart';
@@ -22,6 +23,9 @@ const _maxNestingDepth = 100;
 /// against [msg]'s schema first, and past a bound throws an
 /// [InvalidProtocolBufferException], the package's own for the depth. Use it
 /// in place of `mergeFromBuffer` on untrusted input.
+///
+/// A `string` field that is not valid UTF-8 is rejected the same way, which
+/// plain `mergeFromBuffer` does not do (HARDENING.md § UTF-8).
 ///
 /// Malformed [data] throws [InvalidProtocolBufferException] and nothing else,
 /// and leaves [msg] unmerged when the walk is what rejects it.
@@ -82,17 +86,21 @@ void _checkDepth(
     final expected = isGroup ? WIRETYPE_START_GROUP : WIRETYPE_LENGTH_DELIMITED;
     final repeated = fi != null && (fi.isRepeated || fi.isMapField);
     if (child == null || wireType != expected) {
+      final isString = fi != null &&
+          child == null &&
+          PbFieldType.baseType(fi.type) == PbFieldType.STRING_BIT;
       if (repeated && wireType == WIRETYPE_LENGTH_DELIMITED && child == null) {
         final packed = input.readBytesAsView();
+        if (isString) _checkUtf8(fi.tagNumber, packed);
         final strings =
-            PbFieldType.baseType(fi.type) == PbFieldType.STRING_BIT ||
-                PbFieldType.baseType(fi.type) == PbFieldType.BYTES_BIT;
+            isString || PbFieldType.baseType(fi.type) == PbFieldType.BYTES_BIT;
         count(fi.tagNumber, strings ? 1 : _packedCount(fi.type, packed));
         continue;
       }
       if (repeated) count(fi.tagNumber, 1);
       if (wireType == WIRETYPE_LENGTH_DELIMITED) {
-        input.readBytesAsView();
+        final payload = input.readBytesAsView();
+        if (isString) _checkUtf8(fi.tagNumber, payload);
       } else {
         input.skipField(tag);
       }
@@ -110,6 +118,21 @@ void _checkDepth(
     }
   }
 }
+
+/// HARDENING.md § UTF-8: a decoder validates a `string` field strictly, and
+/// package:protobuf decodes one with `allowMalformed: true`, putting U+FFFD
+/// where the bad bytes were. A generated class does not say whether its file
+/// is proto2 or proto3, so this checks every `string` field, proto2's too,
+/// where protowire-go checks proto3 and editions only.
+void _checkUtf8(int number, Uint8List payload) {
+  try {
+    _strictUtf8.convert(payload);
+  } on FormatException {
+    throw _Rejected('field $number: string is not valid UTF-8');
+  }
+}
+
+const _strictUtf8 = Utf8Decoder();
 
 /// The elements a packed field's [payload] holds, read without decoding them.
 int _packedCount(int fieldType, Uint8List payload) {

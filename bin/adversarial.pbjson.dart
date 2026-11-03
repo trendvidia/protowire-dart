@@ -209,3 +209,18 @@ final $typed_data.Uint8List sbeWithGroupDescriptor = $convert.base64Decode(
     'CgxTYmVXaXRoR3JvdXASHQoKcm9vdF92YWx1ZRgBIAEoDVIJcm9vdFZhbHVlEjwKB2VudHJpZX'
     'MYAiADKAsyIi5hZHZlcnNhcmlhbC52MS5TYmVXaXRoR3JvdXAuRW50cnlSB2VudHJpZXMaKAoF'
     'RW50cnkSHwoLZW50cnlfdmFsdWUYASABKA1SCmVudHJ5VmFsdWU6BMhSqUY=');
+
+@$core.Deprecated('Use sbeTextDescriptor instead')
+const SbeText$json = {
+  '1': 'SbeText',
+  '2': [
+    {'1': 'text', '3': 1, '4': 1, '5': 9, '8': {}, '10': 'text'},
+    {'1': 'raw', '3': 2, '4': 1, '5': 12, '8': {}, '10': 'raw'},
+  ],
+  '7': {},
+};
+
+/// Descriptor for `SbeText`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sbeTextDescriptor = $convert.base64Decode(
+    'CgdTYmVUZXh0EhcKBHRleHQYASABKAlCA9BSCFIEdGV4dBIVCgNyYXcYAiABKAxCA9BSCFIDcm'
+    'F3OgTIUqpG');
