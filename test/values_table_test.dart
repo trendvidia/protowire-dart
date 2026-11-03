@@ -3,18 +3,20 @@
 //
 // The struct-binding table (protowire#509): values written through a port's
 // struct API, with the bytes protowire-go writes for each. Dart's struct API
-// is marshalNative over @ProtoTag classes, and this holds a twin of every row
-// it can express. test/testdata/values/values.tsv is a byte copy of the
-// spec's file, compared with it by the scheduled go-conformance job.
+// is marshalNative over @ProtoTag classes, and this holds a twin of every
+// row (protowire-dart#83). test/testdata/values/values.tsv is a byte copy of
+// the spec's file, compared with it by the scheduled go-conformance job. A
+// row added to the table fails here until it has a twin.
 //
-// The rows it cannot express need field types marshalNative does not have
-// yet: repeated fields, float32, uint64, and pxf.BigInt / Decimal / BigFloat
-// (protowire-dart#83). They are listed below, so a row added to the table
-// fails here until it is placed in one list or the other.
+// Go's big.Rat and big.Float are pxf.Decimal and pxf.BigFloat messages here,
+// built as the row's words spell them (1.00 is unscaled 100, scale 2), so
+// the reduction protowire-go gets from its types is marshalNative's to do.
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fixnum/fixnum.dart';
+import 'package:protowire/src/encoding/pxf/wellknown.dart' show bigIntToBytes;
+import 'package:protowire/src/generated/proto/pxf/bignum.pb.dart' as bn;
 import 'package:protowire/src/encoding/pb/native.dart';
 import 'package:protowire/src/encoding/pb/proto_tag.dart';
 import 'package:test/test.dart';
@@ -58,6 +60,98 @@ class ZeroMapEntry {
   Map<int, String>? k;
 }
 
+class Packed {
+  @ProtoTag(1)
+  List<int>? xs;
+  @ProtoTag(2)
+  List<Int64>? ys;
+  @ProtoTag(3)
+  List<bool>? bs;
+  @ProtoTag(4)
+  List<double>? ds;
+  @ProtoTag(5, float32: true)
+  List<double>? fs;
+}
+
+class DecimalHolder {
+  @ProtoTag(1)
+  bn.Decimal? d;
+}
+
+class Decimals {
+  @ProtoTag(1)
+  List<bn.Decimal?>? ds;
+}
+
+class Leaf {
+  @ProtoTag(1)
+  String? name;
+  @ProtoTag(2)
+  int? n;
+}
+
+class Nested {
+  @ProtoTag(1)
+  String? s;
+  @ProtoTag(2)
+  List<Leaf>? ls;
+  @ProtoTag(3)
+  List<String>? ss;
+}
+
+class Zeros {
+  @ProtoTag(1)
+  int? i;
+  @ProtoTag(2)
+  String? s;
+  @ProtoTag(3)
+  bool? b;
+  @ProtoTag(4)
+  double? d;
+  @ProtoTag(5)
+  Uint8List? bs;
+  @ProtoTag(6, unsigned: true)
+  Int64? u;
+}
+
+class BigNums {
+  @ProtoTag(1)
+  BigInt? i;
+  @ProtoTag(2)
+  bn.Decimal? d;
+  @ProtoTag(3)
+  bn.BigFloat? f;
+}
+
+class BigInts {
+  @ProtoTag(1)
+  List<BigInt?>? values;
+}
+
+class BigFloatMap {
+  @ProtoTag(1)
+  Map<String, bn.BigFloat?>? m;
+}
+
+class BigFloatHolder {
+  @ProtoTag(1)
+  bn.BigFloat? f;
+}
+
+/// A pxf.Decimal of [unscaled] × 10^-[scale], unreduced.
+bn.Decimal dec(int unscaled, int scale, {bool negative = false}) => bn.Decimal()
+  ..unscaled = bigIntToBytes(BigInt.from(unscaled))
+  ..scale = scale
+  ..negative = negative;
+
+/// A pxf.BigFloat of [mantissa] × 2^[exponent] at [prec] bits, unwidened.
+bn.BigFloat bf(int mantissa, int exponent, int prec, {bool negative = false}) =>
+    bn.BigFloat()
+      ..mantissa = bigIntToBytes(BigInt.from(mantissa))
+      ..exponent = exponent
+      ..prec = prec
+      ..negative = negative;
+
 /// The rows, by case name, as values.tsv words them.
 final Map<String, Object Function()> twins = {
   'Ints': () => Ints()
@@ -75,48 +169,53 @@ final Map<String, Object Function()> twins = {
     ..m = {'': ''}
     ..z = {'zero': 0}
     ..k = {0: 'v'},
-};
-
-/// Rows whose struct needs a field type marshalNative lacks, and which.
-const notExpressible = {
-  'Packed': 'repeated fields, float32',
-  'Decimal': 'pxf.Decimal',
-  'DecimalOne': 'pxf.Decimal',
-  'DecimalFiveE2': 'pxf.Decimal',
-  'DecimalFifteen': 'pxf.Decimal',
-  'DecimalZero': 'pxf.Decimal',
-  'DecimalNegative': 'pxf.Decimal',
-  'Decimals': 'repeated pxf.Decimal',
-  'Nested': 'repeated fields',
-  'Zeros': 'uint64',
-  'BigNumsNull': 'pxf.BigInt, Decimal, BigFloat',
-  'BigNumsZero': 'pxf.BigInt, Decimal, BigFloat',
-  'BigNumsNegative': 'pxf.BigInt, Decimal, BigFloat',
-  'BigIntsZeroElement': 'repeated pxf.BigInt',
-  'BigIntsNullElement': 'repeated pxf.BigInt',
-  'DecimalsNullElement': 'repeated pxf.Decimal',
-  'BigFloatMapNullValue': 'pxf.BigFloat',
-  'BigFloatPrec64': 'pxf.BigFloat',
+  'Packed': () => Packed()
+    ..xs = [1, 0, -1]
+    ..ys = [Int64(300)]
+    ..bs = [true, false]
+    ..ds = [1.5]
+    ..fs = [-2.5],
+  'Decimal': () => DecimalHolder()..d = dec(31415, 4),
+  'DecimalOne': () => DecimalHolder()..d = dec(100, 2),
+  'DecimalFiveE2': () => DecimalHolder()..d = dec(5, -2),
+  'DecimalFifteen': () => DecimalHolder()..d = dec(1500, 2),
+  'DecimalZero': () => DecimalHolder()..d = dec(0, 2),
+  'DecimalNegative': () => DecimalHolder()..d = dec(150, 2, negative: true),
+  'Decimals': () => Decimals()..ds = [dec(0, 2), dec(100, 2), dec(5, -2)],
+  'Nested': () => Nested()
+    ..s = 'x'
+    ..ls = [
+      Leaf(),
+      Leaf()
+        ..name = 'l'
+        ..n = -3
+    ]
+    ..ss = ['', 's'],
+  'Zeros': () => Zeros()
+    ..i = 0
+    ..s = ''
+    ..b = false
+    ..d = -0.0
+    ..bs = Uint8List(0)
+    ..u = Int64.ZERO,
+  'BigNumsNull': () => BigNums(),
+  'BigNumsZero': () => BigNums()
+    ..i = BigInt.zero
+    ..d = dec(0, 0)
+    ..f = bf(0, 0, 0),
+  'BigNumsNegative': () => BigNums()
+    ..i = BigInt.parse('-12345678901234567890')
+    ..d = dec(5, 1, negative: true)
+    ..f = bf(3, -1, 53, negative: true),
+  'BigIntsZeroElement': () => BigInts()..values = [BigInt.zero, BigInt.one],
+  'BigIntsNullElement': () => BigInts()..values = [BigInt.one, null],
+  'DecimalsNullElement': () => Decimals()..ds = [dec(1, 0), null],
+  'BigFloatMapNullValue': () => BigFloatMap()..m = {'k': null},
+  'BigFloatPrec64': () => BigFloatHolder()..f = bf(3, -1, 64),
 };
 
 String hex(List<int> b) =>
     b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
-
-/// Zeros{i: 0, s: "", b: false, d: 0, bs: empty, u: 0} less `u`, a uint64
-/// marshalNative has no type for. Zero scalars are not written, so `u` adds
-/// nothing and this writes the Zeros row's bytes, or it is wrong.
-class ZerosLessU {
-  @ProtoTag(1)
-  int? i;
-  @ProtoTag(2)
-  String? s;
-  @ProtoTag(3)
-  bool? b;
-  @ProtoTag(4)
-  double? d;
-  @ProtoTag(5)
-  Uint8List? bs;
-}
 
 void main() {
   final rows = <String, String>{};
@@ -127,25 +226,9 @@ void main() {
     rows[cols[0]] = cols[1];
   }
 
-  test('every row is a twin or listed as not expressible', () {
-    expect(rows, isNotEmpty);
-    for (final name in rows.keys) {
-      expect(
-          twins.containsKey(name) || notExpressible.containsKey(name), isTrue,
-          reason: '$name is new in values.tsv');
-    }
-    expect({...twins.keys, ...notExpressible.keys}, rows.keys.toSet(),
-        reason: 'a listed row is no longer in values.tsv');
-  });
-
-  test('Zeros, less its uint64 field, writes protowire-go\'s bytes', () {
-    final z = ZerosLessU()
-      ..i = 0
-      ..s = ''
-      ..b = false
-      ..d = -0.0
-      ..bs = Uint8List(0);
-    expect(hex(marshalNative(z)), rows['Zeros']);
+  test('every row has a twin', () {
+    expect(rows, hasLength(23));
+    expect(twins.keys.toSet(), rows.keys.toSet());
   });
 
   twins.forEach((name, build) {

@@ -72,6 +72,23 @@ format changes.
 
 ### Added
 
+- **`marshalNative` and `unmarshalNative` take lists, float32, unsigned and
+  big numbers** (#83, decided 2026-11-03), so a twin of every row of the
+  spec's struct-binding table (`testdata/values/values.tsv`, protowire#509)
+  writes protowire-go's bytes, 23 of 23:
+  - `List<T>` is `repeated T`, packed for numbers and `bool`. `Uint8List` is
+    still `bytes`. A null element of a list of messages or big numbers is an
+    empty message; of a list of scalars it throws an `ArgumentError`.
+  - `ProtoTag(n, unsigned: true)` makes `int` a `uint32` and `Int64` a
+    `uint64`. `ProtoTag(n, float32: true)` makes `double` a `float`.
+  - `BigInt` is `pxf.BigInt`.
+  - A field whose type is a generated message class is that message, which
+    is how a class holds a `pxf.Decimal` or `pxf.BigFloat`. Those two are
+    written as protowire-go writes the same value: a Decimal reduced (`1.00`
+    as unscaled 1, scale 0) and a BigFloat's mantissa widened to `prec`
+    bits. The message passed in is not changed. A zero big number is not
+    written in a singular field, like a zero scalar.
+
 - `check_decode --format pxf-pb`, the harness for the spec's write gate
   (`scripts/cross_write_check.sh`, protowire#509), which found the three
   entries above. One gate case, an unknown number on an open enum, waits on

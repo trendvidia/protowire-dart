@@ -51,7 +51,7 @@ class BadKey {
 
 class NoCodec {
   @ProtoTag(1)
-  List<int>? l;
+  Set<int>? l;
 }
 
 String hexOf(List<int> bytes) =>
@@ -128,9 +128,9 @@ void main() {
 
   test('a type with no codec names the field, past the dependency', () {
     expect(
-        () => marshalNative(NoCodec()..l = [1]),
+        () => marshalNative(NoCodec()..l = {1}),
         throwsA(isA<ArgumentError>().having((e) => '$e', 'message',
-            contains('NoCodec.l: List<int> is not a supported field type'))));
+            contains('NoCodec.l: Set<int> is not a supported field type'))));
   });
 
   group('zero-map-entry (protowire#295)', () {
