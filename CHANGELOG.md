@@ -11,6 +11,15 @@ format changes.
 
 ## Unreleased
 
+### Fixed
+
+- **SBE writes a `string` field as UTF-8, and cuts an overlong one on a
+  character boundary** (#71, protowire#495). The emitter used to write the
+  string's UTF-16 code units, one byte each, so any character past U+007F
+  came out wrong. An overlong string is now cut at the last whole UTF-8
+  character at or before `(sbe.length)` and NUL-padded. A `bytes` field is
+  still cut at the limit.
+
 ## 1.2.0
 
 ### Changed
