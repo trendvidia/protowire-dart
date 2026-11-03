@@ -686,6 +686,12 @@ class DirectDecoder {
         'precision suffix p${current.prec} on field "${fi.protoName}": only a pxf.BigFloat takes one');
   }
 
+  /// Whether the token is a number a pxf.Decimal can hold: `+inf` and `-inf`
+  /// are float tokens too, and a decimal has no infinity.
+  bool get _atDecimalNumber =>
+      (current.kind == TokenKind.float || current.kind == TokenKind.int) &&
+      _isPlainNumber(current.value);
+
   /// Reads a number into the pxf.BigFloat [sub]. False when the token is not
   /// one, so the caller goes on to the block form.
   bool _consumeBigFloat(GeneratedMessage sub) {
@@ -749,8 +755,7 @@ class DirectDecoder {
       _advance();
       return;
     }
-    if (isDecimal(subInfo) &&
-        (current.kind == TokenKind.float || current.kind == TokenKind.int)) {
+    if (isDecimal(subInfo) && _atDecimalNumber) {
       var sub = subBuilder();
       setDecimalFields(sub, current.value);
       msg.setField(fi.tagNumber, sub);
@@ -1167,8 +1172,7 @@ class DirectDecoder {
       _advance();
       return sub;
     }
-    if (isDecimal(subInfo) &&
-        (current.kind == TokenKind.float || current.kind == TokenKind.int)) {
+    if (isDecimal(subInfo) && _atDecimalNumber) {
       var sub = make();
       setDecimalFields(sub, current.value);
       _advance();
@@ -1440,7 +1444,7 @@ double? parseFloatLiteral(String literal, {required bool float32}) {
       d = double.nan;
     default:
       final parsed = double.tryParse(literal);
-      if (parsed == null || !_plainNumber.hasMatch(literal)) return null;
+      if (parsed == null || !_isPlainNumber(literal)) return null;
       if (parsed.isInfinite) return null; // past the double range
       if (!float32) return parsed;
       final rounded = (Float32List(1)..[0] = parsed)[0];
@@ -1449,9 +1453,34 @@ double? parseFloatLiteral(String literal, {required bool float32}) {
   return float32 ? (Float32List(1)..[0] = d)[0] : d;
 }
 
-/// A decimal literal: double.tryParse alone also takes "Infinity", "NaN" and
-/// hex, which the grammar does not.
-final _plainNumber = RegExp(r'^-?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$');
+/// Whether [s] is a decimal number, `-?digits(.digits)?([eE][+-]?digits)?`:
+/// double.tryParse alone also takes "Infinity", "NaN" and hex, which the
+/// grammar does not. A loop, not a RegExp, because the lexer passes ten
+/// million leading zeros and a RegExp overflows the stack on them.
+bool _isPlainNumber(String s) {
+  var i = 0;
+  final n = s.length;
+  bool digits() {
+    final start = i;
+    while (i < n && s.codeUnitAt(i) >= 0x30 && s.codeUnitAt(i) <= 0x39) {
+      i++;
+    }
+    return i > start;
+  }
+
+  if (i < n && s.codeUnitAt(i) == 0x2D) i++; // -
+  if (!digits()) return false;
+  if (i < n && s.codeUnitAt(i) == 0x2E) {
+    i++; // .
+    if (!digits()) return false;
+  }
+  if (i < n && (s.codeUnitAt(i) | 0x20) == 0x65) {
+    i++; // e or E
+    if (i < n && (s.codeUnitAt(i) == 0x2B || s.codeUnitAt(i) == 0x2D)) i++;
+    if (!digits()) return false;
+  }
+  return i == n;
+}
 
 /// Unmarshals [input] into [msg] and reports which fields the document
 /// set, set to null, or left absent — the same `unmarshalFull` every
@@ -1679,7 +1708,7 @@ GeneratedMessage _messageDefault(FieldInfo fi, String literal) {
     return sub;
   }
   if (isDecimal(info)) {
-    if (double.tryParse(literal) == null) {
+    if (!_isPlainNumber(literal)) {
       throw _badDefault('decimal', literal, fi);
     }
     setDecimalFields(sub, literal);

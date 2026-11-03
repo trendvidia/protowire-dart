@@ -110,14 +110,20 @@ void main() {
     void decodeFloat(String literal) =>
         unmarshal('value = $literal', FloatProbe.create());
 
+    // 4096 integer digits are past a double's range, so the literal at the
+    // cap is refused as a double, as protowire-go refuses it, but not by
+    // the cap.
     test('integer digits are capped at the bound', () {
-      decodeFloat(atCap);
+      expect(
+          () => decodeFloat(atCap),
+          throwsA(isA<PxfError>()
+              .having((e) => '$e', 'message', contains('invalid double'))));
       expect(() => decodeFloat(pastCap), limitError);
     });
 
     test('digits either side of the point share the cap', () {
-      decodeFloat('${'1' * 2048}.${'2' * 2048}');
-      expect(() => decodeFloat('${'1' * 2048}.${'2' * 2049}'), limitError);
+      decodeFloat('1.${'2' * 4095}');
+      expect(() => decodeFloat('1.${'2' * 4096}'), limitError);
     });
   });
 
