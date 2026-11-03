@@ -12,7 +12,8 @@ Never _unsupported() => throw UnsupportedError(
     'the native pb codec needs dart:mirrors, which this platform does not '
     'have: use generated messages');
 
-Uint8List marshalNative(Object obj) => _unsupported();
+Uint8List marshalNative(Object obj, {int maxNestingDepth = 100}) =>
+    _unsupported();
 
 void unmarshalNative(Uint8List data, Object obj,
         {DecodeLimits limits = const DecodeLimits()}) =>

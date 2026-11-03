@@ -26,6 +26,13 @@ class MarshalOptions {
   /// messages carry no field options, so without them it never is.
   final PxfAnnotations? annotations;
 
+  /// The deepest document this writes, counted as a decoder reading it counts
+  /// (HARDENING.md § Recursion, protowire#502): every `{` and `[`, so a map's
+  /// braces and a list's brackets each count. Past it [marshal] throws a
+  /// [PxfError] rather than write what a reader at the same limit refuses.
+  /// Raise it only where every reader takes the deeper document.
+  final int maxNestingDepth;
+
   MarshalOptions({
     this.indent = '  ',
     this.emitDefaults = false,
@@ -33,6 +40,7 @@ class MarshalOptions {
     this.typeRegistry = const TypeRegistry.empty(),
     this.nullFields,
     this.annotations,
+    this.maxNestingDepth = defaultMaxNestingDepth,
   });
 
   String marshal(GeneratedMessage msg) {
@@ -44,6 +52,7 @@ class MarshalOptions {
       typeRegistry: typeRegistry,
       nullFields: nullFields,
       annotations: annotations,
+      maxDepth: maxNestingDepth,
     );
 
     // TODO: null_mask discovery
@@ -57,6 +66,9 @@ class MarshalOptions {
   }
 }
 
+/// MaxNestingDepth's default, the draft's: 100 descents from the root.
+const int defaultMaxNestingDepth = 100;
+
 /// The deepest block an Any body is written in: a reader takes 100 levels
 /// (MaxNestingDepth), so a document written with this stays readable.
 const int _maxAnyBodyLevel = 99;
@@ -68,6 +80,7 @@ class _Encoder {
   final TypeRegistry typeRegistry;
   final Result? nullFields;
   final PxfAnnotations? annotations;
+  final int maxDepth;
   final Set<String>? nullSet = null; // TODO: implement nullSet from null_mask
   String pathPrefix = '';
 
@@ -78,7 +91,18 @@ class _Encoder {
     required this.typeRegistry,
     this.nullFields,
     this.annotations,
+    required this.maxDepth,
   });
+
+  /// Called before writing a `{` or `[` whose inside is at [depth]. The indent
+  /// level is the count of brackets open, which is what a decoder counts.
+  /// A message that holds itself meets this too, rather than the stack's end.
+  void _descend(int depth) {
+    if (depth > maxDepth) {
+      throw PxfError(
+          Position(1, 1), 'nesting depth exceeds MaxNestingDepth=$maxDepth');
+    }
+  }
 
   void _writeIndent(int level) {
     for (int i = 0; i < level; i++) {
@@ -149,6 +173,7 @@ class _Encoder {
 
     if (isAny(subInfo) && _encodeAnyBody(fi, sub, level)) return;
 
+    _descend(level + 1);
     _writeIndent(level);
     buf.write('${fi.protoName} {\n');
     var oldPrefix = pathPrefix;
@@ -189,6 +214,7 @@ class _Encoder {
       return false;
     }
 
+    _descend(level + 1);
     _writeIndent(level);
     buf.write('${fi.protoName} {\n');
     _writeIndent(level + 1);
@@ -240,6 +266,7 @@ class _Encoder {
       return;
     }
 
+    _descend(level + 1);
     _writeFieldPrefix(level, fi.protoName);
     buf.write('[\n');
 
@@ -253,6 +280,7 @@ class _Encoder {
           _writeIndent(level + 1);
           _writeLiteral(sub);
         } else {
+          _descend(level + 2);
           _writeIndent(level + 1);
           buf.write('{\n');
           encodeMessage(sub, level + 2);
@@ -286,6 +314,7 @@ class _Encoder {
   /// One named block per element, in list order; the name is unquoted when
   /// identifier-safe, and the key is not repeated inside the block.
   void _encodeKeyedList(FieldInfo fi, List list, FieldInfo keyFi, int level) {
+    _descend(level + 2); // the field's block and an entry's
     _writeIndent(level);
     buf.write('${fi.protoName} {\n');
     for (final elem in list) {
@@ -335,6 +364,7 @@ class _Encoder {
   void _encodeMapField(FieldInfo fi, Map map, int level) {
     if (map.isEmpty && !emitDefaults) return;
 
+    _descend(level + 1);
     _writeFieldPrefix(level, fi.protoName);
     buf.write('{\n');
 
@@ -355,6 +385,7 @@ class _Encoder {
         _writeLiteral(v);
         buf.write('\n');
       } else if (v is GeneratedMessage) {
+        _descend(level + 2);
         buf.write('{\n');
         encodeMessage(v, level + 2);
         _writeIndent(level + 1);

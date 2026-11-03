@@ -13,6 +13,15 @@ format changes.
 
 ### Changed
 
+- **The PXF and PB producers refuse a message nested past MaxNestingDepth**
+  (#73, HARDENING.md § Recursion, protowire#502). `marshal` throws a
+  `PxfError` and `marshalNative` an `ArgumentError`, "nesting depth exceeds
+  MaxNestingDepth=100", rather than write what a reader at the same limit
+  refuses. Depth is counted as a decoder counts it: every `{` and `[` in PXF,
+  and in PB each submessage plus each map entry. A message that holds itself
+  meets the limit instead of overflowing the stack. The limit is per call:
+  `MarshalOptions(maxNestingDepth: ...)` and
+  `marshalNative(obj, maxNestingDepth: ...)`.
 - **`mergeFromBufferChecked` rejects a `string` field that is not valid
   UTF-8** (#70, HARDENING.md § UTF-8, protowire#496). That includes a lone
   surrogate and an overlong encoding, in any repeated element, map key or
@@ -21,6 +30,7 @@ format changes.
   bytes. A generated Dart class does not say whether its file is proto2 or
   proto3, so a proto2 `string` field is checked too, where protowire-go
   checks proto3 and editions only.
+  
 ### Fixed
 
 - **SBE writes a `string` field as UTF-8, and cuts an overlong one on a
