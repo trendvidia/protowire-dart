@@ -13,6 +13,16 @@ format changes.
 
 ### Changed
 
+- **An enum number the enum does not declare is kept on a singular field**
+  (#82, decided 2026-11-03). `f_enum = 99` used to be refused. It is now held
+  in the message's unknown fields, as package:protobuf holds one it reads from
+  binary, and `marshal` writes it back as `f_enum = 99`. protowire-go keeps
+  it as well. A number outside int32 is refused ("invalid enum number"), as
+  Go refuses it. A list element or map value with an undeclared number is
+  still refused, because the number would be written after the declared ones
+  and reorder the list. Known difference: package:protobuf writes unknown
+  fields last, so with a higher-numbered field also set the PB bytes hold
+  the same values as protowire-go's in another order.
 - **The SBE XML importer follows draft -01's rules for char encodings and
   fixed-length arrays** (#79, #86, protowire#494). A `char` maps to `string`
   only when its `characterEncoding` is absent, US-ASCII or UTF-8 (IANA names

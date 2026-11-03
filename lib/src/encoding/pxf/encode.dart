@@ -131,6 +131,18 @@ class _Encoder {
 
       // TODO: Handle nullSet/nullFields
 
+      // An undeclared number on a singular enum is held in unknown fields
+      // (package:protobuf's binary reader, or this port's PXF reader), and is
+      // written as the number, as protowire-go writes it (protowire-dart#82).
+      if (fi.isEnum && !fi.isRepeated && !msg.hasField(tag)) {
+        final n = _undeclaredEnum(msg, tag);
+        if (n != null) {
+          _writeFieldPrefix(level, fi.protoName);
+          buf.write('$n\n');
+          continue;
+        }
+      }
+
       if (!emitDefaults && !msg.hasField(tag)) {
         continue;
       }
@@ -157,6 +169,14 @@ class _Encoder {
       _writeScalar(fi, val);
       buf.write('\n');
     }
+  }
+
+  /// The last varint the unknown fields of [msg] hold under [tag], as an
+  /// int32, or null. The last one wins, as it does for a reader.
+  static int? _undeclaredEnum(GeneratedMessage msg, int tag) {
+    final varints = msg.unknownFields.getField(tag)?.varints;
+    if (varints == null || varints.isEmpty) return null;
+    return varints.last.toInt32().toInt();
   }
 
   void _encodeMessageField(FieldInfo fi, GeneratedMessage sub, int level) {
