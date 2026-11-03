@@ -13,6 +13,17 @@ format changes.
 
 ### Changed
 
+- **An enum number the enum does not declare is kept on a singular field**
+  (#82, decided 2026-11-03). `f_enum = 99` used to be refused. It is now held
+  in the message's unknown fields, as package:protobuf holds one it reads from
+  binary, and `marshal` writes it back as `f_enum = 99`. protowire-go keeps
+  it as well. A number outside int32 is refused ("invalid enum number"), as
+  Go refuses it. A list element or map value with an undeclared number is
+  still refused, because the number would be written after the declared ones
+  and reorder the list. Known difference: package:protobuf writes unknown
+  fields last, so with a higher-numbered field also set the PB bytes hold
+  the same values as protowire-go's in another order.
+
 - **`marshal` writes an Any as `@type` and a body only when reading the body
   gives back the Any's exact `value` bytes** (#74, draft -01 § Any Blocks,
   protowire#501). Otherwise it writes `type_url` and `value`. The writer
