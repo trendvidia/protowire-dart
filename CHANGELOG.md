@@ -21,6 +21,19 @@ format changes.
   bytes. A generated Dart class does not say whether its file is proto2 or
   proto3, so a proto2 `string` field is checked too, where protowire-go
   checks proto3 and editions only.
+### Fixed
+
+- **SBE writes a `string` field as UTF-8, and cuts an overlong one on a
+  character boundary** (#71, protowire#495). The emitter used to write the
+  string's UTF-16 code units, one byte each, so any character past U+007F
+  came out wrong. An overlong string is now cut at the last whole UTF-8
+  character at or before `(sbe.length)` and NUL-padded. A `bytes` field is
+  still cut at the limit.
+- **A `@default` BigFloat's `prec` keeps its low 32 bits**, as a protobuf
+  reader of a `uint32` does (#72). A prec of 2^63 or more used to read as a
+  negative number and run the VM out of memory. Prec 0 is now reported as
+  "@default's big_float_value declares no precision", as protowire-go does,
+  instead of binding the literal `0`.
 
 ## 1.2.0
 

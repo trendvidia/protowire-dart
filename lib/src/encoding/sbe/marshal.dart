@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 TrendVidia, LLC.
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:protobuf/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
@@ -92,16 +93,24 @@ void _writeField(
       buffer.setFloat64(off, val as double, byteOrder);
       break;
     case encChar:
-      final bytes = (val is String)
-          ? Uint8List.fromList(val.codeUnits)
-          : (val as Uint8List);
       final len = ft.size;
-      for (int i = 0; i < len; i++) {
-        if (i < bytes.length) {
-          buffer.setUint8(off + i, bytes[i]);
-        } else {
-          buffer.setUint8(off + i, 0);
+      final List<int> bytes;
+      var n = len;
+      if (val is String) {
+        bytes = utf8.encode(val);
+        // An overlong string is cut at the last whole UTF-8 character at or
+        // before the limit (draft -01 § SBE Annotations): a cut through a
+        // character makes a strict decoder reject the whole message.
+        if (bytes.length > len) {
+          while (n > 0 && bytes[n] & 0xC0 == 0x80) {
+            n--;
+          }
         }
+      } else {
+        bytes = val as List<int>; // bytes are cut at the limit
+      }
+      for (int i = 0; i < len; i++) {
+        buffer.setUint8(off + i, i < n && i < bytes.length ? bytes[i] : 0);
       }
       break;
   }
