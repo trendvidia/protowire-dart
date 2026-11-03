@@ -9,7 +9,9 @@ import 'bigfloat.dart';
 import 'duration.dart';
 import 'errors.dart';
 import 'format.dart';
+import 'decode.dart' show unmarshalFull;
 import 'keyed.dart';
+import 'options.dart';
 import 'result.dart';
 import 'token.dart' show Position;
 import 'wellknown.dart';
@@ -68,10 +70,6 @@ class MarshalOptions {
 
 /// MaxNestingDepth's default, the draft's: 100 descents from the root.
 const int defaultMaxNestingDepth = 100;
-
-/// The deepest block an Any body is written in: a reader takes 100 levels
-/// (MaxNestingDepth), so a document written with this stays readable.
-const int _maxAnyBodyLevel = 99;
 
 class _Encoder {
   final StringBuffer buf;
@@ -186,20 +184,25 @@ class _Encoder {
 
   /// Writes [any] as a type entry and a body of the type it names (draft -01
   /// "Any Blocks"), or returns false, having written nothing, for the block
-  /// of its own fields. That is the form with no type URL, an unresolvable
-  /// type or a value that does not parse, as in protowire-go. Two cases are
-  /// this port's own, because each would otherwise lose the document:
+  /// of its own fields, type_url and value. A reader compares an Any by its
+  /// bytes, so the body is written only when reading it gives back exactly
+  /// the stored value (protowire#501). The reader is asked: the body is
+  /// rendered at its real depth, decoded with this writer's registry and
+  /// annotations, the `@default` and `@required` pass included, and packed.
+  /// That covers what a body cannot say (unknown fields, field order,
+  /// explicit zeros, a Timestamp no literal holds) and what a reader adds
+  /// (an unset `@default`, a missing `@required`). Without
+  /// [MarshalOptions.annotations] the last two are invisible here, since a
+  /// generated class carries no field options.
   ///
-  ///  * a value a body cannot reproduce: one with unknown fields, which
-  ///    protowire-go's body drops, or one not in canonical order;
-  ///  * a body at [_maxAnyBodyLevel]. Each Any unpacks with a fresh recursion
-  ///    budget, so a chain of them in [any]'s value is bounded by nothing else.
+  /// An Any at the depth limit is not unpacked, and a body nested past it is
+  /// left raw, so a chain of Anys comes out readable.
   ///
   /// Only a singular field gets here: the reference writes a list element or
   /// a map value of type Any as its own fields, even with a registry.
   bool _encodeAnyBody(FieldInfo fi, GeneratedMessage any, int level) {
     final typeUrl = any.getField(1) as String;
-    if (typeUrl.isEmpty || level >= _maxAnyBodyLevel) return false;
+    if (typeUrl.isEmpty || level >= maxDepth) return false;
     final innerInfo = typeRegistry.lookup(anyTypeName(typeUrl));
     if (innerInfo == null) return false;
 
@@ -210,42 +213,93 @@ class _Encoder {
     } on InvalidProtocolBufferException {
       return false;
     }
-    if (!_sameBytes(inner.writeToBuffer(), value) || _hasUnknownFields(inner)) {
-      return false;
-    }
+    // Cheap first: a value package:protobuf writes back differently (field
+    // order, explicit zeros) cannot read back either.
+    if (!_sameBytes(inner.writeToBuffer(), value)) return false;
+    if (_holdsWrittenZero(inner)) return false;
 
-    _descend(level + 1);
+    final body = _Encoder(
+      buf: StringBuffer(),
+      indent: indent,
+      emitDefaults: emitDefaults,
+      typeRegistry: typeRegistry,
+      nullFields: nullFields,
+      annotations: annotations,
+      maxDepth: maxDepth,
+    )..pathPrefix = '$pathPrefix${fi.protoName}.';
+    try {
+      body.encodeMessage(inner, level + 1);
+    } on PxfError {
+      return false; // past the depth limit, or a value no literal holds
+    }
+    final text = body.buf.toString();
+    if (!_readsBack(text, innerInfo, value)) return false;
+
     _writeIndent(level);
     buf.write('${fi.protoName} {\n');
     _writeIndent(level + 1);
     buf.write('@type = ');
     _writeQuotedString(typeUrl);
     buf.write('\n');
-    var oldPrefix = pathPrefix;
-    pathPrefix = '$oldPrefix${fi.protoName}.';
-    encodeMessage(inner, level + 1);
-    pathPrefix = oldPrefix;
+    buf.write(text);
     _writeIndent(level);
     buf.write('}\n');
     return true;
   }
 
-  /// Whether [msg], or a message under it, holds a field a body cannot name.
-  static bool _hasUnknownFields(GeneratedMessage msg) {
-    if (msg.unknownFields.isNotEmpty) return true;
-    bool holds(Object? v) => v is GeneratedMessage && _hasUnknownFields(v);
-    for (final tag in msg.info_.fieldInfo.keys) {
-      if (!msg.hasField(tag)) continue;
-      final val = msg.getField(tag);
-      if (val is List
-          ? val.any(holds)
-          : val is Map
-              ? val.values.any(holds)
-              : holds(val)) {
+  /// Whether [msg], or a message under it, has a singular scalar field
+  /// present at its zero value. This port's reader packs such a field back
+  /// as written, but a reader that knows the field has no presence (proto3
+  /// without `optional`) drops it, and a generated class does not say which
+  /// the field is. Writing the Any raw is right for both.
+  static bool _holdsWrittenZero(GeneratedMessage msg) {
+    final info = msg.info_;
+    for (final fi in info.fieldInfo.values) {
+      if (!msg.hasField(fi.tagNumber)) continue;
+      final val = msg.getField(fi.tagNumber);
+      if (val is GeneratedMessage) {
+        if (_holdsWrittenZero(val)) return true;
+      } else if (val is Map) {
+        if (val.values
+            .any((v) => v is GeneratedMessage && _holdsWrittenZero(v))) {
+          return true;
+        }
+      } else if (val is List && fi.isRepeated) {
+        if (val.any((v) => v is GeneratedMessage && _holdsWrittenZero(v))) {
+          return true;
+        }
+      } else if (_isZero(val)) {
         return true;
       }
     }
     return false;
+  }
+
+  static bool _isZero(Object? v) => switch (v) {
+        String s => s.isEmpty,
+        bool b => !b,
+        int i => i == 0,
+        Int64 i => i.isZero,
+        double d => d == 0 && !d.isNegative,
+        List<int> b => b.isEmpty,
+        ProtobufEnum e => e.value == 0,
+        _ => false,
+      };
+
+  /// Whether [body], an Any body's entries, decodes to exactly [want]. Depth
+  /// is the encoder's to bound: [body] was rendered at its real level.
+  bool _readsBack(String body, BuilderInfo info, List<int> want) {
+    final back = info.createEmptyInstance!();
+    try {
+      unmarshalFull(body, back,
+          options: UnmarshalOptions(
+              typeRegistry: typeRegistry, annotations: annotations));
+    } on PxfError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+    return _sameBytes(back.writeToBuffer(), want);
   }
 
   static bool _sameBytes(List<int> a, List<int> b) {
