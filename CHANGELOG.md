@@ -13,6 +13,18 @@ format changes.
 
 ### Changed
 
+- **`marshal` writes an Any as `@type` and a body only when reading the body
+  gives back the Any's exact `value` bytes** (#74, draft -01 § Any Blocks,
+  protowire#501). Otherwise it writes `type_url` and `value`. The writer
+  renders the body, decodes it with its own registry and annotations, and
+  compares the bytes. That catches a Timestamp no literal holds, an unset
+  `@default` or `@required` field, unknown fields, field order and a chain of
+  Anys past MaxNestingDepth. A value with a singular scalar written at its
+  zero is also kept raw: a reader that knows the field has no presence drops
+  it, and a generated class does not say which. `@default` and `@required` are
+  seen only with `MarshalOptions.annotations`. With `emitDefaults`, a body
+  that would spell out zeros is written raw.
+
 - **The PXF and PB producers refuse a message nested past MaxNestingDepth**
   (#73, HARDENING.md § Recursion, protowire#502). `marshal` throws a
   `PxfError` and `marshalNative` an `ArgumentError`, "nesting depth exceeds

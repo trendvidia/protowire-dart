@@ -69,14 +69,27 @@ void main() {
       expectRoundTrip(m);
     });
 
-    test('emitDefaults reaches the body', () {
-      final m = holding('any.v1.Leaf', const []);
-      final out = marshal(m,
+    // With emitDefaults a body spells out its zeros, and a reader packs a
+    // written zero, so an empty value would come back as two fields: it is
+    // written raw (protowire#501). A value with nothing at zero keeps its body.
+    test('emitDefaults reaches the body, and only where it reads back', () {
+      String write(anypb.Holder m) => marshal(m,
           options: MarshalOptions(typeRegistry: registry, emitDefaults: true));
+      final full = holding(
+          'any.v1.Leaf',
+          (anypb.Leaf()
+                ..tag = 't'
+                ..n = 7)
+              .writeToBuffer());
       expect(
-          out,
+          write(full),
           startsWith(
-              'payload {\n  @type = "any.v1.Leaf"\n  tag = ""\n  n = 0\n}\n'));
+              'payload {\n  @type = "any.v1.Leaf"\n  tag = "t"\n  n = 7\n}\n'));
+      final empty = holding('any.v1.Leaf', const []);
+      expect(
+          write(empty),
+          startsWith(
+              'payload {\n  type_url = "any.v1.Leaf"\n  value = b""\n}\n'));
     });
 
     test('an Any inside a body', () {
