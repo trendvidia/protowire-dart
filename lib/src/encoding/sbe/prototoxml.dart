@@ -6,7 +6,7 @@ import 'package:protobuf/protobuf.dart';
 
 import '../../generated/proto/google/protobuf/descriptor.pb.dart' as pbd;
 import '../../generated/proto/sbe/annotations.pb.dart' as sbe_ann;
-import 'descriptor.dart' show sbeExtensionRegistry;
+import 'sbe.dart' show sbeExtensionRegistry;
 import 'xmlschema.dart' show camelToScreamingSnake;
 
 String protoToXml(BuilderInfo info, int schemaId, int version,
