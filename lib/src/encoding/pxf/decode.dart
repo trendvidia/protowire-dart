@@ -736,6 +736,11 @@ class DirectDecoder {
       msg.setField(fi.tagNumber, sub);
       return;
     }
+    if (isSecret(subInfo) && current.kind == TokenKind.string) {
+      msg.setField(fi.tagNumber, subBuilder()..setField(1, current.value));
+      _advance();
+      return;
+    }
 
     if (isBigInt(subInfo) && current.kind == TokenKind.int) {
       var sub = subBuilder();
@@ -866,6 +871,9 @@ class DirectDecoder {
             var val = _consumeScalar(valueFi);
             setImplicit(sub, 1, val);
             list.add(sub);
+          } else if (isSecret(subInfo) && current.kind == TokenKind.string) {
+            list.add(sub..setField(1, current.value));
+            _advance();
           } else {
             throw PxfError(
                 current.pos, 'expected "{" for message element in list');
@@ -1146,6 +1154,11 @@ class DirectDecoder {
     if (isWrapperType(subInfo) && current.kind != TokenKind.lbrace) {
       var sub = make();
       setImplicit(sub, 1, _consumeScalar(subInfo.fieldInfo[1]!));
+      return sub;
+    }
+    if (isSecret(subInfo) && current.kind == TokenKind.string) {
+      final sub = make()..setField(1, current.value);
+      _advance();
       return sub;
     }
     if (isBigInt(subInfo) && current.kind == TokenKind.int) {
