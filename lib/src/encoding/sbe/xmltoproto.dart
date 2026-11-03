@@ -86,10 +86,10 @@ void _writeProtoComposite(StringBuffer sb, XMLComposite c) {
   sb.writeln('message ${c.name} {');
   int fieldNum = 1;
   for (final t in c.types) {
-    final res = _resolveTypeToProto(t.primitiveType, t.length ?? 0);
-    final protoType = res.$1;
-    final opts = res.$2;
+    final (protoType, opts, note) =
+        _resolve(t, () => 'sbe: composite "${c.name}"');
     final name = camelToSnake(t.name);
+    _writeNote(sb, '  ', note);
     if (opts.isNotEmpty) {
       sb.writeln('  $protoType $name = $fieldNum [$opts];');
     } else {
@@ -117,11 +117,12 @@ void _writeProtoMessage(
   sb.writeln('$indent  option (sbe.template_id) = ${msg.id};');
   sb.writeln();
 
+  final where = 'sbe: message "${msg.name}"';
   for (final f in msg.fields) {
-    _writeProtoField(sb, f, typeMap, compositeMap, enumMap, '$indent  ');
+    _writeProtoField(sb, f, typeMap, compositeMap, enumMap, '$indent  ', where);
   }
   for (final g in msg.groups) {
-    _writeProtoGroup(sb, g, typeMap, compositeMap, enumMap, '$indent  ');
+    _writeProtoGroup(sb, g, typeMap, compositeMap, enumMap, '$indent  ', where);
   }
   sb.writeln('$indent}');
   sb.writeln();
@@ -133,7 +134,8 @@ void _writeProtoField(
     Map<String, XMLType> typeMap,
     Map<String, XMLComposite> compositeMap,
     Map<String, XMLEnum> enumMap,
-    String indent) {
+    String indent,
+    String where) {
   final name = camelToSnake(f.name);
 
   if (enumMap.containsKey(f.type)) {
@@ -148,9 +150,9 @@ void _writeProtoField(
 
   if (typeMap.containsKey(f.type)) {
     final t = typeMap[f.type]!;
-    final res = _resolveTypeToProto(t.primitiveType, t.length ?? 0);
-    final protoType = res.$1;
-    final opts = res.$2;
+    final (protoType, opts, note) =
+        _resolve(t, () => '$where: field "${f.name}"');
+    _writeNote(sb, indent, note);
     if (opts.isNotEmpty) {
       sb.writeln('$indent$protoType $name = ${f.id} [$opts];');
     } else {
@@ -168,18 +170,77 @@ void _writeProtoGroup(
     Map<String, XMLType> typeMap,
     Map<String, XMLComposite> compositeMap,
     Map<String, XMLEnum> enumMap,
-    String indent) {
+    String indent,
+    String where) {
   final msgName = singularPascal(g.name);
   sb.writeln('${indent}message $msgName {');
   for (final f in g.fields) {
-    _writeProtoField(sb, f, typeMap, compositeMap, enumMap, '$indent  ');
+    _writeProtoField(sb, f, typeMap, compositeMap, enumMap, '$indent  ',
+        '$where: group "${g.name}"');
   }
   sb.writeln('$indent}');
   final fieldName = camelToSnake(g.name);
   sb.writeln('${indent}repeated $msgName $fieldName = ${g.id};');
 }
 
-(String, String) _resolveTypeToProto(String primitiveType, int length) {
+/// [t]'s proto type, field options, and a note for the line above the field
+/// (empty for none). An array no proto field can hold throws, naming it with
+/// [where], rather than importing as one element and misplacing every later
+/// field in the block (draft -01 § Fixed-Length Arrays).
+(String, String, String) _resolve(XMLType t, String Function() where) {
+  if (t.primitiveType == 'char') {
+    final length = (t.length ?? 0) == 0 ? 1 : t.length!;
+    final opts = '(sbe.length) = $length';
+    if (!_isUtf8Compatible(t.characterEncoding ?? '')) {
+      // A proto string holds UTF-8 only, and a decoder refuses a string that
+      // is not, so text in another encoding is carried as bytes rather than
+      // failing at run time (draft -01 § Character Encoding).
+      return (
+        'bytes',
+        opts,
+        'SBE characterEncoding "${t.characterEncoding}" is not UTF-8 '
+            'compatible, so this field is bytes.'
+      );
+    }
+    return ('string', opts, '');
+  }
+  final length = t.length ?? 0;
+  if (length > 1) {
+    if (t.primitiveType == 'uint8' || t.primitiveType == 'int8') {
+      // A fixed-length array of octets is raw bytes, the same N bytes on the
+      // wire as a bytes field with (sbe.length) = N.
+      return ('bytes', '(sbe.length) = $length', '');
+    }
+    throw FormatException('${where()}: type "${t.name}" is an array of '
+        '$length ${t.primitiveType}, which no proto field represents');
+  }
+  final (protoType, opts) = _resolvePrimitive(t.primitiveType);
+  return (protoType, opts, '');
+}
+
+void _writeNote(StringBuffer sb, String indent, String note) {
+  if (note.isNotEmpty) sb.writeln('$indent// $note');
+}
+
+/// Whether every string in a char array of the named [encoding] is valid
+/// UTF-8: none named (FIX SBE's default is US-ASCII), a US-ASCII name, or a
+/// UTF-8 name. Names are IANA charset names and their registered aliases,
+/// compared ignoring case and punctuation. Mirrors protowire-go's
+/// isUTF8Compatible.
+bool _isUtf8Compatible(String encoding) {
+  final name = encoding.trim().toLowerCase().replaceAll(RegExp(r'[-_.: ]'), '');
+  return const {
+    '',
+    // US-ASCII and its IANA aliases.
+    'usascii', 'ascii', 'ansix341968', 'ansix341986', 'iso646us',
+    'isoir6', 'iso646irv1991', 'us', 'ibm367', 'cp367', 'csascii',
+    // UTF-8.
+    'utf8', 'csutf8',
+  }.contains(name);
+}
+
+/// An SBE primitive type other than char.
+(String, String) _resolvePrimitive(String primitiveType) {
   switch (primitiveType) {
     case 'int8':
       return ('int32', '(sbe.encoding) = "int8"');
@@ -201,11 +262,6 @@ void _writeProtoGroup(
       return ('float', '');
     case 'double':
       return ('double', '');
-    case 'char':
-      if (length > 0) {
-        return ('string', '(sbe.length) = $length');
-      }
-      return ('string', '(sbe.length) = 1');
     default:
       return (primitiveType, '');
   }

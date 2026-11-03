@@ -661,6 +661,8 @@ class DirectDecoder {
       }
     } else if (fi.type == PbFieldType.OM) {
       _decodeMessageValue(msg, fi);
+    } else if (_undeclaredEnumNumber(fi) case final n?) {
+      _keepUndeclaredEnum(msg, fi, n);
     } else {
       var val = _consumeScalar(fi);
       // Only a descriptor set can say this field has implicit presence, and
@@ -1303,6 +1305,43 @@ class DirectDecoder {
         pos, 'unsupported type ${fi.type} for field "${fi.protoName}"');
   }
 
+  /// The number at the cursor when [fi] is an enum that declares no such
+  /// number, else null.
+  int? _undeclaredEnumNumber(FieldInfo fi) {
+    if (!fi.isEnum || current.kind != TokenKind.int) return null;
+    final v = _enumNumber(fi);
+    return fi.valueOf?.call(v) == null ? v : null;
+  }
+
+  /// Keeps an undeclared number on the singular enum [fi] as package:protobuf
+  /// keeps one it reads from binary: in the message's unknown fields under
+  /// the field's number, as a varint (protowire-dart#82). A generated Dart
+  /// enum has no instance to hold it. protowire-go keeps the number too, and
+  /// `marshal` writes it back. A oneof member clears the oneof's other
+  /// fields, as setting it would.
+  void _keepUndeclaredEnum(GeneratedMessage msg, FieldInfo fi, int n) {
+    final info = msg.info_;
+    final oneof = info.oneofs[fi.tagNumber];
+    if (oneof != null) {
+      info.oneofs.forEach((tag, index) {
+        if (index == oneof) msg.clearField(tag);
+      });
+    } else {
+      msg.clearField(fi.tagNumber);
+    }
+    msg.unknownFields.mergeVarintField(fi.tagNumber, Int64(n));
+    _advance();
+  }
+
+  /// The int32 an enum number token spells, as protowire-go parses it.
+  int _enumNumber(FieldInfo fi) {
+    final v = int.tryParse(current.value);
+    if (v == null || v < -0x80000000 || v > 0x7FFFFFFF) {
+      throw PxfError(current.pos, 'invalid enum number: ${current.value}');
+    }
+    return v;
+  }
+
   // Enum fields hold a ProtobufEnum, never a bare int: FieldSet rejects
   // `setField(tag, 1)` on an enum field, so both spellings resolve through
   // the values generated code puts in FieldInfo.enumValues / valueOf.
@@ -1320,13 +1359,16 @@ class DirectDecoder {
       throw PxfError(
           pos, 'unknown enum value "$name" for field "${fi.protoName}"');
     } else if (current.kind == TokenKind.int) {
-      var v = int.parse(current.value);
+      var v = _enumNumber(fi);
       final e = fi.valueOf?.call(v);
       if (e == null) {
-        // A generated Dart enum has no instance for a number it does not
-        // declare, so an open-enum unknown value cannot be carried here.
+        // A singular field keeps the number in unknown fields
+        // (_keepUndeclaredEnum). A list element or map value cannot: the
+        // number would be written after the declared ones, out of order.
         throw PxfError(
-            pos, 'unknown enum number $v for field "${fi.protoName}"');
+            pos,
+            'unknown enum number $v for field "${fi.protoName}": an '
+            'undeclared number is kept only on a singular field');
       }
       _advance();
       return e;

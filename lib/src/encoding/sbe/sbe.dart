@@ -7,6 +7,10 @@ import 'marshal.dart';
 import 'unmarshal.dart';
 import '../../limits.dart';
 import 'view.dart';
+import '../../generated/proto/google/protobuf/descriptor.pb.dart' as pbd;
+import '../../generated/proto/sbe/annotations.pb.dart' as sbe_ann;
+
+part 'descriptor.dart';
 
 const int headerSize = 8;
 const int groupHeaderSize = 4;
@@ -43,8 +47,14 @@ class Codec {
   void registerMessage(
       BuilderInfo info, int templateId, int schemaId, int version,
       {Map<int, int>? lengths, Map<int, String>? encodings}) {
+    _register(info, templateId, schemaId, version,
+        FieldOverrides(lengths: lengths, encodings: encodings));
+  }
+
+  void _register(BuilderInfo info, int templateId, int schemaId, int version,
+      FieldOverrides overrides) {
     final tmpl = buildTemplate(info, templateId, schemaId, version,
-        lengths: lengths, encodings: encodings);
+        overrides: overrides);
     _byName[info.qualifiedMessageName] = tmpl;
     _byID[templateId] = tmpl;
   }

@@ -96,6 +96,37 @@ ViewSchema _buildFieldsViewSchema(List<FieldTemplate> fields) {
   return ViewSchema(fields: fieldMap, groupOrder: []);
 }
 
+/// The `(sbe.length)` and `(sbe.encoding)` of each field a template reaches.
+///
+/// [lengths] and [encodings] are keyed by field number alone and apply at
+/// every nesting level, which is what `Codec.registerMessage` promises. The
+/// by-message maps are keyed by [BuilderInfo.qualifiedMessageName] and then
+/// field number, so a composite's field never takes the length of a field
+/// with the same number elsewhere. A message with an entry there is read
+/// from that entry only.
+class FieldOverrides {
+  final Map<int, int>? lengths;
+  final Map<int, String>? encodings;
+  final Map<String, Map<int, int>> lengthsByMessage;
+  final Map<String, Map<int, String>> encodingsByMessage;
+
+  const FieldOverrides(
+      {this.lengths,
+      this.encodings,
+      this.lengthsByMessage = const {},
+      this.encodingsByMessage = const {}});
+
+  int? length(BuilderInfo info, int tag) {
+    final own = lengthsByMessage[info.qualifiedMessageName];
+    return own != null ? own[tag] : lengths?[tag];
+  }
+
+  String? encoding(BuilderInfo info, int tag) {
+    final own = encodingsByMessage[info.qualifiedMessageName];
+    return own != null ? own[tag] : encodings?[tag];
+  }
+}
+
 // buildTemplate creates an SBE layout for a message.
 MessageTemplate buildTemplate(
   BuilderInfo info,
@@ -104,7 +135,9 @@ MessageTemplate buildTemplate(
   int version, {
   Map<int, int>? lengths,
   Map<int, String>? encodings,
+  FieldOverrides? overrides,
 }) {
+  final o = overrides ?? FieldOverrides(lengths: lengths, encodings: encodings);
   final sortedTags = info.fieldInfo.keys.toList()..sort();
 
   final fields = <FieldTemplate>[];
@@ -115,8 +148,7 @@ MessageTemplate buildTemplate(
     final fi = info.fieldInfo[tag]!;
 
     if (fi.isRepeated && (fi.type & _MESSAGE_BIT) != 0) {
-      final gt =
-          _buildGroupTemplate(fi, lengths: lengths, encodings: encodings);
+      final gt = _buildGroupTemplate(fi, o);
       groups.add(gt);
       continue;
     }
@@ -128,8 +160,7 @@ MessageTemplate buildTemplate(
 
     if ((fi.type & _MESSAGE_BIT) != 0) {
       final subInfo = fi.subBuilder!().info_;
-      final composite = _buildCompositeFields(subInfo,
-          lengths: lengths, encodings: encodings);
+      final composite = _buildCompositeFields(subInfo, o);
       int size = 0;
       for (final f in composite) {
         size += f.size;
@@ -144,7 +175,8 @@ MessageTemplate buildTemplate(
       continue;
     }
 
-    final res = _fieldEncodingSize(fi, lengths?[tag], encodings?[tag]);
+    final res =
+        _fieldEncodingSize(fi, o.length(info, tag), o.encoding(info, tag));
     final enc = res.$1;
     final size = res.$2;
 
@@ -167,8 +199,7 @@ MessageTemplate buildTemplate(
   );
 }
 
-GroupTemplate _buildGroupTemplate(FieldInfo fi,
-    {Map<int, int>? lengths, Map<int, String>? encodings}) {
+GroupTemplate _buildGroupTemplate(FieldInfo fi, FieldOverrides o) {
   final subInfo = fi.subBuilder!().info_;
   final sortedTags = subInfo.fieldInfo.keys.toList()..sort();
 
@@ -178,8 +209,7 @@ GroupTemplate _buildGroupTemplate(FieldInfo fi,
   for (final tag in sortedTags) {
     final sfi = subInfo.fieldInfo[tag]!;
     if ((sfi.type & _MESSAGE_BIT) != 0) {
-      final composite = _buildCompositeFields(sfi.subBuilder!().info_,
-          lengths: lengths, encodings: encodings);
+      final composite = _buildCompositeFields(sfi.subBuilder!().info_, o);
       int size = 0;
       for (final f in composite) {
         size += f.size;
@@ -190,7 +220,8 @@ GroupTemplate _buildGroupTemplate(FieldInfo fi,
       continue;
     }
 
-    final res = _fieldEncodingSize(sfi, lengths?[tag], encodings?[tag]);
+    final res = _fieldEncodingSize(
+        sfi, o.length(subInfo, tag), o.encoding(subInfo, tag));
     final enc = res.$1;
     final size = res.$2;
 
@@ -202,8 +233,7 @@ GroupTemplate _buildGroupTemplate(FieldInfo fi,
   return GroupTemplate(fi: fi, blockLength: offset, fields: fields);
 }
 
-List<FieldTemplate> _buildCompositeFields(BuilderInfo info,
-    {Map<int, int>? lengths, Map<int, String>? encodings}) {
+List<FieldTemplate> _buildCompositeFields(BuilderInfo info, FieldOverrides o) {
   final sortedTags = info.fieldInfo.keys.toList()..sort();
   final fields = <FieldTemplate>[];
   int offset = 0;
@@ -211,8 +241,7 @@ List<FieldTemplate> _buildCompositeFields(BuilderInfo info,
   for (final tag in sortedTags) {
     final fi = info.fieldInfo[tag]!;
     if ((fi.type & _MESSAGE_BIT) != 0) {
-      final composite = _buildCompositeFields(fi.subBuilder!().info_,
-          lengths: lengths, encodings: encodings);
+      final composite = _buildCompositeFields(fi.subBuilder!().info_, o);
       int size = 0;
       for (final f in composite) {
         size += f.size;
@@ -223,7 +252,8 @@ List<FieldTemplate> _buildCompositeFields(BuilderInfo info,
       continue;
     }
 
-    final res = _fieldEncodingSize(fi, lengths?[tag], encodings?[tag]);
+    final res =
+        _fieldEncodingSize(fi, o.length(info, tag), o.encoding(info, tag));
     final enc = res.$1;
     final size = res.$2;
 

@@ -13,6 +13,44 @@ format changes.
 
 ### Changed
 
+- **`marshal` writes text as protowire-go writes it** (#85, found by the
+  spec's text gate, protowire#503):
+  - A `uint64` or `fixed64` is written unsigned. `2^64-1` used to come out as
+    `-1`.
+  - A float is written in Go's shortest `%g` form: `100`, `-0`, `1e-07`,
+    `1e+10`, and a `float` field as the shortest float32, `0.1` rather than
+    `0.10000000149011612`.
+  - A Duration past a signed 64-bit count of nanoseconds (about 292 years)
+    is written as a block, as draft -01 § Durations requires.
+  - A `pxf.Secret` carrying only its value is written as its string literal,
+    `secret = "pw"`. One with a hint or fingerprint keeps the block.
+
+- **An enum number the enum does not declare is kept on a singular field**
+  (#82, decided 2026-11-03). `f_enum = 99` used to be refused. It is now held
+  in the message's unknown fields, as package:protobuf holds one it reads from
+  binary, and `marshal` writes it back as `f_enum = 99`. protowire-go keeps
+  it as well. A number outside int32 is refused ("invalid enum number"), as
+  Go refuses it. A list element or map value with an undeclared number is
+  still refused, because the number would be written after the declared ones
+  and reorder the list. Known difference: package:protobuf writes unknown
+  fields last, so with a higher-numbered field also set the PB bytes hold
+  the same values as protowire-go's in another order.
+- **The SBE XML importer follows draft -01's rules for char encodings and
+  fixed-length arrays** (#79, #86, protowire#494). A `char` maps to `string`
+  only when its `characterEncoding` is absent, US-ASCII or UTF-8 (IANA names
+  and aliases, ignoring case and punctuation), and to `bytes` with the same
+  `(sbe.length)` otherwise, with a comment saying why. A `uint8` or `int8`
+  array of length N > 1 maps to `bytes` with `(sbe.length) = N`; it used to
+  map to one `uint32`, which misplaced every later field. An array of a wider
+  primitive is refused with a `FormatException` naming it.
+- **The SBE XML importer reads `<sbe:message>`.** It matched only an
+  unprefixed `<message>`, so a standard schema, Dart's own export included,
+  imported with no messages.
+- **SBE XML names convert as protowire-go converts them.** `camelToSnake` no
+  longer puts an underscore before a digit (`utf8` stays `utf8`, not `utf_8`)
+  and splits an acronym (`HTTPCode` → `http_code`). `camelToScreamingSnake`
+  splits only after a lower-case letter (`HTTPCode` → `HTTPCODE`).
+
 - **`marshal` writes an Any as `@type` and a body only when reading the body
   gives back the Any's exact `value` bytes** (#74, draft -01 § Any Blocks,
   protowire#501). Otherwise it writes `type_url` and `value`. The writer
@@ -53,6 +91,14 @@ format changes.
 
 ### Fixed
 
+- **`registerFromDescriptorSet` gives each composite field its own
+  `(sbe.length)` and `(sbe.encoding)`** (#87). Overrides were one map keyed by
+  field number for the whole template, and a top-level composite's options
+  were never read, so `Key.raw` (`bytes`, length 6, field 1) took the length
+  of `Record.name` (length 4, also field 1) and every later field moved.
+  protowire-go's 45-byte `Record` came out as 43 bytes. `registerMessage`'s
+  `lengths` and `encodings` keep their meaning.
+
 - **SBE writes a `string` field as UTF-8, and cuts an overlong one on a
   character boundary** (#71, protowire#495). The emitter used to write the
   string's UTF-16 code units, one byte each, so any character past U+007F
@@ -88,6 +134,16 @@ format changes.
     as unscaled 1, scale 0) and a BigFloat's mantissa widened to `prec`
     bits. The message passed in is not changed. A zero big number is not
     written in a singular field, like a zero scalar.
+- **`protoToXmlFromDescriptorSet(fds, fileName)`**: SBE XML export from a
+  compiled descriptor set, as protowire-go's `ProtoToXML` does (#86). It reads
+  the `(sbe.*)` options, so a `string` with `(sbe.length) = N` becomes a
+  `strN` char array and a `bytes` field a `bytesN` uint8 array, which imports
+  back as `bytes`. `protoToXml(BuilderInfo, ...)` is unchanged: a
+  `BuilderInfo` carries no field options, so it cannot write a length.
+- `check_decode --format pb-text`, the harness for the spec's text gate
+  (`scripts/cross_text_check.sh`, protowire#503). It reads a message's PB
+  bytes with the stock runtime and writes its PXF with the schema's
+  annotations. All 56 cases match protowire-go.
 
 - `check_decode --format pxf-pb`, the harness for the spec's write gate
   (`scripts/cross_write_check.sh`, protowire#509), which found the three
