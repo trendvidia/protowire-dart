@@ -2,3 +2,8 @@
 # reads as text, so a Windows checkout would turn each into CR LF.
 *.binpb binary
 *.sbe binary
+
+# Text fixtures compared byte for byte with what the code writes, which is
+# LF on every platform.
+test/testdata/sbe_xml/*.proto text eol=lf
+test/testdata/sbe_xml/*.xml text eol=lf

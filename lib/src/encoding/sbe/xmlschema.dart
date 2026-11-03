@@ -54,8 +54,12 @@ class XMLSchema {
       }
     }
 
-    final messages =
-        root.findElements('message').map((e) => XMLMessage.fromXml(e)).toList();
+    // Messages are `<sbe:message>` in a standard schema and `<message>` in
+    // some hand-written ones, so they are matched by local name.
+    final messages = root.childElements
+        .where((e) => e.name.local == 'message')
+        .map((e) => XMLMessage.fromXml(e))
+        .toList();
 
     return XMLSchema(
       package: root.getAttribute('package'),
@@ -77,11 +81,15 @@ class XMLType {
   final int? length;
   final String? description;
 
+  /// The `characterEncoding` of a char type, or null when it names none.
+  final String? characterEncoding;
+
   XMLType({
     required this.name,
     required this.primitiveType,
     this.length,
     this.description,
+    this.characterEncoding,
   });
 
   factory XMLType.fromXml(XmlElement element) {
@@ -90,6 +98,7 @@ class XMLType {
       primitiveType: element.getAttribute('primitiveType') ?? '',
       length: int.tryParse(element.getAttribute('length') ?? ''),
       description: element.getAttribute('description'),
+      characterEncoding: element.getAttribute('characterEncoding'),
     );
   }
 }
@@ -240,26 +249,37 @@ class XMLGroup {
   }
 }
 
+bool _isUpper(String c) => c != c.toLowerCase();
+bool _isLower(String c) => c != c.toUpperCase();
+
+/// `orderId` → `order_id`, `HTTPCode` → `http_code`, `utf8` → `utf8`: an
+/// underscore before an upper-case letter that follows a lower-case one or
+/// starts a lower-case run. Mirrors protowire-go's camelToSnake.
 String camelToSnake(String s) {
   final sb = StringBuffer();
   for (int i = 0; i < s.length; i++) {
-    final char = s[i];
-    if (char.toUpperCase() == char && i > 0) {
-      sb.write('_');
+    final c = s[i];
+    if (_isUpper(c)) {
+      if (i > 0 &&
+          (_isLower(s[i - 1]) || (i + 1 < s.length && _isLower(s[i + 1])))) {
+        sb.write('_');
+      }
+      sb.write(c.toLowerCase());
+    } else {
+      sb.write(c);
     }
-    sb.write(char.toLowerCase());
   }
   return sb.toString();
 }
 
+/// `OrdType` → `ORD_TYPE`: an underscore before an upper-case letter that
+/// follows a lower-case one. Mirrors protowire-go's camelToScreamingSnake.
 String camelToScreamingSnake(String s) {
   final sb = StringBuffer();
   for (int i = 0; i < s.length; i++) {
-    final char = s[i];
-    if (char.toUpperCase() == char && i > 0) {
-      sb.write('_');
-    }
-    sb.write(char.toUpperCase());
+    final c = s[i];
+    if (_isUpper(c) && i > 0 && _isLower(s[i - 1])) sb.write('_');
+    sb.write(c.toUpperCase());
   }
   return sb.toString();
 }
