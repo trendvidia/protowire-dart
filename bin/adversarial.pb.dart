@@ -558,6 +558,77 @@ class SbeWithGroup extends $pb.GeneratedMessage {
   $pb.PbList<SbeWithGroup_Entry> get entries => $_getList(1);
 }
 
+/// SbeText backs the SBE UTF-8 inputs (HARDENING.md § UTF-8, issue #496).
+/// `text` is a string, so a decoder validates its bytes; `raw` is a bytes
+/// field of the same length, which takes any bytes, so a row with invalid
+/// UTF-8 in `raw` proves the check follows the field's type. Wire layout:
+///   header(8) + text(8) + raw(8); template block_length = 16
+class SbeText extends $pb.GeneratedMessage {
+  factory SbeText({
+    $core.String? text,
+    $core.List<$core.int>? raw,
+  }) {
+    final result = create();
+    if (text != null) result.text = text;
+    if (raw != null) result.raw = raw;
+    return result;
+  }
+
+  SbeText._();
+
+  factory SbeText.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SbeText.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SbeText',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'adversarial.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'text')
+    ..a<$core.List<$core.int>>(
+        2, _omitFieldNames ? '' : 'raw', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SbeText clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SbeText copyWith(void Function(SbeText) updates) =>
+      super.copyWith((message) => updates(message as SbeText)) as SbeText;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SbeText create() => SbeText._();
+  @$core.override
+  SbeText createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SbeText getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SbeText>(create);
+  static SbeText? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get text => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set text($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasText() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearText() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<$core.int> get raw => $_getN(1);
+  @$pb.TagNumber(2)
+  set raw($core.List<$core.int> value) => $_setBytes(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasRaw() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRaw() => $_clearField(2);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

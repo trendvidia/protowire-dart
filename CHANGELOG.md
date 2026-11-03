@@ -11,6 +11,17 @@ format changes.
 
 ## Unreleased
 
+### Changed
+
+- **`mergeFromBufferChecked` rejects a `string` field that is not valid
+  UTF-8** (#70, HARDENING.md § UTF-8, protowire#496). That includes a lone
+  surrogate and an overlong encoding, in any repeated element, map key or
+  value, or nested message. It used to accept them, as package:protobuf does,
+  with U+FFFD in place of the bad bytes. A `bytes` field still takes any
+  bytes. A generated Dart class does not say whether its file is proto2 or
+  proto3, so a proto2 `string` field is checked too, where protowire-go
+  checks proto3 and editions only.
+
 ## 1.2.0
 
 ### Changed
