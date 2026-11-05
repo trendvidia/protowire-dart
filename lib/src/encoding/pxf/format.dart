@@ -3,9 +3,8 @@
 //
 // Formats an AST back to PXF source, preserving comments. Mirrors
 // protowire-go's format.go: two-space indent, expanded blocks, and blank
-// lines between entries are not kept. It differs in refusing a document
-// with directives (the reference writes `@type` and drops the rest) and in
-// keeping comments after the last entry.
+// lines between entries are not kept. It differs in keeping comments after
+// the last entry.
 import 'dart:convert';
 
 import 'annotations.dart';
@@ -20,8 +19,8 @@ import 'token.dart';
 /// defaults to the document's `@type`. Without them the document is only
 /// pretty-printed, since a quoted entry name cannot be judged with no schema.
 ///
-/// A document [annotations] cannot place is a [PxfError], as is one carrying
-/// `@dataset`, `@proto` or `@<name>` directives, which this does not write.
+/// Every directive is kept, in document order; see [formatDocument]. A
+/// document [annotations] cannot place is a [PxfError].
 ///
 /// ```dart
 /// final ann = PxfAnnotations.fromBytes(descriptorSetBytes);
@@ -47,20 +46,67 @@ String formatPxf(String input,
 }
 
 /// Pretty-prints [doc]; see [formatPxf].
+///
+/// It keeps every directive, with its dataset rows, in document order
+/// (draft -01 § Directives, trendvidia/protowire#558). `@type` is written
+/// first: it binds no anonymous `@proto`, so moving it changes nothing. The
+/// other directives follow in source order, each after its comments: a named
+/// directive's body and a `@proto` body as written, and a dataset as its
+/// header and then one row per line, an absent cell left empty. A document
+/// whose only directive is `@type` formats as it always has. The output is
+/// the one protowire-go's `FormatDocument` writes.
 String formatDocument(Document doc) {
-  for (final d in [...doc.directives, ...doc.datasets, ...doc.protos]) {
-    final pos = d is Directive
-        ? d.pos
-        : (d is DatasetDirective ? d.pos : (d as ProtoDirective).pos);
-    throw PxfError(pos, 'formatting a document with directives is unsupported');
-  }
   final f = _Formatter();
   final type = doc.typeUrl;
-  if (type != null && type.isNotEmpty) f.buf.write('@type $type\n\n');
+  final hasType = type != null && type.isNotEmpty;
+  final others = _topDirectives(doc);
+  if (others.isEmpty) {
+    if (hasType) f.buf.write('@type $type\n\n');
+    f.comments(doc.leadingComments, 0);
+    f.entries(doc.entries, 0);
+    f.comments(doc.trailingComments, 0);
+    return f.buf.toString();
+  }
+
+  if (hasType) f.buf.write('@type $type\n');
   f.comments(doc.leadingComments, 0);
-  f.entries(doc.entries, 0);
+  for (final d in others) {
+    switch (d) {
+      case Directive():
+        f.comments(d.leadingComments, 0);
+        f.namedDirective(d);
+      case DatasetDirective():
+        f.comments(d.leadingComments, 0);
+        f.dataset(d);
+      case ProtoDirective():
+        f.comments(d.leadingComments, 0);
+        f.proto(d);
+    }
+  }
+  if (doc.entries.isNotEmpty) {
+    f.buf.write('\n');
+    f.entries(doc.entries, 0);
+  }
   f.comments(doc.trailingComments, 0);
   return f.buf.toString();
+}
+
+/// [doc]'s directives other than `@type`, which the [Document] keeps in three
+/// lists, merged back into source order: an anonymous `@proto` binds the
+/// typed directive after it, so the order is part of the meaning. Each
+/// element is a [Directive], [DatasetDirective] or [ProtoDirective].
+List<Object> _topDirectives(Document doc) {
+  final all = <(Position, Object)>[
+    for (final d in doc.directives) (d.pos, d),
+    for (final d in doc.datasets) (d.pos, d),
+    for (final d in doc.protos) (d.pos, d),
+  ];
+  // List.sort is not stable, but no two directives start at one position.
+  all.sort((a, b) {
+    final byLine = a.$1.line.compareTo(b.$1.line);
+    return byLine != 0 ? byLine : a.$1.column.compareTo(b.$1.column);
+  });
+  return [for (final a in all) a.$2];
 }
 
 /// [v] as PXF text at the top level.
@@ -146,6 +192,51 @@ class _Formatter {
         buf.write('}\n');
       }
     }
+  }
+
+  /// `@<name> prefix* [{body}]`, the body as it was written: it is raw text,
+  /// which the directive's consumer decodes.
+  void namedDirective(Directive d) {
+    buf.write('@${d.name}');
+    for (final p in d.prefixes) {
+      buf.write(' $p');
+    }
+    final body = d.body;
+    if (body != null) buf.write(' {${utf8.decode(body)}}');
+    buf.write('\n');
+  }
+
+  /// The header, then one row per line. A null cell is an absent field and
+  /// is left empty; a [NullVal] is written.
+  void dataset(DatasetDirective d) {
+    buf.write('@dataset');
+    if (d.type.isNotEmpty) buf.write(' ${d.type}');
+    buf.write(' (${d.columns.join(', ')})\n');
+    for (final row in d.rows) {
+      buf.write('(');
+      for (var i = 0; i < row.cells.length; i++) {
+        if (i > 0) buf.write(', ');
+        final cell = row.cells[i];
+        if (cell != null) value(cell, 0);
+      }
+      buf.write(')\n');
+    }
+  }
+
+  /// A `@proto` directive in the shape it was read in.
+  void proto(ProtoDirective d) {
+    buf.write('@proto');
+    switch (d.shape) {
+      case ProtoShape.anonymous:
+        buf.write(' {${utf8.decode(d.body)}}');
+      case ProtoShape.named:
+        buf.write(' ${d.typeName} {${utf8.decode(d.body)}}');
+      case ProtoShape.source:
+        buf.write(' """${utf8.decode(d.body)}"""');
+      case ProtoShape.descriptor:
+        buf.write(' b"${base64.encode(d.body)}"');
+    }
+    buf.write('\n');
   }
 
   void trailing(String? comment) {

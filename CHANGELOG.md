@@ -13,6 +13,17 @@ format changes.
 
 ### Changed
 
+- **`formatPxf` keeps every directive** (#94, protowire#558). It used to
+  refuse any document with a `@dataset`, `@proto` or named directive such as
+  `@entry`, with "formatting a document with directives is unsupported". It
+  now writes them all, in document order, as protowire-go writes them:
+  `@type` first, then the other directives in source order, each after its
+  comments. A dataset is its header and then one row per line, an absent
+  cell left empty and `null` written. A named directive's body and a
+  `@proto` body are written as they were read. A document whose only
+  directive is `@type` formats as before. Comments after the last row or
+  entry are kept, as this port already keeps them after the last entry;
+  protowire-go drops them.
 - **`marshal` writes text as protowire-go writes it** (#85, found by the
   spec's text gate, protowire#503):
   - A `uint64` or `fixed64` is written unsigned. `2^64-1` used to come out as
