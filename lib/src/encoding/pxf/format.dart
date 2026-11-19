@@ -3,8 +3,8 @@
 //
 // Formats an AST back to PXF source, preserving comments. Mirrors
 // protowire-go's format.go: two-space indent, expanded blocks, and blank
-// lines between entries are not kept. It differs in keeping comments after
-// the last entry.
+// lines between entries are not kept. Comments after the last entry or row
+// are kept, as protowire-go keeps them since protowire-go#279.
 import 'dart:convert';
 
 import 'annotations.dart';

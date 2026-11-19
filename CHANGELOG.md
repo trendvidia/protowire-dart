@@ -24,8 +24,7 @@ format changes.
   its `"""` on lines of their own so the body reads back byte for byte
   (protowire-go#303). A document whose only
   directive is `@type` formats as before. Comments after the last row or
-  entry are kept, as this port already keeps them after the last entry;
-  protowire-go drops them.
+  entry are kept, as protowire-go keeps them.
 - **`marshal` writes text as protowire-go writes it** (#85, found by the
   spec's text gate, protowire#503):
   - A `uint64` or `fixed64` is written unsigned. `2^64-1` used to come out as
