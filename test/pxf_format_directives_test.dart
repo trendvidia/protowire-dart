@@ -73,10 +73,12 @@ void main() {
     for (final (src, want) in [
       ('@proto { string id = 1; }\n@dataset (id)\n("a")\n', null),
       ('@proto a.v1.R { string id = 1; }\n@dataset a.v1.R (id)\n("a")\n', null),
+      // The triple quotes go on lines of their own (protowire-go#303).
       (
         '@proto """syntax = "proto3"; message R { string id = 1; }"""\n'
             '@dataset R (id)\n("a")\n',
-        null
+        '@proto """\nsyntax = "proto3"; message R { string id = 1; }\n"""\n'
+            '@dataset R (id)\n("a")\n'
       ),
       // @type moves to the front: it binds no @proto, so this changes nothing.
       (
@@ -101,6 +103,55 @@ void main() {
         '# second\n@dataset t.v1.U (id)\n(2)\n');
     expect(out, contains('# about the rows\n@dataset t.v1.T (id)'));
     expect(out, contains('# second\n@dataset t.v1.U (id)'));
+  });
+
+  // A triple-quoted @proto is written with its delimiters on lines of their
+  // own, and its body reads back byte for byte (protowire-go#303).
+  group('a triple-quoted @proto', () {
+    test('keeps the line breaks around its body', () {
+      const src = '@proto """\n  syntax = "proto3";\n  package fmt.v1;\n'
+          '  message Doc { string name = 1; }\n"""\n@type fmt.v1.Doc\n';
+      expect(
+          formatRoundTrip(src),
+          '@type fmt.v1.Doc\n@proto """\n  syntax = "proto3";\n'
+          '  package fmt.v1;\n  message Doc { string name = 1; }\n"""\n');
+    });
+
+    for (final (name, src, body) in [
+      // On the closing delimiter's line, the last quote would open the
+      // closing """ early, and the output would not parse.
+      (
+        'body ends in a quote',
+        '@proto """\n  syntax = "proto3";\n'
+            '  import "google/protobuf/empty.proto"\n  """\n',
+        'syntax = "proto3";\nimport "google/protobuf/empty.proto"'
+      ),
+      // On the closing delimiter's line, a last line of only whitespace
+      // would be taken for the delimiter's indent and dropped.
+      (
+        'whitespace-only last line',
+        '@proto """syntax = "proto3";\n  \n"""\n',
+        'syntax = "proto3";\n  '
+      ),
+      (
+        'leading line break',
+        '@proto """\n\nsyntax = "proto3";"""\n',
+        '\nsyntax = "proto3";'
+      ),
+      (
+        'trailing line break',
+        '@proto """syntax = "proto3";\n\n"""\n',
+        'syntax = "proto3";\n'
+      ),
+      ('empty body', '@proto """"""\n', ''),
+    ]) {
+      test(name, () {
+        final doc = parse(src);
+        expect(doc.protos, hasLength(1));
+        expect(utf8.decode(doc.protos.single.body), body, reason: 'as read');
+        expect(formatRoundTrip(src), '@proto """\n$body\n"""\n');
+      });
+    }
   });
 
   test('a document whose only directive is @type formats as before', () {

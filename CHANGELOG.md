@@ -20,7 +20,9 @@ format changes.
   `@type` first, then the other directives in source order, each after its
   comments. A dataset is its header and then one row per line, an absent
   cell left empty and `null` written. A named directive's body and a
-  `@proto` body are written as they were read. A document whose only
+  `@proto` body are written as they were read, a triple-quoted `@proto` with
+  its `"""` on lines of their own so the body reads back byte for byte
+  (protowire-go#303). A document whose only
   directive is `@type` formats as before. Comments after the last row or
   entry are kept, as this port already keeps them after the last entry;
   protowire-go drops them.

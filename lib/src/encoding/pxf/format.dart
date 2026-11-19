@@ -232,7 +232,13 @@ class _Formatter {
       case ProtoShape.named:
         buf.write(' ${d.typeName} {${utf8.decode(d.body)}}');
       case ProtoShape.source:
-        buf.write(' """${utf8.decode(d.body)}"""');
+        // The delimiters go on lines of their own, as protowire-go writes
+        // them since protowire-go#303. Reading strips the line break after
+        // the opening """ and drops a last line holding only whitespace, so
+        // the body reads back byte for byte. On the delimiters' lines instead,
+        // a body ending in '"' would close the string early and a
+        // whitespace-only last line would be dropped.
+        buf.write(' """\n${utf8.decode(d.body)}\n"""');
       case ProtoShape.descriptor:
         buf.write(' b"${base64.encode(d.body)}"');
     }
