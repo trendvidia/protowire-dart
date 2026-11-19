@@ -90,6 +90,10 @@ class _Walk {
   final Set<int> routed = {};
   int pos = 0;
 
+  /// Which of fields 1 and 2, as bits 1 and 2, the last message walked read
+  /// on their own wire type: for a map entry, its key and value.
+  int _read = 0;
+
   _Walk(this.b, this.registry, this.limits);
 
   /// Walks the records of one message in `[start, end)`, or of a group up to
@@ -101,6 +105,7 @@ class _Walk {
       {GeneratedMessage? into}) {
     pos = start;
     var dirty = false;
+    var read = 0;
     // Elements of each repeated field or map of this message, by field
     // number: a field may be split across the wire.
     final counts = <int, int>{};
@@ -126,6 +131,7 @@ class _Walk {
         // A group read to the end of its message never ended.
         if (group != null) throw InvalidProtocolBufferException.invalidEndTag();
         flush(end);
+        _read = read;
         return dirty;
       }
       final at = pos;
@@ -161,6 +167,7 @@ class _Walk {
         continue;
       }
 
+      if (number <= 2) read |= 1 << number;
       final repeated = fi.isRepeated || fi.isMapField;
       final base = PbFieldType.baseType(fi.type);
       if (base == PbFieldType.GROUP_BIT || base == PbFieldType.MESSAGE_BIT) {
@@ -184,6 +191,9 @@ class _Walk {
               entry ? ' in map entry' : _named(child),
               into: sub);
           pos = stop;
+          // An entry without its 64-bit key or value: package:protobuf
+          // stores the int 0 for it, which its typed map refuses.
+          if (entry && !inner) inner = _lacks64Bit(child, _read);
         }
         if (inner) {
           routed.add(at);
@@ -368,6 +378,12 @@ class _Walk {
     }
   }
 }
+
+/// Whether a map entry of [info] lacks a 64-bit key or value, given the
+/// fields it [read] as bits 1 and 2.
+bool _lacks64Bit(BuilderInfo info, int read) =>
+    (read & 2 == 0 && _is64Bit(info.byIndex[0].type)) ||
+    (read & 4 == 0 && _is64Bit(info.byIndex[1].type));
 
 /// A map entry's key or value, or its zero. package:protobuf makes an absent
 /// 64-bit integer the `int` 0, which its typed map refuses, so that zero is

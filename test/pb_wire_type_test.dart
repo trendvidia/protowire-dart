@@ -150,18 +150,12 @@ void main() {
 
   test('every input gets protobuf-go\'s verdict and values', () {
     final failures = <String>[];
-    var accepted = 0, rejected = 0, excused = 0;
+    var accepted = 0, rejected = 0;
     for (final r in rows) {
       final input = unhex(r.input);
       final got = newMessage(r.message);
       final err = decode(got, input);
       if (err != null && err.startsWith('threw ')) {
-        // A map entry without its 64-bit key or value: the next commit.
-        if (err.contains("not a subtype of type 'Int64'")) {
-          excused++;
-          r.accepted ? accepted++ : rejected++;
-          continue;
-        }
         failures.add('${r.message} ${r.input}: $err');
         r.accepted ? accepted++ : rejected++;
         continue;
@@ -205,7 +199,7 @@ void main() {
     // A positive marker that both verdicts were exercised, and on how many.
     printOnFailure(failures.join('\n'));
     print('${rows.length} inputs: protobuf-go accepts $accepted, rejects '
-        '$rejected; ${failures.length} differ here, $excused excused');
+        '$rejected; ${failures.length} differ here');
     expect(rows.where((r) => r.message == 'conf.All').length, 606);
     expect(accepted, greaterThan(300));
     expect(rejected, greaterThan(300));
@@ -295,6 +289,33 @@ void main() {
     final m = conf.All();
     expect(decode(m, unhex('9201' '06' '0a016b' '120107')), isNull);
     expect(m.m, {'k': Int64.ZERO});
+  });
+
+  // package:protobuf stores the int 0 for a map entry's absent 64-bit key or
+  // value, and its typed map then throws a TypeError, out of
+  // mergeFromBufferChecked too. Such an entry is now merged here, with
+  // Int64.ZERO, as protobuf-go reads it. A mismatched key or value is absent.
+  group('a map entry without its 64-bit key or value', () {
+    test('no value', () {
+      final m = conf.All();
+      expect(decode(m, unhex('9201' '03' '0a016b')), isNull);
+      expect(m.m, {'k': Int64.ZERO});
+    });
+    test('an empty entry', () {
+      final m = conf.All();
+      expect(decode(m, unhex('920100')), isNull);
+      expect(m.m, {'': Int64.ZERO});
+    });
+    test('no key', () {
+      final m = ext.Base();
+      expect(decode(m, unhex('3a02' '1001')), isNull);
+      expect(m.em, {Int64.ZERO: ext.Color.COLOR_RED});
+    });
+    test('the value on another wire type', () {
+      final m = conf.All();
+      expect(decode(m, unhex('9201' '08' '0a016b' '1501000000')), isNull);
+      expect(m.m, {'k': Int64.ZERO});
+    });
   });
 
   // protowire-go's TestUnmarshal_WireTypeBigNumbers: the big-number messages

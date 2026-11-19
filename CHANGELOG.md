@@ -106,10 +106,18 @@ format changes.
   proto: cannot parse reserved wire type`, `corrupt field 1: unexpected EOF`,
   `corrupt field 3 in map entry: ...`, `corrupt field 1 in BigInt: ...`. A
   length-delimited field's length is read as protobuf reads it, all 64 bits,
-  where package:protobuf kept its low 32.
+  where package:protobuf kept its low 32. Every verdict and value matches
+  protobuf-go's on 1040 inputs (test/pb_wire_type_test.dart).
 
 ### Fixed
 
+- **A map entry without its 64-bit key or value reads as zero** in
+  `mergeFromBufferChecked`, as protobuf reads it. On a generated message, a
+  `map<string, int64>` entry holding only its key threw a `TypeError`, though
+  the bytes are well formed: package:protobuf stores the `int` 0 for an
+  absent `int64`, `uint64`, `sint64`, `fixed64` or `sfixed64` key or value,
+  and its typed map refuses it. A key or value on another wire type is absent
+  too, since #101.
 - **`registerFromDescriptorSet` gives each composite field its own
   `(sbe.length)` and `(sbe.encoding)`** (#87). Overrides were one map keyed by
   field number for the whole template, and a top-level composite's options
