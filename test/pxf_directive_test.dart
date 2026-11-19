@@ -15,6 +15,9 @@ import 'package:protowire/src/encoding/pxf/parser.dart';
 import 'package:protowire/src/encoding/pxf/ast.dart';
 import 'package:protowire/src/encoding/pxf/errors.dart';
 import 'package:protowire/src/encoding/pxf/schema.dart';
+import 'package:protowire/src/encoding/pxf/decode.dart' show unmarshal;
+
+import 'generated/test.pb.dart' as testpb;
 
 void main() {
   group('Generic @<name> directive', () {
@@ -346,6 +349,76 @@ void main() {
       expect(doc.datasets, hasLength(1));
       expect(doc.datasets[0].type, equals(''));
       expect(doc.datasets[0].rows, hasLength(1));
+    });
+
+    // A source body must be triple-quoted: the grammar's proto_source_body
+    // is a triple_string. A simple-quoted body could carry `"""` through its
+    // escapes, and no formatter can write that back (#102).
+    group('source body must be triple-quoted', () {
+      const want =
+          '1:8: @proto source body must be a triple-quoted string ("""...""")';
+      Matcher refused(String text) => throwsA(predicate(
+          (e) => e is PxfError && e.toString() == text, 'PxfError "$text"'));
+      for (final body in [
+        r'"syntax = \"proto3\";"',
+        r'"syntax = \"proto3\"; // a \"\"\" b"', // carries """
+        '""',
+      ]) {
+        final src = '@proto $body\n';
+        test('parse refuses $body', () {
+          expect(() => parse(src), refused(want));
+        });
+        test('unmarshal refuses $body', () {
+          expect(
+              () => unmarshal('${src}string_field = "x"\n', testpb.AllTypes()),
+              refused(want));
+        });
+        test('a dataset header refuses $body', () {
+          final ds = '$src@dataset ( id )\n( 7 )\n';
+          expect(() => parse(ds), refused(want));
+          expect(() => unmarshal(ds, testpb.AllTypes()), refused(want));
+        });
+      }
+      test('after @type, both paths refuse it at its own position', () {
+        const src = '@type a.v1.M\n@proto "x"\n';
+        const at =
+            '2:8: @proto source body must be a triple-quoted string ("""...""")';
+        expect(() => parse(src), refused(at));
+        expect(() => unmarshal(src, testpb.AllTypes()), refused(at));
+      });
+
+      // The triple-quoted form still reads, on the same line and across
+      // lines, on both paths.
+      for (final src in [
+        '@proto """syntax = "proto3";"""\n',
+        '@proto\n"""syntax = "proto3";"""\n',
+        '@proto """\nsyntax = "proto3";\n"""\n',
+      ]) {
+        test('accepts ${jsonEncode(src)}', () {
+          final doc = parse(src);
+          expect(doc.protos, hasLength(1));
+          expect(doc.protos[0].shape, ProtoShape.source);
+          expect(utf8.decode(doc.protos[0].body).trim(), 'syntax = "proto3";');
+          final m = testpb.AllTypes();
+          unmarshal('${src}string_field = "x"\n', m);
+          expect(m.stringField, 'x');
+        });
+      }
+
+      // The descriptor form, a bytes literal, is legal (proto-descr-body =
+      // 1*WSP bytes) and stays accepted, empty included.
+      for (final body in [
+        'b""',
+        'b"${base64.encode([10, 0])}"'
+      ]) {
+        test('accepts the descriptor body $body', () {
+          final doc = parse('@proto $body\n');
+          expect(doc.protos.single.shape, ProtoShape.descriptor);
+          final m = testpb.AllTypes();
+          unmarshal('@proto $body\nstring_field = "x"\n', m);
+          expect(m.stringField, 'x');
+        });
+      }
     });
 
     test('ProtoShape displayName round-trip', () {

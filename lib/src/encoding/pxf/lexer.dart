@@ -412,7 +412,7 @@ class Lexer {
         _advance(); // "
         _advance(); // "
         _advance(); // "
-        return Token(TokenKind.string, _dedent(raw), p);
+        return Token(TokenKind.string, _dedent(raw), p, triple: true);
       }
       _advance();
     }
