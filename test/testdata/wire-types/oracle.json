@@ -1,0 +1,6511 @@
+[
+ {
+  "message": "conf.All",
+  "input": "0801",
+  "accepted": true,
+  "all": "0801"
+ },
+ {
+  "message": "conf.All",
+  "input": "0880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "090100000000000000",
+  "accepted": true,
+  "all": "090100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "09010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0a00",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "0a0101",
+  "accepted": true,
+  "known": "0a0101",
+  "all": "0a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "0a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0b0c",
+  "accepted": true,
+  "all": "0b0c"
+ },
+ {
+  "message": "conf.All",
+  "input": "0b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0d01000000",
+  "accepted": true,
+  "all": "0d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "0d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1001",
+  "accepted": true,
+  "known": "1001",
+  "all": "1001"
+ },
+ {
+  "message": "conf.All",
+  "input": "1080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "110100000000000000",
+  "accepted": true,
+  "all": "110100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "11010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1200",
+  "accepted": true,
+  "all": "1200"
+ },
+ {
+  "message": "conf.All",
+  "input": "120101",
+  "accepted": true,
+  "all": "120101"
+ },
+ {
+  "message": "conf.All",
+  "input": "1201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1314",
+  "accepted": true,
+  "all": "1314"
+ },
+ {
+  "message": "conf.All",
+  "input": "13",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "14",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1501000000",
+  "accepted": true,
+  "all": "1501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1801",
+  "accepted": true,
+  "known": "1801",
+  "all": "1801"
+ },
+ {
+  "message": "conf.All",
+  "input": "1880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "190100000000000000",
+  "accepted": true,
+  "all": "190100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "19010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1a00",
+  "accepted": true,
+  "all": "1a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "1a0101",
+  "accepted": true,
+  "all": "1a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "1a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1b1c",
+  "accepted": true,
+  "all": "1b1c"
+ },
+ {
+  "message": "conf.All",
+  "input": "1b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1d01000000",
+  "accepted": true,
+  "all": "1d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "1d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "1f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2001",
+  "accepted": true,
+  "known": "2001",
+  "all": "2001"
+ },
+ {
+  "message": "conf.All",
+  "input": "2080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "210100000000000000",
+  "accepted": true,
+  "all": "210100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "21010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2200",
+  "accepted": true,
+  "all": "2200"
+ },
+ {
+  "message": "conf.All",
+  "input": "220101",
+  "accepted": true,
+  "all": "220101"
+ },
+ {
+  "message": "conf.All",
+  "input": "2201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2324",
+  "accepted": true,
+  "all": "2324"
+ },
+ {
+  "message": "conf.All",
+  "input": "23",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "24",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2501000000",
+  "accepted": true,
+  "all": "2501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "250100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2801",
+  "accepted": true,
+  "known": "2801",
+  "all": "2801"
+ },
+ {
+  "message": "conf.All",
+  "input": "2880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "290100000000000000",
+  "accepted": true,
+  "all": "290100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "29010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2a00",
+  "accepted": true,
+  "all": "2a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "2a0101",
+  "accepted": true,
+  "all": "2a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "2a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2b2c",
+  "accepted": true,
+  "all": "2b2c"
+ },
+ {
+  "message": "conf.All",
+  "input": "2b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2d01000000",
+  "accepted": true,
+  "all": "2d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "2d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "2f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3001",
+  "accepted": true,
+  "known": "3001",
+  "all": "3001"
+ },
+ {
+  "message": "conf.All",
+  "input": "3080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "310100000000000000",
+  "accepted": true,
+  "all": "310100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "31010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3200",
+  "accepted": true,
+  "all": "3200"
+ },
+ {
+  "message": "conf.All",
+  "input": "320101",
+  "accepted": true,
+  "all": "320101"
+ },
+ {
+  "message": "conf.All",
+  "input": "3201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3334",
+  "accepted": true,
+  "all": "3334"
+ },
+ {
+  "message": "conf.All",
+  "input": "33",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "34",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3501000000",
+  "accepted": true,
+  "all": "3501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "350100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3801",
+  "accepted": true,
+  "known": "3801",
+  "all": "3801"
+ },
+ {
+  "message": "conf.All",
+  "input": "3880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "390100000000000000",
+  "accepted": true,
+  "all": "390100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "39010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3a00",
+  "accepted": true,
+  "all": "3a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "3a0101",
+  "accepted": true,
+  "all": "3a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "3a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3b3c",
+  "accepted": true,
+  "all": "3b3c"
+ },
+ {
+  "message": "conf.All",
+  "input": "3b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3d01000000",
+  "accepted": true,
+  "all": "3d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "3d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "3f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4001",
+  "accepted": true,
+  "known": "4001",
+  "all": "4001"
+ },
+ {
+  "message": "conf.All",
+  "input": "4080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "410100000000000000",
+  "accepted": true,
+  "all": "410100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "41010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4200",
+  "accepted": true,
+  "all": "4200"
+ },
+ {
+  "message": "conf.All",
+  "input": "420101",
+  "accepted": true,
+  "all": "420101"
+ },
+ {
+  "message": "conf.All",
+  "input": "4201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4344",
+  "accepted": true,
+  "all": "4344"
+ },
+ {
+  "message": "conf.All",
+  "input": "43",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "44",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4501000000",
+  "accepted": true,
+  "all": "4501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "450100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4801",
+  "accepted": true,
+  "all": "4801"
+ },
+ {
+  "message": "conf.All",
+  "input": "4880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "490100000000000000",
+  "accepted": true,
+  "known": "490100000000000000",
+  "all": "490100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "49010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4a00",
+  "accepted": true,
+  "all": "4a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "4a0101",
+  "accepted": true,
+  "all": "4a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "4a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4b4c",
+  "accepted": true,
+  "all": "4b4c"
+ },
+ {
+  "message": "conf.All",
+  "input": "4b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4d01000000",
+  "accepted": true,
+  "all": "4d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "4d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "4f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5001",
+  "accepted": true,
+  "all": "5001"
+ },
+ {
+  "message": "conf.All",
+  "input": "5080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "510100000000000000",
+  "accepted": true,
+  "all": "510100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "51010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5200",
+  "accepted": true,
+  "all": "5200"
+ },
+ {
+  "message": "conf.All",
+  "input": "520101",
+  "accepted": true,
+  "all": "520101"
+ },
+ {
+  "message": "conf.All",
+  "input": "5201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5354",
+  "accepted": true,
+  "all": "5354"
+ },
+ {
+  "message": "conf.All",
+  "input": "53",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "54",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5501000000",
+  "accepted": true,
+  "known": "5501000000",
+  "all": "5501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "550100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5801",
+  "accepted": true,
+  "all": "5801"
+ },
+ {
+  "message": "conf.All",
+  "input": "5880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "590100000000000000",
+  "accepted": true,
+  "all": "590100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "59010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5a00",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "5a0101",
+  "accepted": true,
+  "known": "5a0101",
+  "all": "5a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "5a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5b5c",
+  "accepted": true,
+  "all": "5b5c"
+ },
+ {
+  "message": "conf.All",
+  "input": "5b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5d01000000",
+  "accepted": true,
+  "all": "5d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "5d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "5f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6001",
+  "accepted": true,
+  "all": "6001"
+ },
+ {
+  "message": "conf.All",
+  "input": "6080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "610100000000000000",
+  "accepted": true,
+  "all": "610100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "61010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6200",
+  "accepted": true,
+  "known": "6200",
+  "all": "6200"
+ },
+ {
+  "message": "conf.All",
+  "input": "620101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6364",
+  "accepted": true,
+  "all": "6364"
+ },
+ {
+  "message": "conf.All",
+  "input": "63",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "64",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6501000000",
+  "accepted": true,
+  "all": "6501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "650100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6801",
+  "accepted": true,
+  "all": "6801"
+ },
+ {
+  "message": "conf.All",
+  "input": "6880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "690100000000000000",
+  "accepted": true,
+  "all": "690100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "69010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a00",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6b6c",
+  "accepted": true,
+  "all": "6b6c"
+ },
+ {
+  "message": "conf.All",
+  "input": "6b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6d01000000",
+  "accepted": true,
+  "all": "6d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7001",
+  "accepted": true,
+  "known": "720101",
+  "all": "720101"
+ },
+ {
+  "message": "conf.All",
+  "input": "7080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "710100000000000000",
+  "accepted": true,
+  "all": "710100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "71010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7200",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "720101",
+  "accepted": true,
+  "known": "720101",
+  "all": "720101"
+ },
+ {
+  "message": "conf.All",
+  "input": "7201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7374",
+  "accepted": true,
+  "all": "7374"
+ },
+ {
+  "message": "conf.All",
+  "input": "73",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "74",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7501000000",
+  "accepted": true,
+  "all": "7501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "750100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7801",
+  "accepted": true,
+  "known": "7a0101",
+  "all": "7a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "7880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "790100000000000000",
+  "accepted": true,
+  "all": "790100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "79010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7a00",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "7a0101",
+  "accepted": true,
+  "known": "7a0101",
+  "all": "7a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "7a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7b7c",
+  "accepted": true,
+  "all": "7b7c"
+ },
+ {
+  "message": "conf.All",
+  "input": "7b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7d01000000",
+  "accepted": true,
+  "all": "7d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "7d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "7f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "800101",
+  "accepted": true,
+  "all": "800101"
+ },
+ {
+  "message": "conf.All",
+  "input": "800180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "81010100000000000000",
+  "accepted": true,
+  "all": "81010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "8101010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "820100",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "82010101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "820101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "83018401",
+  "accepted": true,
+  "all": "83018401"
+ },
+ {
+  "message": "conf.All",
+  "input": "8301",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8401",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "850101000000",
+  "accepted": true,
+  "known": "82010401000000",
+  "all": "82010401000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "85010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "860101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "870101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "880101",
+  "accepted": true,
+  "all": "880101"
+ },
+ {
+  "message": "conf.All",
+  "input": "880180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "89010100000000000000",
+  "accepted": true,
+  "all": "89010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "8901010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8a0100",
+  "accepted": true,
+  "known": "8a0100",
+  "all": "8a0100"
+ },
+ {
+  "message": "conf.All",
+  "input": "8a010101",
+  "accepted": true,
+  "known": "8a010101",
+  "all": "8a010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "8a0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8b018c01",
+  "accepted": true,
+  "all": "8b018c01"
+ },
+ {
+  "message": "conf.All",
+  "input": "8b01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8c01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8d0101000000",
+  "accepted": true,
+  "all": "8d0101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "8d010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8e0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "8f0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "900101",
+  "accepted": true,
+  "all": "900101"
+ },
+ {
+  "message": "conf.All",
+  "input": "900180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "91010100000000000000",
+  "accepted": true,
+  "all": "91010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9101010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "920100",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "92010101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "920101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "93019401",
+  "accepted": true,
+  "all": "93019401"
+ },
+ {
+  "message": "conf.All",
+  "input": "9301",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9401",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "950101000000",
+  "accepted": true,
+  "all": "950101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "95010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "960101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "970101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "980101",
+  "accepted": true,
+  "all": "980101"
+ },
+ {
+  "message": "conf.All",
+  "input": "980180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "99010100000000000000",
+  "accepted": true,
+  "all": "99010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9901010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0100",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a010101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9b019c01",
+  "accepted": true,
+  "all": "9b019c01"
+ },
+ {
+  "message": "conf.All",
+  "input": "9b01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9c01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9d0101000000",
+  "accepted": true,
+  "all": "9d0101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9d010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9e0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9f0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a00101",
+  "accepted": true,
+  "all": "a00101"
+ },
+ {
+  "message": "conf.All",
+  "input": "a00180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a1010100000000000000",
+  "accepted": true,
+  "all": "a1010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "a101010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a20100",
+  "accepted": true,
+  "known": "a20100",
+  "all": "a20100"
+ },
+ {
+  "message": "conf.All",
+  "input": "a2010101",
+  "accepted": true,
+  "known": "a2010101",
+  "all": "a2010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "a20101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a301a401",
+  "accepted": true,
+  "all": "a301a401"
+ },
+ {
+  "message": "conf.All",
+  "input": "a301",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a401",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a50101000000",
+  "accepted": true,
+  "all": "a50101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "a5010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a60101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a70101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a80101",
+  "accepted": true,
+  "known": "a80101",
+  "all": "a80101"
+ },
+ {
+  "message": "conf.All",
+  "input": "a80180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "a9010100000000000000",
+  "accepted": true,
+  "all": "a9010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "a901010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "aa0100",
+  "accepted": true,
+  "all": "aa0100"
+ },
+ {
+  "message": "conf.All",
+  "input": "aa010101",
+  "accepted": true,
+  "all": "aa010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "aa0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ab01ac01",
+  "accepted": true,
+  "all": "ab01ac01"
+ },
+ {
+  "message": "conf.All",
+  "input": "ab01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ac01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ad0101000000",
+  "accepted": true,
+  "all": "ad0101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ad010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ae0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "af0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b00101",
+  "accepted": true,
+  "all": "b00101"
+ },
+ {
+  "message": "conf.All",
+  "input": "b00180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b1010100000000000000",
+  "accepted": true,
+  "all": "b1010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b101010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20100",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b20100"
+ },
+ {
+  "message": "conf.All",
+  "input": "b2010101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b301b401",
+  "accepted": true,
+  "all": "b301b401"
+ },
+ {
+  "message": "conf.All",
+  "input": "b301",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b401",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b50101000000",
+  "accepted": true,
+  "all": "b50101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b5010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b60101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b70101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b80101",
+  "accepted": true,
+  "known": "ba010101",
+  "all": "ba010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "b80180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b9010100000000000000",
+  "accepted": true,
+  "all": "b9010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b901010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ba0100",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "ba010101",
+  "accepted": true,
+  "known": "ba010101",
+  "all": "ba010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "ba0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "bb01bc01",
+  "accepted": true,
+  "all": "bb01bc01"
+ },
+ {
+  "message": "conf.All",
+  "input": "bb01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "bc01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "bd0101000000",
+  "accepted": true,
+  "all": "bd0101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "bd010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "be0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "bf0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c00101",
+  "accepted": true,
+  "known": "c2010101",
+  "all": "c2010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "c00180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c1010100000000000000",
+  "accepted": true,
+  "all": "c1010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "c101010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c20100",
+  "accepted": true
+ },
+ {
+  "message": "conf.All",
+  "input": "c2010101",
+  "accepted": true,
+  "known": "c2010101",
+  "all": "c2010101"
+ },
+ {
+  "message": "conf.All",
+  "input": "c20101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c301c401",
+  "accepted": true,
+  "all": "c301c401"
+ },
+ {
+  "message": "conf.All",
+  "input": "c301",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c401",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c50101000000",
+  "accepted": true,
+  "all": "c50101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "c5010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c60101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c70101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c80101",
+  "accepted": true,
+  "all": "c80101"
+ },
+ {
+  "message": "conf.All",
+  "input": "c80180",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "c9010100000000000000",
+  "accepted": true,
+  "all": "c9010100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "c901010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0100",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca010101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "cb01cc01",
+  "accepted": true,
+  "all": "cb01cc01"
+ },
+ {
+  "message": "conf.All",
+  "input": "cb01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "cc01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "cd0101000000",
+  "accepted": true,
+  "all": "cd0101000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "cd010100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ce0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "cf0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020801",
+  "accepted": true,
+  "known": "6200",
+  "all": "62020801"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6209090100000000000000",
+  "accepted": true,
+  "known": "6200",
+  "all": "6209090100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "620409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020a00",
+  "accepted": true,
+  "known": "6200",
+  "all": "6200"
+ },
+ {
+  "message": "conf.All",
+  "input": "62030a0101",
+  "accepted": true,
+  "known": "62030a0101",
+  "all": "62030a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020b0c",
+  "accepted": true,
+  "known": "6200",
+  "all": "62020b0c"
+ },
+ {
+  "message": "conf.All",
+  "input": "62010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62050d01000000",
+  "accepted": true,
+  "known": "6200",
+  "all": "62050d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "62030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021001",
+  "accepted": true,
+  "known": "62021001",
+  "all": "62021001"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6209110100000000000000",
+  "accepted": true,
+  "known": "6200",
+  "all": "6209110100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "620411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021200",
+  "accepted": true,
+  "known": "6200",
+  "all": "62021200"
+ },
+ {
+  "message": "conf.All",
+  "input": "6203120101",
+  "accepted": true,
+  "known": "6200",
+  "all": "6203120101"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021314",
+  "accepted": true,
+  "known": "6200",
+  "all": "62021314"
+ },
+ {
+  "message": "conf.All",
+  "input": "620113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "620114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62051501000000",
+  "accepted": true,
+  "known": "6200",
+  "all": "62051501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6203150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021801",
+  "accepted": true,
+  "known": "6200",
+  "all": "62021801"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6209190100000000000000",
+  "accepted": true,
+  "known": "6200",
+  "all": "6209190100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "620419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021a00",
+  "accepted": true,
+  "known": "6200",
+  "all": "62021a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "62031a0101",
+  "accepted": true,
+  "known": "6200",
+  "all": "62031a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021b1c",
+  "accepted": true,
+  "known": "6200",
+  "all": "62021b1c"
+ },
+ {
+  "message": "conf.All",
+  "input": "62011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62051d01000000",
+  "accepted": true,
+  "known": "6200",
+  "all": "62051d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "62031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "62021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020801",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a020801"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a09090100000000000000",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a09090100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a0409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020a00",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a030a0101",
+  "accepted": true,
+  "known": "6a030a0101",
+  "all": "6a030a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020b0c",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a020b0c"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a050d01000000",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a050d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021001",
+  "accepted": true,
+  "known": "6a021001",
+  "all": "6a021001"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a09110100000000000000",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a09110100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a0411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021200",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a021200"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a03120101",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a03120101"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021314",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a021314"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a0113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a0114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a051501000000",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a051501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a03150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021801",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a021801"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a09190100000000000000",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a09190100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a0419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021a00",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a021a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a031a0101",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a031a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021b1c",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a021b1c"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a051d01000000",
+  "accepted": true,
+  "known": "6a00",
+  "all": "6a051d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "6a021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020801",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "920109090100000000000000",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "92010409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020a00",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201030a0101",
+  "accepted": true,
+  "known": "9201050a01011000",
+  "all": "9201050a01011000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020b0c",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201050d01000000",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021001",
+  "accepted": true,
+  "known": "9201040a001001",
+  "all": "9201040a001001"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "920109110100000000000000",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "92010411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021200",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "920103120101",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021314",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "92010113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "92010114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201051501000000",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "920103150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021801",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "920109190100000000000000",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "92010419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021a00",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201031a0101",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021b1c",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201051d01000000",
+  "accepted": true,
+  "known": "9201040a001000",
+  "all": "9201040a001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9201021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020801",
+  "accepted": true,
+  "known": "9a010408011200",
+  "all": "9a010408011200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0109090100000000000000",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a010409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020a00",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01030a0101",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020b0c",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01050d01000000",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021001",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0109110100000000000000",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a010411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021200",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0103120101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021314",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a010113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a010114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01051501000000",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0103150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021801",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a0109190100000000000000",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a010419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021a00",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01031a0101",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021b1c",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01051d01000000",
+  "accepted": true,
+  "known": "9a010408001200",
+  "all": "9a010408001200"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "9a01021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020801",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201020801"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20109090100000000000000",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b20109090100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b2010409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020a00",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b20100"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201030a0101",
+  "accepted": true,
+  "known": "b201030a0101",
+  "all": "b201030a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020b0c",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201020b0c"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201050d01000000",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201050d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021001",
+  "accepted": true,
+  "known": "b201021001",
+  "all": "b201021001"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20109110100000000000000",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b20109110100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b2010411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021200",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201021200"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20103120101",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b20103120101"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021314",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201021314"
+ },
+ {
+  "message": "conf.All",
+  "input": "b2010113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b2010114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201051501000000",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201051501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20103150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021801",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201021801"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b20109190100000000000000",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b20109190100000000000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b2010419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021a00",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201021a00"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201031a0101",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201031a0101"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021b1c",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201021b1c"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201051d01000000",
+  "accepted": true,
+  "known": "b20100",
+  "all": "b201051d01000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "b201021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020801",
+  "accepted": true,
+  "known": "ca010408011000",
+  "all": "ca010408011000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0109090100000000000000",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca010409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020a00",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01030a0101",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020b0c",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01050d01000000",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021001",
+  "accepted": true,
+  "known": "ca010408001001",
+  "all": "ca010408001001"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0109110100000000000000",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca010411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021200",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0103120101",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021314",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca010113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca010114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01051501000000",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0103150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021801",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca0109190100000000000000",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca010419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021a00",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01031a0101",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021b1c",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01051d01000000",
+  "accepted": true,
+  "known": "ca010408001000",
+  "all": "ca010408001000"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "ca01021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "conf.All",
+  "input": "0a01610801",
+  "accepted": true,
+  "known": "0a0161",
+  "all": "0a01610801"
+ },
+ {
+  "message": "conf.All",
+  "input": "10071501000000",
+  "accepted": true,
+  "known": "1007",
+  "all": "10071501000000"
+ },
+ {
+  "message": "conf.All",
+  "input": "7201017001",
+  "accepted": true,
+  "known": "72020101",
+  "all": "72020101"
+ },
+ {
+  "message": "conf.All",
+  "input": "70017501000000",
+  "accepted": true,
+  "known": "720101",
+  "all": "7201017501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0801",
+  "accepted": true,
+  "known": "0801",
+  "all": "0801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "090100000000000000",
+  "accepted": true,
+  "all": "090100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "09010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0a00",
+  "accepted": true,
+  "all": "0a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0a0101",
+  "accepted": true,
+  "all": "0a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0b0c",
+  "accepted": true,
+  "all": "0b0c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0d01000000",
+  "accepted": true,
+  "all": "0d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "0f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1001",
+  "accepted": true,
+  "known": "1001",
+  "all": "1001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "110100000000000000",
+  "accepted": true,
+  "all": "110100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "11010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1200",
+  "accepted": true
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "120101",
+  "accepted": true,
+  "known": "1001",
+  "all": "1001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1314",
+  "accepted": true,
+  "all": "1314"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "13",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "14",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1501000000",
+  "accepted": true,
+  "all": "1501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1801",
+  "accepted": true,
+  "all": "1801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "190100000000000000",
+  "accepted": true,
+  "all": "190100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "19010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1a00",
+  "accepted": true,
+  "all": "1a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1a0101",
+  "accepted": true,
+  "all": "1a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1d01000000",
+  "accepted": true,
+  "all": "1d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2001",
+  "accepted": true,
+  "all": "2001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "210100000000000000",
+  "accepted": true,
+  "all": "210100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "21010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2200",
+  "accepted": true,
+  "all": "2200"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "220101",
+  "accepted": true,
+  "all": "220101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2324",
+  "accepted": true,
+  "all": "2324"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "23",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "24",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2501000000",
+  "accepted": true,
+  "all": "2501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "250100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2801",
+  "accepted": true,
+  "all": "2801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "290100000000000000",
+  "accepted": true,
+  "known": "290100000000000000",
+  "all": "290100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "29010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2a00",
+  "accepted": true,
+  "all": "2a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2a0101",
+  "accepted": true,
+  "all": "2a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2b2c",
+  "accepted": true,
+  "all": "2b2c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2d01000000",
+  "accepted": true,
+  "all": "2d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "2f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3001",
+  "accepted": true,
+  "all": "3001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "310100000000000000",
+  "accepted": true,
+  "all": "310100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "31010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3200",
+  "accepted": true,
+  "all": "3200"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "320101",
+  "accepted": true,
+  "all": "320101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3334",
+  "accepted": true,
+  "all": "3334"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "33",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "34",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3501000000",
+  "accepted": true,
+  "all": "3501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "350100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3801",
+  "accepted": true,
+  "all": "3801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "390100000000000000",
+  "accepted": true,
+  "all": "390100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "39010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a00",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a0101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3b3c",
+  "accepted": true,
+  "all": "3b3c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3d01000000",
+  "accepted": true,
+  "all": "3d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a00601",
+  "accepted": true,
+  "known": "a00601",
+  "all": "a00601"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a00680",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a1060100000000000000",
+  "accepted": true,
+  "all": "a1060100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a106010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a20600",
+  "accepted": true,
+  "all": "a20600"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a2060101",
+  "accepted": true,
+  "all": "a2060101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a20601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a306a406",
+  "accepted": true,
+  "all": "a306a406"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a306",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a406",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a50601000000",
+  "accepted": true,
+  "all": "a50601000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a5060100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a60601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a70601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a80601",
+  "accepted": true,
+  "all": "a80601"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a80680",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a9060100000000000000",
+  "accepted": true,
+  "all": "a9060100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "a906010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0600",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0600"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "ab06ac06",
+  "accepted": true,
+  "all": "ab06ac06"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "ab06",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "ac06",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "ad0601000000",
+  "accepted": true,
+  "all": "ad0601000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "ad060100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "ae0601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "af0601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b00601",
+  "accepted": true,
+  "all": "b00601"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b00680",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b1060100000000000000",
+  "accepted": true,
+  "all": "b1060100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b106010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20600",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20600"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060101",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b306b406",
+  "accepted": true,
+  "all": "b306b406"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b306",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b406",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b50601000000",
+  "accepted": true,
+  "all": "b50601000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b5060100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b60601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b70601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b08011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b08011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b08801c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0901000000000000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b0901000000000000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b090100001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0a001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b0a001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0a01011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b0a01011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0a011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0b0c1c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b0b0c1c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0b1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0c1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0d010000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b0d010000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0d01001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0e011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b0f011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b10011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b10011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b10801c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1101000000000000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1101000000000000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b110100001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b12001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b12001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1201011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1201011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b12011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b13141c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b13141c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b131c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b141c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b15010000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b15010000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1501001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b16011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b17011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b18011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b18011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b18801c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1901000000000000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1901000000000000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b190100001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1a001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1a001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1a01011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1a01011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1a011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1b1c1c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1b1c1c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1b1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1c1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1d010000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b1d010000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1d01001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1e011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b1f011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b20011c",
+  "accepted": true,
+  "known": "1b20011c",
+  "all": "1b20011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b20801c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2101000000000000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2101000000000000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b210100001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b22001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b22001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2201011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2201011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b22011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b23241c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b23241c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b231c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b241c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b25010000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b25010000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2501001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b26011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b27011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b28011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b28011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b28801c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2901000000000000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2901000000000000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b290100001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2a001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2a001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2a01011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2a01011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2a011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2b2c1c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2b2c1c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2b1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2c1c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2d010000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b2d010000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2d01001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2e011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b2f011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b30011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b30011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b30801c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b3101000000000000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b3101000000000000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b310100001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b32001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b32001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b3201011c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b3201011c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b32011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b33341c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b33341c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b331c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b341c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b35010000001c",
+  "accepted": true,
+  "known": "1b1c",
+  "all": "1b35010000001c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b3501001c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b36011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "1b37011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020801",
+  "accepted": true,
+  "known": "aa06020801",
+  "all": "aa06020801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0609090100000000000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0609090100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020a00",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06020a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06030a0101",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06030a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020b0c",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06020b0c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06050d01000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06050d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021001",
+  "accepted": true,
+  "known": "aa06021001",
+  "all": "aa06021001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0609110100000000000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0609110100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021200",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0600"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0603120101",
+  "accepted": true,
+  "known": "aa06021001",
+  "all": "aa06021001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021314",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06021314"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06051501000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06051501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0603150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021801",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06021801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0609190100000000000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0609190100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021a00",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06021a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06031a0101",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06031a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021b1c",
+  "accepted": true,
+  "known": "aa06021b1c",
+  "all": "aa06021b1c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06051d01000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06051d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022001",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06022001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0609210100000000000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0609210100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060421010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022200",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06022200"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0603220101",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0603220101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022324",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06022324"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060123",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060124",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06052501000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06052501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0603250100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022801",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06022801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0609290100000000000000",
+  "accepted": true,
+  "known": "aa0609290100000000000000",
+  "all": "aa0609290100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060429010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022a00",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06022a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06032a0101",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06032a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022b2c",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06022b2c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06012b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06012c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06052d01000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06052d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06032d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06022f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023001",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06023001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0609310100000000000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0609310100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060431010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023200",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06023200"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0603320101",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa0603320101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023334",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06023334"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060133",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa060134",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06053501000000",
+  "accepted": true,
+  "known": "aa0600",
+  "all": "aa06053501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa0603350100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "aa06023701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020801",
+  "accepted": true,
+  "known": "b206020801",
+  "all": "b206020801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20609090100000000000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20609090100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020a00",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206020a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206030a0101",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206030a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020b0c",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206020b0c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206050d01000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206050d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021001",
+  "accepted": true,
+  "known": "b206021001",
+  "all": "b206021001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20609110100000000000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20609110100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021200",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20600"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20603120101",
+  "accepted": true,
+  "known": "b206021001",
+  "all": "b206021001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021314",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206021314"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206051501000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206051501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20603150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021801",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206021801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20609190100000000000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20609190100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021a00",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206021a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206031a0101",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206031a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021b1c",
+  "accepted": true,
+  "known": "b206021b1c",
+  "all": "b206021b1c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206051d01000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206051d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022001",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206022001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20609210100000000000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20609210100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060421010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022200",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206022200"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20603220101",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20603220101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022324",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206022324"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060123",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060124",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206052501000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206052501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20603250100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022801",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206022801"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20609290100000000000000",
+  "accepted": true,
+  "known": "b20609290100000000000000",
+  "all": "b20609290100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060429010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022a00",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206022a00"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206032a0101",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206032a0101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022b2c",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206022b2c"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206012b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206012c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206052d01000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206052d01000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206032d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206022f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023001",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206023001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20609310100000000000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20609310100000000000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060431010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023200",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206023200"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20603320101",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b20603320101"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023334",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206023334"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060133",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b2060134",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206053501000000",
+  "accepted": true,
+  "known": "b20600",
+  "all": "b206053501000000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b20603350100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "b206023701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020801",
+  "accepted": true,
+  "known": "3a0408011000",
+  "all": "3a0408011000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a09090100000000000000",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a0409010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020a00",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a030a0101",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020b0c",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a010b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a010c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a050d01000000",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a030d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a020f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021001",
+  "accepted": true,
+  "known": "3a0408001001",
+  "all": "3a0408001001"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021080",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a09110100000000000000",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a0411010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021200",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a03120101",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021201",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021314",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a0113",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a0114",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a051501000000",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a03150100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021601",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021701",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021801",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021880",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a09190100000000000000",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a0419010000",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021a00",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a031a0101",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021a01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021b1c",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a011b",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a011c",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a051d01000000",
+  "accepted": true,
+  "known": "3a0408001000",
+  "all": "3a0408001000"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a031d0100",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021e01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ },
+ {
+  "message": "wiretypes.v1.Base",
+  "input": "3a021f01",
+  "accepted": false,
+  "error": "proto: cannot parse invalid wire-format data"
+ }
+]

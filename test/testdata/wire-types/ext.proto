@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
+// What conf.proto cannot hold, for test/pb_wire_type_test.dart: an enum, a
+// group, extensions, and a map with a 64-bit key and an enum value, which
+// package:protobuf reads by the same wire-type rule as any other field.
+
+syntax = "proto2";
+
+package wiretypes.v1;
+
+enum Color {
+  COLOR_UNSPECIFIED = 0;
+  COLOR_RED = 1;
+}
+
+message Base {
+  optional Color color = 1;
+  repeated Color colors = 2;
+  optional group Grp = 3 {
+    optional int64 v = 4;
+  }
+  optional fixed64 f64 = 5;
+  map<int64, Color> em = 7;
+  extensions 100 to 199;
+}
+
+extend Base {
+  optional int64 e64 = 100;
+  optional Base sub = 101;
+  repeated Base subs = 102;
+}
