@@ -15,7 +15,7 @@ import 'format.dart' show quotePxfString;
 import 'keyed.dart';
 import 'lexer.dart';
 import 'options.dart';
-import 'parser.dart' show Parser;
+import 'parser.dart' show Parser, protoSourceNotTriple;
 import 'result.dart';
 import 'schema.dart';
 import 'token.dart';
@@ -339,6 +339,9 @@ class DirectDecoder {
           body: body,
         );
       case TokenKind.string:
+        if (!current.triple) {
+          throw PxfError(current.pos, protoSourceNotTriple);
+        }
         final bytes = Uint8List.fromList(utf8.encode(current.value));
         _advance();
         return ProtoDirective(

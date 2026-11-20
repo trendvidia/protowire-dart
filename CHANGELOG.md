@@ -25,6 +25,14 @@ format changes.
   (protowire-go#303). A document whose only
   directive is `@type` formats as before. Comments after the last row or
   entry are kept, as protowire-go keeps them.
+- **A `@proto` source body must be triple-quoted** (#102, protowire-go#305,
+  decided 2026-11-19). `parse` and `unmarshal` read a simple-quoted
+  `@proto "…"` as a source body, which the grammar does not admit
+  (`proto_source_body = triple_string`). Its escapes could put `"""` in the
+  body, and no triple-quoted string can carry that back. Now it is refused
+  with `1:8: @proto source body must be a triple-quoted string ("""...""")`,
+  protowire-go's text. The triple-quoted form, on one line or across lines,
+  and the descriptor form `@proto b"…"` still read.
 - **`marshal` writes text as protowire-go writes it** (#85, found by the
   spec's text gate, protowire#503):
   - A `uint64` or `fixed64` is written unsigned. `2^64-1` used to come out as
