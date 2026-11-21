@@ -17,6 +17,11 @@ import 'duration.dart';
 /// HARDENING.md § Recursion — see decode.dart for the cross-port rationale.
 const int _maxNestingDepth = 100;
 
+/// Refuses a `@proto` source body written as a simple-quoted string (#102).
+/// The text is protowire-go's (protowire-go#305).
+const String protoSourceNotTriple =
+    '@proto source body must be a triple-quoted string ("""...""")';
+
 class Parser {
   final Lexer lex;
   late Token current;
@@ -344,6 +349,13 @@ class Parser {
           end,
         );
       case TokenKind.string:
+        // Source: @proto """<proto-source>""". The grammar admits only the
+        // triple-quoted form (proto_source_body = triple_string), and a
+        // simple-quoted body could carry """ through its escapes, which no
+        // formatter can write back (#102, protowire-go#305).
+        if (!current.triple) {
+          throw PxfError(current.pos, protoSourceNotTriple);
+        }
         final bytes = Uint8List.fromList(utf8.encode(current.value));
         _advance();
         final end = lex.pos;

@@ -13,6 +13,26 @@ format changes.
 
 ### Changed
 
+- **`formatPxf` keeps every directive** (#94, protowire#558). It used to
+  refuse any document with a `@dataset`, `@proto` or named directive such as
+  `@entry`, with "formatting a document with directives is unsupported". It
+  now writes them all, in document order, as protowire-go writes them:
+  `@type` first, then the other directives in source order, each after its
+  comments. A dataset is its header and then one row per line, an absent
+  cell left empty and `null` written. A named directive's body and a
+  `@proto` body are written as they were read, a triple-quoted `@proto` with
+  its `"""` on lines of their own so the body reads back byte for byte
+  (protowire-go#303). A document whose only
+  directive is `@type` formats as before. Comments after the last row or
+  entry are kept, as protowire-go keeps them.
+- **A `@proto` source body must be triple-quoted** (#102, protowire-go#305,
+  decided 2026-11-19). `parse` and `unmarshal` read a simple-quoted
+  `@proto "…"` as a source body, which the grammar does not admit
+  (`proto_source_body = triple_string`). Its escapes could put `"""` in the
+  body, and no triple-quoted string can carry that back. Now it is refused
+  with `1:8: @proto source body must be a triple-quoted string ("""...""")`,
+  protowire-go's text. The triple-quoted form, on one line or across lines,
+  and the descriptor form `@proto b"…"` still read.
 - **`marshal` writes text as protowire-go writes it** (#85, found by the
   spec's text gate, protowire#503):
   - A `uint64` or `fixed64` is written unsigned. `2^64-1` used to come out as

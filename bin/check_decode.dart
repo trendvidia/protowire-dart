@@ -8,7 +8,7 @@
 //
 // Contract:
 //
-//   check_decode --format <pxf|pxf-pb|pb|pb-render|pb-text|sbe|envelope> \
+//   check_decode --format <pxf|pxf-pb|pxf-fmt|pb|pb-render|pb-text|sbe|envelope> \
 //                --schema <fully.qualified.MessageType> \
 //                --proto  <path-to-adversarial.proto> \
 //                --input  <path> \
@@ -28,8 +28,13 @@
 // (protowire/scripts/cross_write_check.sh). The schema's annotations come
 // from the `.binpb` beside --proto, as for sbe.
 //
+// pxf-fmt parses a PXF document with no schema and writes what `formatPxf`
+// makes of it on stdout, for the format gate
+// (protowire/scripts/cross_fmt_check.sh). It needs no --schema or --proto.
+//
 //   Exit 0 → input was accepted (decode succeeded)
 //   Exit 1 → input was rejected (clean error; "reject: <msg>" on stderr)
+//   Exit 2 → the harness cannot judge the row (bad flags)
 //   Other  → bug in the decoder (uncaught exception, stack overflow, ...)
 //
 // The Dart port's PXF + PB decoders consume `GeneratedMessage` instances
@@ -91,7 +96,10 @@ void main(List<String> args) async {
     }
   }
 
-  if (format == null || schema == null || input == null) {
+  // Formatting reads no schema, so pxf-fmt alone may leave --schema out.
+  if (format == null ||
+      (schema == null && format != 'pxf-fmt') ||
+      input == null) {
     stderr.writeln(
         'usage: check_decode --format ... --schema ... --input ... [--proto ...]');
     exit(2);
@@ -105,7 +113,7 @@ void main(List<String> args) async {
       maxRepeatedCount:
           overrides['MaxRepeatedCount'] ?? pw.defaultMaxMessageSize,
     );
-    await _run(format, schema, proto, input, limits);
+    await _run(format, schema ?? '', proto, input, limits);
     exit(0);
   } on _Reject catch (e) {
     stderr.writeln('reject: ${e.message}');
@@ -136,6 +144,10 @@ Future<void> _run(String format, String schema, String? protoPath, String input,
     case 'pxf-pb':
       final doc = await File(input).readAsString();
       stdout.add(_pxfPb(doc, schema, protoPath, limits));
+      await stdout.flush();
+    case 'pxf-fmt':
+      final bytes = await File(input).readAsBytes();
+      stdout.add(_pxfFmt(bytes));
       await stdout.flush();
     case 'pb':
       final bytes = await File(input).readAsBytes();
@@ -177,6 +189,14 @@ List<int> _pxfPb(
   _sortMaps(msg);
   return msg.writeToBuffer();
 }
+
+/// The formatted document, as protowire-go's check-decode writes it with
+/// `pxf.FormatDocument` (protowire#584). Formatting works on the parsed
+/// document, not a message, so it keeps comments, directives and dataset rows
+/// and needs no schema. A document that is not UTF-8 or does not parse is a
+/// rejection.
+List<int> _pxfFmt(Uint8List bytes) =>
+    utf8.encode(pw.formatPxf(utf8.decode(bytes)));
 
 /// The PXF protowire-go's check-decode writes for a message's PB bytes: read
 /// with the stock runtime, written with the schema's annotations, which
