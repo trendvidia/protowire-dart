@@ -479,9 +479,7 @@ void main() {
       expect(formatPxf(doc), doc.replaceFirst('"n": 3', 'n: 3'));
     });
 
-    test('refuses what it would otherwise drop', () {
-      expect(() => formatPxf('@header x { a = 1 }\nb = 1\n'),
-          pxfError('directives'));
+    test('refuses what it cannot canonicalize', () {
       expect(() => formatPxf('a = 1\n', annotations: ann),
           pxfError('no messageName'));
       expect(() => formatPxf('@type no.Such\n\na = 1\n', annotations: ann),
