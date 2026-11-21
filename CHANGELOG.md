@@ -108,9 +108,36 @@ format changes.
   double"), as draft -01 § Numeric Literals says, instead of reading as
   infinity. A float field rounds to float32 as it reads, so `3.4028235e38` is
   float32's largest value and `1e-46` is zero.
+- **`mergeFromBufferChecked` and `unmarshalNative` read a field only from a
+  tag of its wire type, as protobuf does** (#101, protowire#614), as
+  protowire-go does since protowire-go#308. package:protobuf reads a singular
+  number, bool or enum from a length-delimited record as if it were packed,
+  so `0a0101` on an `int64` read the length byte as the value 1 and then
+  refused the next byte as "an invalid tag (zero)". Now a known field whose
+  wire type does not match its type is an unknown field: skipped by its wire
+  type, kept in the message's unknown fields and written back, and the field
+  left as it was. Wire type 6 or 7 is refused on any field. A repeated number
+  still reads both its own wire type and the packed form. Map entries, groups,
+  extensions and the `BigInt`, `Decimal` and `BigFloat` messages follow the
+  same rule. **This accepts messages that were refused before, and refuses
+  some that were accepted**, such as a length-delimited record on a singular
+  `int64` inside a group whose length runs past the group's end. A field that
+  cannot be skipped is refused in protowire-go's words: `corrupt field 1:
+  proto: cannot parse reserved wire type`, `corrupt field 1: unexpected EOF`,
+  `corrupt field 3 in map entry: ...`, `corrupt field 1 in BigInt: ...`. A
+  length-delimited field's length is read as protobuf reads it, all 64 bits,
+  where package:protobuf kept its low 32. Every verdict and value matches
+  protobuf-go's on 1040 inputs (test/pb_wire_type_test.dart).
 
 ### Fixed
 
+- **A map entry without its 64-bit key or value reads as zero** in
+  `mergeFromBufferChecked`, as protobuf reads it. On a generated message, a
+  `map<string, int64>` entry holding only its key threw a `TypeError`, though
+  the bytes are well formed: package:protobuf stores the `int` 0 for an
+  absent `int64`, `uint64`, `sint64`, `fixed64` or `sfixed64` key or value,
+  and its typed map refuses it. A key or value on another wire type is absent
+  too, since #101.
 - **`registerFromDescriptorSet` gives each composite field its own
   `(sbe.length)` and `(sbe.encoding)`** (#87). Overrides were one map keyed by
   field number for the whole template, and a top-level composite's options
