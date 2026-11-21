@@ -109,7 +109,11 @@ class Token {
   /// The digits of a number's precision suffix, `53` of `1.5p53`.
   final String? prec;
 
-  Token(this.kind, this.value, this.pos, {this.prec});
+  /// Whether a [TokenKind.string] was written triple-quoted. Its [value]
+  /// cannot tell: both string forms lex to [TokenKind.string].
+  final bool triple;
+
+  Token(this.kind, this.value, this.pos, {this.prec, this.triple = false});
 
   /// The token as written, precision suffix included.
   String get text => prec == null ? value : '${value}p$prec';
